@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeSensitive } from "@/lib/security/sensitiveInvoke";
+import { useStepUpMfa } from "@/hooks/useStepUpMfa";
 import SEOHead from "@/components/SEOHead";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -122,14 +124,27 @@ export default function AdminContentReportsPage() {
     staleTime: 30 * 1000,
   });
 
+  // admin-content-report-status is enforceAal2-gated: it answers
+  // 403 {"code":"mfa_required"} to any session below AAL2. Nothing here asked
+  // for a step-up, so the 403 would arrive as supabase-js's generic "Edge
+  // Function returned a non-2xx status code" and the admin would see that as
+  // "Update failed" with no way forward. invokeSensitive catches that code,
+  // runs the challenge, and retries.
+  const { ensureAal2, dialog: mfaDialog } = useStepUpMfa();
+
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: ReportStatus }) => {
-      const { error } = await supabase.functions.invoke("admin-content-report-status", {
-        body: {
-          report_id: id,
-          status,
+      const { error } = await invokeSensitive<{ error?: string }>(
+        "admin-content-report-status",
+        {
+          body: {
+            report_id: id,
+            status,
+          },
         },
-      });
+        ensureAal2,
+        "Confirm review decision",
+      );
       if (error) throw error;
     },
     onSuccess: () => {
@@ -152,6 +167,8 @@ export default function AdminContentReportsPage() {
   ];
 
   return (
+    <>
+    {mfaDialog}
     <div className="min-h-dvh bg-background pb-24">
       <SEOHead title="Content Reports — Admin · ZIVO" description="Moderation queue for content reports." noIndex />
 
@@ -306,5 +323,6 @@ export default function AdminContentReportsPage() {
         )}
       </div>
     </div>
+    </>
   );
 }

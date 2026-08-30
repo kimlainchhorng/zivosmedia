@@ -5,6 +5,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeSensitive } from "@/lib/security/sensitiveInvoke";
+import { useStepUpMfa } from "@/hooks/useStepUpMfa";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +59,15 @@ export default function DriverPayoutsPage() {
   const [savingAba, setSavingAba] = useState(false);
   const [defaultingAbaId, setDefaultingAbaId] = useState<string | null>(null);
   const [deletingAbaId, setDeletingAbaId] = useState<string | null>(null);
+
+  // customer-payout-method-record is enforceAal2-gated: it answers
+  // 403 {"code":"mfa_required"} to any session below AAL2. Nothing here asked
+  // for a step-up, so the 403 would arrive as supabase-js's generic "Edge
+  // Function returned a non-2xx status code" and the driver would just see
+  // "Could not save ABA payout account" with no way forward. invokeSensitive
+  // catches that code, runs the challenge, and retries; with no factor
+  // enrolled the hook says so and points at Account Security.
+  const { ensureAal2, dialog: mfaDialog } = useStepUpMfa();
 
   const refresh = async () => {
     setLoading(true);
@@ -126,22 +137,27 @@ export default function DriverPayoutsPage() {
       if (!authData.user) throw new Error("Sign in required");
 
       const shouldDefault = abaMethods.length === 0 || abaForm.is_default;
-      const { data, error } = await supabase.functions.invoke("customer-payout-method-record", {
-        body: {
-          action: "create",
-          method_type: "aba",
-          rail: "aba",
-          country_code: "KH",
-          label: label || "ABA Account",
-          bank_name: "ABA Bank",
-          account_holder_name: holderName,
-          aba_account_id: accountId,
-          is_default: shouldDefault,
+      const { data, error } = await invokeSensitive<{ error?: string }>(
+        "customer-payout-method-record",
+        {
+          body: {
+            action: "create",
+            method_type: "aba",
+            rail: "aba",
+            country_code: "KH",
+            label: label || "ABA Account",
+            bank_name: "ABA Bank",
+            account_holder_name: holderName,
+            aba_account_id: accountId,
+            is_default: shouldDefault,
+          },
+          headers: {
+            "Idempotency-Key": `driver-aba-payout-method-${authData.user.id}-${crypto.randomUUID()}`,
+          },
         },
-        headers: {
-          "Idempotency-Key": `driver-aba-payout-method-${authData.user.id}-${crypto.randomUUID()}`,
-        },
-      });
+        ensureAal2,
+        "Confirm payout method",
+      );
       if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message || "Could not save ABA payout account");
 
       toast.success("ABA payout account saved");
@@ -162,9 +178,12 @@ export default function DriverPayoutsPage() {
       if (authError) throw authError;
       if (!authData.user) throw new Error("Sign in required");
 
-      const { data, error } = await supabase.functions.invoke("customer-payout-method-record", {
-        body: { action: "set_default", method_id: id },
-      });
+      const { data, error } = await invokeSensitive<{ error?: string }>(
+        "customer-payout-method-record",
+        { body: { action: "set_default", method_id: id } },
+        ensureAal2,
+        "Confirm payout method",
+      );
       if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message || "Could not update default payout account");
 
       toast.success("Default ABA payout account updated");
@@ -184,9 +203,12 @@ export default function DriverPayoutsPage() {
         ? abaMethods.find((method) => method.id !== id)
         : null;
 
-      const { data, error } = await supabase.functions.invoke("customer-payout-method-record", {
-        body: { action: "delete", method_id: id },
-      });
+      const { data, error } = await invokeSensitive<{ error?: string }>(
+        "customer-payout-method-record",
+        { body: { action: "delete", method_id: id } },
+        ensureAal2,
+        "Confirm payout method",
+      );
       if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message || "Could not remove payout account");
 
       if (replacementDefault) await makeDefaultAbaMethod(replacementDefault.id);
@@ -201,6 +223,8 @@ export default function DriverPayoutsPage() {
   };
 
   return (
+    <>
+    {mfaDialog}
     <div className="container max-w-2xl py-6 space-y-4 safe-area-top">
       <header>
         <h1 className="text-2xl font-semibold">Payouts</h1>
@@ -385,5 +409,6 @@ export default function DriverPayoutsPage() {
         </CardContent>
       </Card>
     </div>
+    </>
   );
 }

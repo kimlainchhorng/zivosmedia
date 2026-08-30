@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { serverGatedInvoke } from "./serverGatedInvoke";
 
 const root = process.cwd();
 
@@ -14,7 +15,7 @@ describe("merchant payout owner ops access", () => {
 
     expect(walletPage).toContain('.eq("owner_id", user.id)');
     expect(walletPage).toContain('.eq("store_id", store.id)');
-    expect(walletPage).toContain('supabase.functions.invoke("merchant-payout-request"');
+    expect(walletPage).toMatch(serverGatedInvoke("merchant-payout-request"));
     expect(walletPage).toContain('"Idempotency-Key"');
     expect(walletPage).not.toContain('.from("merchant_payouts").insert');
 

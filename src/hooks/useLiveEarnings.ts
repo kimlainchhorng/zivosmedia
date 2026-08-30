@@ -6,6 +6,7 @@
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeSensitive } from "@/lib/security/sensitiveInvoke";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -126,7 +127,26 @@ export function useLiveEarnings() {
   };
 }
 
-export function useRequestLiveEarningsPayout() {
+/**
+ * creator-payout-request is enforceAal2-gated — it answers
+ * 403 {"code":"mfa_required"} to any session below AAL2, and a password-only
+ * session is aal1. Called plainly, that reaches the creator as supabase-js's
+ * "Edge Function returned a non-2xx status code" and the payout button does
+ * nothing useful.
+ *
+ * `ensureAal2` is a parameter rather than a useStepUpMfa() call in here,
+ * because the challenge needs its dialog rendered in the component's own tree.
+ * Callers do:
+ *
+ *   const { ensureAal2, dialog } = useStepUpMfa();
+ *   const requestPayout = useRequestLiveEarningsPayout(ensureAal2);
+ *   return <>{dialog}...</>;
+ *
+ * Optional so an existing caller keeps compiling unchanged.
+ */
+export function useRequestLiveEarningsPayout(
+  ensureAal2?: (label?: string) => Promise<boolean>,
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { amount_cents: number; method?: string; reference_id?: string }) => {
@@ -134,14 +154,19 @@ export function useRequestLiveEarningsPayout() {
       // and (b) pings finance via Telegram so ops actually processes it.
       // Without this, requests sat in creator_payouts as 'pending' forever.
       const idempotencyKey = `creator-payout-${crypto.randomUUID()}`;
-      const { data, error } = await supabase.functions.invoke("creator-payout-request", {
+      const opts = {
         headers: { "Idempotency-Key": idempotencyKey },
         body: {
           amount_cents: params.amount_cents,
           method: params.method ?? "bank_transfer",
           reference_id: params.reference_id ?? null,
         },
-      });
+      };
+      const { data, error } = ensureAal2
+        ? await invokeSensitive<{ error?: string; payout_id: string }>(
+            "creator-payout-request", opts, ensureAal2, "Authorize payout request",
+          )
+        : await supabase.functions.invoke("creator-payout-request", opts);
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       return (data as { payout_id: string }).payout_id;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 
 /**
  * A `functions.invoke("x")` for a function that is not there fails at runtime
@@ -86,6 +86,11 @@ function invokedFunctions(): Map<string, Set<string>> {
   const found = new Map<string, Set<string>>();
   for (const file of walk(resolve(repoRoot, "src"))) {
     if (!/\.tsx?$/.test(file) || /\.test\./.test(file)) continue;
+    // Skip src/test entirely, not just *.test.*: helpers and fixtures there
+    // quote call shapes in prose and in regex literals. src/test/serverGatedInvoke.ts
+    // documents itself with `functions.invoke("fn")` and this scanner dutifully
+    // reported a missing edge function named "fn".
+    if (file.includes(`${sep}test${sep}`)) continue;
     const text = readFileSync(file, "utf8");
     for (const m of text.matchAll(INVOKE)) {
       const callers = found.get(m[1]) ?? new Set<string>();

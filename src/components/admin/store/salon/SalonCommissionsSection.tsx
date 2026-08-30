@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, Banknote, AlertCircle, Download } from "lucide-react";
 import { toast } from "sonner";
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+import { invokeSensitive } from "@/lib/security/sensitiveInvoke";
+import { useStepUpMfa } from "@/hooks/useStepUpMfa";
 const supabase: any = _supabaseTyped;
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -141,6 +143,15 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
     });
   };
 
+  // salon-commission-payout-record is enforceAal2-gated for both actions
+  // (create and delete — the gate sits above the action branch): it answers
+  // 403 {"code":"mfa_required"} to any session below AAL2. Nothing here asked
+  // for a step-up, so that 403 would reach the owner as supabase-js's generic
+  // "Edge Function returned a non-2xx status code" with no way forward.
+  // invokeSensitive catches the code, runs the challenge, and retries; with no
+  // factor enrolled the hook says so and points at Account Security.
+  const { ensureAal2, dialog: mfaDialog } = useStepUpMfa();
+
   /** Confirm the dialog → insert the payout row. Duplicate check guards
    *  against accidental double-clicks on the same period. */
   const submitMarkPaid = async () => {
@@ -163,22 +174,27 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
     setPayingStylistId(totals.stylistId);
     const cleanReference = reference.trim().slice(0, 200);
     const cleanNotes = notes.trim().slice(0, 500);
-    const { data, error: err } = await supabase.functions.invoke("salon-commission-payout-record", {
-      body: {
-        action: "create",
-        store_id: storeId,
-        stylist_id: totals.stylistId,
-        period_from: from,
-        period_to: to,
-        total_paid_cents: payout,
-        method,
-        reference: cleanReference || null,
-        notes: cleanNotes || null,
+    const { data, error: err } = await invokeSensitive<{ error?: string }>(
+      "salon-commission-payout-record",
+      {
+        body: {
+          action: "create",
+          store_id: storeId,
+          stylist_id: totals.stylistId,
+          period_from: from,
+          period_to: to,
+          total_paid_cents: payout,
+          method,
+          reference: cleanReference || null,
+          notes: cleanNotes || null,
+        },
+        headers: {
+          "Idempotency-Key": `salon-commission-payout-${storeId}-${totals.stylistId}-${from}-${to}-${payout}`,
+        },
       },
-      headers: {
-        "Idempotency-Key": `salon-commission-payout-${storeId}-${totals.stylistId}-${from}-${to}-${payout}`,
-      },
-    });
+      ensureAal2,
+      "Confirm commission payout",
+    );
     setPayingStylistId(null);
     if (err || data?.error) {
       toast.error(`Couldn't record payout: ${data?.error || err?.message}`);
@@ -191,9 +207,12 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
 
   const removePayout = async (id: string) => {
     if (!window.confirm("Delete this payout record? (This doesn't undo the actual payment — just removes the log entry.)")) return;
-    const { data, error: err } = await supabase.functions.invoke("salon-commission-payout-record", {
-      body: { action: "delete", payout_id: id },
-    });
+    const { data, error: err } = await invokeSensitive<{ error?: string }>(
+      "salon-commission-payout-record",
+      { body: { action: "delete", payout_id: id } },
+      ensureAal2,
+      "Confirm commission payout",
+    );
     if (err || data?.error) { toast.error(data?.error || err?.message); return; }
     toast.success("Removed.");
     await loadPayouts();
@@ -270,6 +289,8 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
   }, [totalsByStylist]);
 
   return (
+    <>
+    {mfaDialog}
     <div className="space-y-4">
       {error && (
         <div className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/8 p-3 text-sm text-destructive">
@@ -574,6 +595,7 @@ export default function SalonCommissionsSection({ storeId }: SalonCommissionsSec
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }
 

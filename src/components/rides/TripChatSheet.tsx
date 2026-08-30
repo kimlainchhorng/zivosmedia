@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, ShieldAlert, Clock, ShieldCheck, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeSensitive } from "@/lib/security/sensitiveInvoke";
+import { useStepUpMfa } from "@/hooks/useStepUpMfa";
 import { useAuth } from "@/contexts/AuthContext";
 import { sanitizeOutgoingMessage, assessChatMessageRisk } from "@/lib/security/chatContentSafety";
 import { toast } from "sonner";
@@ -142,11 +144,23 @@ export default function TripChatSheet({ open, onOpenChange, rideRequestId, count
     supabase.functions.invoke("moderate-trip-message", { body: { message_id: data.id } }).catch(() => {});
   };
 
+  // admin-moderate-message is enforceAal2-gated: it answers
+  // 403 {"code":"mfa_required"} to any session below AAL2. Nothing here asked
+  // for a step-up, so the 403 arrived as supabase-js's generic "Edge Function
+  // returned a non-2xx status code" and the admin saw "Failed to update" with
+  // no way forward. invokeSensitive catches that code, runs the challenge, and
+  // retries; with no factor enrolled the hook says so and points at Account
+  // Security.
+  const { ensureAal2, dialog: mfaDialog } = useStepUpMfa();
+
   const moderate = async (id: string, decision: "clean" | "blocked") => {
     setModeratingId(id);
-    const { error } = await supabase.functions.invoke("admin-moderate-message", {
-      body: { message_id: id, decision },
-    });
+    const { error } = await invokeSensitive<{ error?: string }>(
+      "admin-moderate-message",
+      { body: { message_id: id, decision } },
+      ensureAal2,
+      "Confirm moderation",
+    );
     setModeratingId(null);
     if (error) { toast.error("Failed to update"); return; }
     toast.success(decision === "clean" ? "Message approved" : "Message blocked");
@@ -164,6 +178,8 @@ export default function TripChatSheet({ open, onOpenChange, rideRequestId, count
   };
 
   return (
+    <>
+    {mfaDialog}
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="h-[80vh] p-0 flex flex-col">
         <SheetHeader className="px-4 py-3 border-b border-border/30 flex flex-row items-center justify-between gap-2 space-y-0">
@@ -250,5 +266,6 @@ export default function TripChatSheet({ open, onOpenChange, rideRequestId, count
         )}
       </SheetContent>
     </Sheet>
+    </>
   );
 }

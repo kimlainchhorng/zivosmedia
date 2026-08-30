@@ -21,6 +21,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeSensitive } from "@/lib/security/sensitiveInvoke";
+import { useStepUpMfa } from "@/hooks/useStepUpMfa";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConnectStatus, useConnectOnboard } from "@/hooks/useStripeConnect";
 import { getAvailableRails, normalizeCountry, recommendedRail, RAIL_DESCRIPTIONS, type PayoutRail } from "@/lib/payouts/payoutRails";
@@ -111,11 +113,21 @@ export default function LodgingPayoutAccountCard({ storeId, storeCountry }: Prop
     });
   };
 
+  // customer-payout-method-record is enforceAal2-gated: it answers
+  // 403 {"code":"mfa_required"} to any session below AAL2. Nothing here asked
+  // for a step-up, so that 403 reached the host as supabase-js's generic "Edge
+  // Function returned a non-2xx status code" and the delete just failed with no
+  // way forward. invokeSensitive catches the code, runs the challenge, retries.
+  const { ensureAal2, dialog: mfaDialog } = useStepUpMfa();
+
   const removeMethod = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await supabase.functions.invoke("customer-payout-method-record", {
-        body: { action: "delete", method_id: id },
-      });
+      const { data, error } = await invokeSensitive<{ error?: string }>(
+        "customer-payout-method-record",
+        { body: { action: "delete", method_id: id } },
+        ensureAal2,
+        "Confirm payout method",
+      );
       if (error || (data as any)?.error) {
         throw new Error((data as any)?.error || error?.message || "Failed to remove payout method");
       }
@@ -132,6 +144,8 @@ export default function LodgingPayoutAccountCard({ storeId, storeCountry }: Prop
   const anyConfigured = stripeReady || anyManualReady;
 
   return (
+    <>
+    {mfaDialog}
     <div className="rounded-lg border border-border bg-card p-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -228,6 +242,7 @@ export default function LodgingPayoutAccountCard({ storeId, storeCountry }: Prop
         </p>
       )}
     </div>
+    </>
   );
 }
 
@@ -255,6 +270,11 @@ function ManualMethodForm({
   const ownMethods = methods.filter((m) => (m.rail || mapMethodTypeToRail(m.method_type)) === rail);
 
   const reset = () => { setForm({ label: "", account_holder_name: "", bank_name: "", account_number: "", aba_account_id: "", paypal_email: "", swift: "" }); setConfirmed(false); };
+
+  // Same enforceAal2 gate as the delete above — saving a payout method 403s
+  // with {"code":"mfa_required"} for any session below AAL2, so this form needs
+  // its own step-up challenge too.
+  const { ensureAal2, dialog: mfaDialog } = useStepUpMfa();
 
   const save = useMutation({
     mutationFn: async () => {
@@ -290,12 +310,17 @@ function ManualMethodForm({
         verification_note: rail === "bank_wire" && form.swift ? `SWIFT/BIC: ${form.swift}` : null,
         is_default: methods.length === 0,
       };
-      const { data, error } = await supabase.functions.invoke("customer-payout-method-record", {
-        body: payload,
-        headers: {
-          "Idempotency-Key": `store-payout-method-${storeId}-${rail}-${crypto.randomUUID()}`,
+      const { data, error } = await invokeSensitive<{ error?: string }>(
+        "customer-payout-method-record",
+        {
+          body: payload,
+          headers: {
+            "Idempotency-Key": `store-payout-method-${storeId}-${rail}-${crypto.randomUUID()}`,
+          },
         },
-      });
+        ensureAal2,
+        "Confirm payout method",
+      );
       if (error || (data as any)?.error) {
         throw new Error((data as any)?.error || error?.message || "Could not save payout method");
       }
@@ -310,6 +335,8 @@ function ManualMethodForm({
   });
 
   return (
+    <>
+    {mfaDialog}
     <div className="space-y-2">
       {ownMethods.length > 0 && (
         <ul className="space-y-1.5">
@@ -391,6 +418,7 @@ function ManualMethodForm({
         </div>
       )}
     </div>
+    </>
   );
 }
 

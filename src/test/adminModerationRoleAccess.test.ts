@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { serverGatedInvoke } from "./serverGatedInvoke";
 
 const root = process.cwd();
 
@@ -22,10 +23,10 @@ describe("admin moderation role access", () => {
     expect(app).toContain('path="/admin/content-reports" element={<ProtectedRoute requireAdmin={true}>');
 
     expect(moderationPage).toContain('.from("content_moderation_queue")');
-    expect(moderationPage).toContain('supabase.functions.invoke("admin-moderation-review"');
+    expect(moderationPage).toMatch(serverGatedInvoke("admin-moderation-review"));
     expect(moderationPage).not.toContain('.from("content_moderation_queue")\n    .update');
     expect(contentReportsPage).toContain('.from("content_reports")');
-    expect(contentReportsPage).toContain('supabase.functions.invoke("admin-content-report-status"');
+    expect(contentReportsPage).toMatch(serverGatedInvoke("admin-content-report-status"));
 
     expect(moderationFunction).toContain('withSecurity("admin-moderation-review"');
     expect(moderationFunction).toContain('allowedMethods: ["POST"]');

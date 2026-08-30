@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { serverGatedInvoke } from "./serverGatedInvoke";
 
 const root = process.cwd();
 
@@ -135,12 +136,12 @@ describe("payout authorization and ledger contracts", () => {
       "src/components/admin/store/lodging/LodgingPayoutAccountCard.tsx",
     ]) {
       const text = source(relativePath);
-      expect(text).toContain("supabase.functions.invoke(\"customer-payout-method-record\"");
+      expect(text).toMatch(serverGatedInvoke("customer-payout-method-record"));
       expect(text).not.toMatch(/from\(["']customer_payout_methods["']\)[\s\S]{0,80}\.(insert|update|delete)/);
     }
 
     const paypalHook = source("src/hooks/usePayPalPayout.ts");
-    expect(paypalHook).toContain("supabase.functions.invoke(\"creator-payout-method-record\"");
+    expect(paypalHook).toMatch(serverGatedInvoke("creator-payout-method-record"));
     expect(paypalHook).toContain("\"Idempotency-Key\": idempotencyKey");
     expect(paypalHook).not.toMatch(/from\("creator_profiles"\)[\s\S]{0,240}\.(insert|update)/);
   });

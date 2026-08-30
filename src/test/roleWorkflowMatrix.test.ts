@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { serverGatedInvoke } from "./serverGatedInvoke";
 
 const root = process.cwd();
 
@@ -112,7 +113,7 @@ describe("role workflow matrix", () => {
       "driver-connect-onboard",
       "customer-payout-method-record",
     ]) {
-      expect(driverPayouts).toContain(`supabase.functions.invoke("${fn}"`);
+      expect(driverPayouts).toMatch(serverGatedInvoke(fn));
     }
     expect(adminDriverPayouts).toContain('supabase.functions.invoke("resolve-driver-earning-payout"');
     expect(resolveDriverPayout).toContain('withSecurity("resolve-driver-earning-payout"');

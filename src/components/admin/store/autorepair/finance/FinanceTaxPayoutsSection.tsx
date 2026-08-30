@@ -4,6 +4,8 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeSensitive } from "@/lib/security/sensitiveInvoke";
+import { useStepUpMfa } from "@/hooks/useStepUpMfa";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +29,13 @@ export default function FinanceTaxPayoutsSection({ storeId }: Props) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ payout_date: ymdLocal(new Date()), amount: "", source: "Bank deposit", reference: "" });
+
+  // ar-payout-record is enforceAal2-gated: it answers 403
+  // {"code":"mfa_required"} to any session below AAL2. A plain invoke surfaced
+  // that as supabase-js's generic "Edge Function returned a non-2xx status
+  // code", so recording or deleting a payout just failed with no way forward.
+  // invokeSensitive catches the code, runs the challenge, and retries.
+  const { ensureAal2, dialog: mfaDialog } = useStepUpMfa();
 
   const { data: invoices = [] } = useQuery({
     queryKey: ["ar-fin-tax-invoices", storeId],
@@ -52,7 +61,7 @@ export default function FinanceTaxPayoutsSection({ storeId }: Props) {
     mutationFn: async () => {
       const cents = Math.round((parseFloat(form.amount) || 0) * 100);
       if (cents <= 0) throw new Error("Amount must be greater than zero");
-      const { data, error } = await supabase.functions.invoke("ar-payout-record", {
+      const { data, error } = await invokeSensitive<{ error?: string }>("ar-payout-record", {
         body: {
           action: "create",
           store_id: storeId,
@@ -64,7 +73,7 @@ export default function FinanceTaxPayoutsSection({ storeId }: Props) {
         headers: {
           "Idempotency-Key": `ar-payout-${storeId}-${form.payout_date}-${cents}-${crypto.randomUUID()}`,
         },
-      });
+      }, ensureAal2, "Confirm payout record");
       if (error || (data as any)?.error) {
         throw new Error((data as any)?.error || error?.message || "Failed to record payout");
       }
@@ -80,9 +89,9 @@ export default function FinanceTaxPayoutsSection({ storeId }: Props) {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await supabase.functions.invoke("ar-payout-record", {
+      const { data, error } = await invokeSensitive<{ error?: string }>("ar-payout-record", {
         body: { action: "delete", payout_id: id },
-      });
+      }, ensureAal2, "Confirm payout record");
       if (error || (data as any)?.error) {
         throw new Error((data as any)?.error || error?.message || "Failed to delete payout");
       }
@@ -106,6 +115,8 @@ export default function FinanceTaxPayoutsSection({ storeId }: Props) {
   const totalPayouts = payouts.reduce((s, p: any) => s + (p.amount_cents ?? 0), 0);
 
   return (
+    <>
+    {mfaDialog}
     <div className="space-y-4">
       <Card>
         <CardHeader className="pb-3">
@@ -192,5 +203,6 @@ export default function FinanceTaxPayoutsSection({ storeId }: Props) {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }

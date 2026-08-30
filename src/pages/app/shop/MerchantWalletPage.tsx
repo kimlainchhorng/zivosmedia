@@ -3,6 +3,8 @@
  */
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeSensitive } from "@/lib/security/sensitiveInvoke";
+import { useStepUpMfa } from "@/hooks/useStepUpMfa";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -92,6 +94,15 @@ export default function MerchantWalletPage() {
     .reduce((s: number, p: PayoutRequest) => s + p.amount_cents / 100, 0);
   const availableBalance = totalSales - platformFee - totalPaidOut - pendingPayouts;
 
+  // merchant-payout-request is enforceAal2-gated: it answers
+  // 403 {"code":"mfa_required"} to any session below AAL2. Nothing here asked
+  // for a step-up, so the 403 would arrive as supabase-js's generic "Edge
+  // Function returned a non-2xx status code" and the merchant would see that
+  // as "Payout request failed" with no way forward. invokeSensitive catches
+  // the code, runs the challenge, and retries; with no factor enrolled the
+  // hook says so and points at Account Security.
+  const { ensureAal2, dialog: mfaDialog } = useStepUpMfa();
+
   const requestPayout = useMutation({
     mutationFn: async () => {
       const amount = parseFloat(payoutAmount);
@@ -101,16 +112,21 @@ export default function MerchantWalletPage() {
       if (!store?.id) throw new Error("Store not found");
 
       const amountCents = Math.round(amount * 100);
-      const { data, error } = await supabase.functions.invoke("merchant-payout-request", {
-        body: {
-          store_id: store.id,
-          amount_cents: amountCents,
-          bank_name: bankName.trim(),
+      const { data, error } = await invokeSensitive<{ error?: string }>(
+        "merchant-payout-request",
+        {
+          body: {
+            store_id: store.id,
+            amount_cents: amountCents,
+            bank_name: bankName.trim(),
+          },
+          headers: {
+            "Idempotency-Key": `merchant-payout-${store.id}-${amountCents}-${crypto.randomUUID()}`,
+          },
         },
-        headers: {
-          "Idempotency-Key": `merchant-payout-${store.id}-${amountCents}-${crypto.randomUUID()}`,
-        },
-      });
+        ensureAal2,
+        "Authorize payout request",
+      );
 
       if (error || (data as any)?.error) {
         throw new Error((data as any)?.error || error?.message || "Payout request failed");
@@ -134,6 +150,8 @@ export default function MerchantWalletPage() {
   };
 
   return (
+    <>
+    {mfaDialog}
     <div className="min-h-screen bg-background p-4 pb-24 max-w-lg mx-auto space-y-4 safe-area-top">
       {/* Header */}
       <div className="flex items-center gap-3">
@@ -273,5 +291,6 @@ export default function MerchantWalletPage() {
         </CardContent>
       </Card>
     </div>
+    </>
   );
 }

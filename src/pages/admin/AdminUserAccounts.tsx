@@ -9,6 +9,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserAccess } from "@/hooks/useUserAccess";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeSensitive } from "@/lib/security/sensitiveInvoke";
+import { useStepUpMfa } from "@/hooks/useStepUpMfa";
 import { uploadWithProgress } from "@/utils/uploadWithProgress";
 import ReelThumbnail from "@/components/social/ReelThumbnail";
 import {
@@ -288,6 +290,16 @@ export default function AdminUserAccounts() {
   const isAuthorized =
     access?.isSupport || access?.isAdmin || isPrivilegedEmail;
 
+  // admin-list-created-users, admin-create-user, admin-update-profile and
+  // admin-delete-user are enforceAal2-gated: they answer
+  // 403 {"code":"mfa_required"} to any session below AAL2. Nothing here asked
+  // for a step-up, so the 403 arrived as supabase-js's generic "Edge Function
+  // returned a non-2xx status code" and support staff saw a meaningless error
+  // with no way forward. invokeSensitive catches that code, runs the challenge,
+  // and retries; with no factor enrolled the hook says so and points at
+  // Account Security.
+  const { ensureAal2, dialog: mfaDialog } = useStepUpMfa();
+
   const {
     data: remoteCreatedAccounts = [],
     isSuccess: hasLoadedRemoteCreatedAccounts,
@@ -295,7 +307,12 @@ export default function AdminUserAccounts() {
     queryKey: ["admin-created-accounts", user?.id],
     enabled: !!user && !!isAuthorized,
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("admin-list-created-users");
+      const { data, error } = await invokeSensitive<{ accounts?: Partial<CreatedAccount>[] }>(
+        "admin-list-created-users",
+        {},
+        ensureAal2,
+        "Confirm admin action",
+      );
 
       if (error) throw error;
 
@@ -377,9 +394,12 @@ export default function AdminUserAccounts() {
     const generatedPassword = generatePassword();
 
     try {
-      const { data, error } = await supabase.functions.invoke("admin-create-user", {
-        body: { email: generatedEmail, password: generatedPassword, username: trimmed },
-      });
+      const { data, error } = await invokeSensitive<{ error?: string; user?: { id?: string } }>(
+        "admin-create-user",
+        { body: { email: generatedEmail, password: generatedPassword, username: trimmed } },
+        ensureAal2,
+        "Confirm admin action",
+      );
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -438,16 +458,21 @@ export default function AdminUserAccounts() {
       }
       const base64 = btoa(binary);
 
-      const { data, error } = await supabase.functions.invoke("admin-update-profile", {
-        body: {
-          userId: account.userId,
-          uploadFile: {
-            base64,
-            bucket,
-            contentType: file.type || "image/jpeg",
+      const { data, error } = await invokeSensitive<{ error?: string; uploadedUrl?: string }>(
+        "admin-update-profile",
+        {
+          body: {
+            userId: account.userId,
+            uploadFile: {
+              base64,
+              bucket,
+              contentType: file.type || "image/jpeg",
+            },
           },
         },
-      });
+        ensureAal2,
+        "Confirm admin action",
+      );
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -491,9 +516,12 @@ export default function AdminUserAccounts() {
     if (!account.userId) return;
     const links = account.socialLinks ?? {};
     if (Object.keys(links).length === 0) return;
-    await supabase.functions.invoke("admin-update-profile", {
-      body: { userId: account.userId, socialLinks: links },
-    });
+    await invokeSensitive<{ error?: string }>(
+      "admin-update-profile",
+      { body: { userId: account.userId, socialLinks: links } },
+      ensureAal2,
+      "Confirm admin action",
+    );
   };
 
   const removeSocialLink = (index: number, platform: string) => {
@@ -505,9 +533,12 @@ export default function AdminUserAccounts() {
         const newAcc = { ...acc, socialLinks: updated };
         // Persist removal
         if (acc.userId) {
-          supabase.functions.invoke("admin-update-profile", {
-            body: { userId: acc.userId, socialLinks: updated },
-          });
+          invokeSensitive<{ error?: string }>(
+            "admin-update-profile",
+            { body: { userId: acc.userId, socialLinks: updated } },
+            ensureAal2,
+            "Confirm admin action",
+          );
         }
         return newAcc;
       }),
@@ -521,9 +552,12 @@ export default function AdminUserAccounts() {
     try {
       // Try to delete from Supabase if we have a userId
       if (account.userId) {
-        const { data, error } = await supabase.functions.invoke("admin-delete-user", {
-          body: { userId: account.userId },
-        });
+        const { data, error } = await invokeSensitive<{ error?: string }>(
+          "admin-delete-user",
+          { body: { userId: account.userId } },
+          ensureAal2,
+          "Confirm admin action",
+        );
 
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
@@ -543,6 +577,8 @@ export default function AdminUserAccounts() {
   };
 
   return (
+    <>
+    {mfaDialog}
     <AdminLayout title="User Accounts" brandLabel="ZIVO Support">
       <div className="max-w-2xl space-y-8">
         <div className="bg-card rounded-2xl border border-border/40 p-6">
@@ -648,6 +684,7 @@ export default function AdminUserAccounts() {
         )}
       </div>
     </AdminLayout>
+    </>
   );
 }
 
@@ -712,6 +749,13 @@ function ProfileCard({
   const [loadingComments, setLoadingComments] = useState(false);
   const previewUrlsRef = useRef<string[]>([]);
   const queryClient = useQueryClient();
+
+  // admin-delete-user-post, admin-post-comment, admin-create-user-post and
+  // admin-update-profile are enforceAal2-gated: they answer
+  // 403 {"code":"mfa_required"} to any session below AAL2, which supabase-js
+  // surfaced as a generic non-2xx error with no way forward. invokeSensitive
+  // catches that code, runs the step-up challenge, and retries.
+  const { ensureAal2, dialog: mfaDialog } = useStepUpMfa();
 
   // Cover repositioning
   const [coverRepositioning, setCoverRepositioning] = useState(false);
@@ -801,9 +845,12 @@ function ProfileCard({
   const handleDeletePost = async (postId: string) => {
     setDeletingPostId(postId);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-delete-user-post", {
-        body: { postId },
-      });
+      const { data, error } = await invokeSensitive<{ error?: string }>(
+        "admin-delete-user-post",
+        { body: { postId } },
+        ensureAal2,
+        "Confirm admin action",
+      );
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setSelectedPost(null);
@@ -820,13 +867,21 @@ function ProfileCard({
     if (!selectedPost || !newComment.trim() || !acc.userId) return;
     setSubmittingComment(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-post-comment", {
-        body: {
-          postId: selectedPost.id,
-          userId: acc.userId,
-          content: newComment.trim(),
+      const { data, error } = await invokeSensitive<{
+        error?: string;
+        comment?: { id: string; user_id: string; content: string; created_at: string };
+      }>(
+        "admin-post-comment",
+        {
+          body: {
+            postId: selectedPost.id,
+            userId: acc.userId,
+            content: newComment.trim(),
+          },
         },
-      });
+        ensureAal2,
+        "Confirm admin action",
+      );
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       const comment = data?.comment;
@@ -967,13 +1022,18 @@ function ProfileCard({
         newPostLocation.trim() ? `📍 ${newPostLocation.trim()}` : "",
       ].filter(Boolean).join("\n") || null;
 
-      const { data, error } = await supabase.functions.invoke("admin-create-user-post", {
-        body: {
-          userId: targetUserId,
-          caption: captionWithLocation,
-          files,
+      const { data, error } = await invokeSensitive<{ error?: string }>(
+        "admin-create-user-post",
+        {
+          body: {
+            userId: targetUserId,
+            caption: captionWithLocation,
+            files,
+          },
         },
-      });
+        ensureAal2,
+        "Confirm admin action",
+      );
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -1043,6 +1103,8 @@ function ProfileCard({
   });
 
   return (
+    <>
+    {mfaDialog}
     <div>
       <div
         className="relative"
@@ -1491,9 +1553,12 @@ function ProfileCard({
                 onChange={(e) => onBioChange(index, e.target.value)}
                 onBlur={async () => {
                   if (!acc.userId) return;
-                  await supabase.functions.invoke("admin-update-profile", {
-                    body: { userId: acc.userId, bio: acc.bio },
-                  });
+                  await invokeSensitive<{ error?: string }>(
+                    "admin-update-profile",
+                    { body: { userId: acc.userId, bio: acc.bio } },
+                    ensureAal2,
+                    "Confirm admin action",
+                  );
                 }}
               />
             </div>
@@ -2042,5 +2107,6 @@ function ProfileCard({
 
       </div>
     </div>
+    </>
   );
 }

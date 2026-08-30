@@ -15,6 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeSensitive } from "@/lib/security/sensitiveInvoke";
+import { useStepUpMfa } from "@/hooks/useStepUpMfa";
 import { money } from "./LodgingOperationsShared";
 import { normalizeCountry, RAIL_LABELS, type PayoutRail } from "@/lib/payouts/payoutRails";
 
@@ -65,6 +67,15 @@ export default function LodgingRequestPayoutSheet({ storeId, storeCountry, avail
 
   const eligible = useMemo(() => methods, [methods]);
 
+  // lodge-payout-request is enforceAal2-gated: it answers
+  // 403 {"code":"mfa_required"} to any session below AAL2. Nothing here asked
+  // for a step-up, so the 403 arrived as supabase-js's generic "Edge Function
+  // returned a non-2xx status code" and the host saw "Could not submit payout
+  // request" with no way forward. invokeSensitive catches that code, runs the
+  // challenge, and retries; with no factor enrolled the hook says so and
+  // points at Account Security.
+  const { ensureAal2, dialog: mfaDialog } = useStepUpMfa();
+
   const submit = async () => {
     const amountCents = Math.round(parseFloat(amount || "0") * 100);
     if (!methodId) return toast.error("Pick a payout method");
@@ -73,9 +84,12 @@ export default function LodgingRequestPayoutSheet({ storeId, storeCountry, avail
 
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("lodge-payout-request", {
-        body: { store_id: storeId, payout_method_id: methodId, amount_cents: amountCents, note: note || null },
-      });
+      const { data, error } = await invokeSensitive<{ error?: string }>(
+        "lodge-payout-request",
+        { body: { store_id: storeId, payout_method_id: methodId, amount_cents: amountCents, note: note || null } },
+        ensureAal2,
+        "Authorize payout request",
+      );
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       toast.success("Payout requested", { description: country === "KH" ? "Admin will process via ABA within 1 business day." : "Admin will process within 1–2 business days." });
@@ -90,6 +104,8 @@ export default function LodgingRequestPayoutSheet({ storeId, storeCountry, avail
   };
 
   return (
+    <>
+    {mfaDialog}
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-md">
         <SheetHeader>
@@ -168,5 +184,6 @@ export default function LodgingRequestPayoutSheet({ storeId, storeCountry, avail
         </div>
       </SheetContent>
     </Sheet>
+    </>
   );
 }

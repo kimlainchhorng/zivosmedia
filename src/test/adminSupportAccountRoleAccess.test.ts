@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { serverGatedInvoke } from "./serverGatedInvoke";
 
 const root = process.cwd();
 
@@ -42,7 +43,7 @@ describe("admin support account role access", () => {
       "admin-create-user-post",
       "admin-post-comment",
     ]) {
-      expect(userAccounts).toContain(`supabase.functions.invoke("${fn}"`);
+      expect(userAccounts).toMatch(serverGatedInvoke(fn));
     }
 
     for (const fnSource of [createUser, updateProfile, deleteUser, listUsers]) {

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { serverGatedInvoke } from "./serverGatedInvoke";
 
 const root = process.cwd();
 
@@ -106,7 +107,7 @@ describe("staff and driver role access with retired creator monetization", () =>
       "driver-connect-onboard",
       "customer-payout-method-record",
     ]) {
-      expect(driverPayouts).toContain(`supabase.functions.invoke("${fn}"`);
+      expect(driverPayouts).toMatch(serverGatedInvoke(fn));
     }
 
     for (const needle of [

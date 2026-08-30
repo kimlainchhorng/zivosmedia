@@ -26,6 +26,7 @@ import { CountUp } from "@/components/ui/count-up";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
 import { useLiveEarnings, useRequestLiveEarningsPayout } from "@/hooks/useLiveEarnings";
+import { useStepUpMfa } from "@/hooks/useStepUpMfa";
 import { useGoBack } from "@/hooks/useGoBack";
 
 const QUICK_AMOUNTS = [10, 25, 50, 100];
@@ -38,7 +39,10 @@ export default function CreatorLiveEarningsPage() {
   const navigate = useNavigate();
   const goBack = useGoBack("/");
   const { totals, streams, payouts, isLoading } = useLiveEarnings();
-  const requestPayout = useRequestLiveEarningsPayout();
+  // creator-payout-request requires AAL2; without a step-up prompt its 403
+  // reaches the creator as a generic non-2xx error and the button does nothing.
+  const { ensureAal2, dialog: mfaDialog } = useStepUpMfa();
+  const requestPayout = useRequestLiveEarningsPayout(ensureAal2);
 
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -90,6 +94,8 @@ export default function CreatorLiveEarningsPage() {
   ];
 
   return (
+    <>
+    {mfaDialog}
     <div className="min-h-dvh bg-background pb-28">
       <SEOHead
         title="Live Earnings – ZIVO Creator"
@@ -562,6 +568,7 @@ export default function CreatorLiveEarningsPage() {
 
       <ZivoMobileNav />
     </div>
+  </>
   );
 }
 

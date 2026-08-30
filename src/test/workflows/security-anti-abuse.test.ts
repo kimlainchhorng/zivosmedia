@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { serverGatedInvoke } from "../serverGatedInvoke";
 
 const root = process.cwd();
 
@@ -554,7 +555,7 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(reviewGate).toContain("WITH CHECK (false)");
     expect(reviewGate).toContain("trusted server-side ingestion");
 
-    expect(moderationPage).toContain('functions.invoke("admin-moderation-review"');
+    expect(moderationPage).toMatch(serverGatedInvoke("admin-moderation-review"));
     expect(moderationPage).not.toMatch(/from\("content_moderation_queue"\)[\s\S]{0,220}\.update/);
     expect(moderationPage).not.toMatch(/from\("moderation_actions"\)[\s\S]{0,220}\.insert/);
   });
@@ -584,7 +585,7 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(statusGate).toContain("WITH CHECK (false)");
     expect(statusGate).toContain("trusted server-side ingestion");
 
-    expect(reportsPage).toContain('functions.invoke("admin-content-report-status"');
+    expect(reportsPage).toMatch(serverGatedInvoke("admin-content-report-status"));
     expect(reportsPage).not.toMatch(/from\("content_reports"\)[\s\S]{0,220}\.update/);
   });
 

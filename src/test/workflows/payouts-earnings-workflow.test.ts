@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { serverGatedInvoke } from "../serverGatedInvoke";
 
 const root = process.cwd();
 
@@ -102,7 +103,7 @@ describe("payouts, earnings, and balances workflow", () => {
     expect(merchant).toContain('.from("merchant_payouts")');
     expect(merchant).toContain("availableCents");
     expect(merchant).toContain('"X-Idempotency-Cache"');
-    expect(merchantWallet).toContain('supabase.functions.invoke("merchant-payout-request"');
+    expect(merchantWallet).toMatch(serverGatedInvoke("merchant-payout-request"));
     expect(merchantWallet).toContain('"Idempotency-Key": `merchant-payout-');
     expect(merchantWallet).not.toContain('.from("merchant_payouts").insert');
     expect(merchantPayoutGate).toContain('DROP POLICY IF EXISTS "Merchants can request payouts"');
@@ -130,7 +131,7 @@ describe("payouts, earnings, and balances workflow", () => {
     expect(arPayout).toContain('.from("restaurants")');
     expect(arPayout).toContain('.from("store_profiles")');
     expect(arPayout).toContain('"X-Idempotency-Cache"');
-    expect(arFinance).toContain('supabase.functions.invoke("ar-payout-record"');
+    expect(arFinance).toMatch(serverGatedInvoke("ar-payout-record"));
     expect(arFinance).toContain('"Idempotency-Key": `ar-payout-');
     expect(arFinance).not.toContain('.from("ar_payouts" as any).insert');
     expect(arFinance).not.toContain('.from("ar_payouts" as any).delete');
@@ -147,7 +148,7 @@ describe("payouts, earnings, and balances workflow", () => {
     expect(cafeTipPayout).toContain('.from("cafe_tip_payouts")');
     expect(cafeTipPayout).toContain('.from("cafe_tip_payout_lines")');
     expect(cafeTipPayout).toContain('"X-Idempotency-Cache"');
-    expect(cafeTips).toContain('supabase.functions.invoke("cafe-tip-payout-record"');
+    expect(cafeTips).toMatch(serverGatedInvoke("cafe-tip-payout-record"));
     expect(cafeTips).toContain('"Idempotency-Key": `cafe-tip-payout-');
     expect(cafeTips).not.toContain('.from("cafe_tip_payouts" as never)\\n      .insert');
     expect(cafeTips).not.toContain('.from("cafe_tip_payout_lines" as never)\\n      .insert');
@@ -165,7 +166,7 @@ describe("payouts, earnings, and balances workflow", () => {
     expect(salonPayout).toContain("requestedTotal !== totalPaidCents");
     expect(salonPayout).toContain('.from("salon_commission_payouts")');
     expect(salonPayout).toContain('"X-Idempotency-Cache"');
-    expect(salonCommissions).toContain('supabase.functions.invoke("salon-commission-payout-record"');
+    expect(salonCommissions).toMatch(serverGatedInvoke("salon-commission-payout-record"));
     expect(salonCommissions).toContain('"Idempotency-Key": `salon-commission-payout-');
     expect(salonCommissions).not.toContain('.from("salon_commission_payouts")\\n      .insert');
     expect(salonCommissions).not.toContain('.from("salon_commission_payouts").delete');
@@ -181,7 +182,7 @@ describe("payouts, earnings, and balances workflow", () => {
     expect(payoutMethod).toContain("clearDefaultMethods");
     expect(payoutMethod).toContain('"X-Idempotency-Cache"');
     for (const source of [walletPage, driverPayouts, lodgePayoutAccount]) {
-      expect(source).toContain('supabase.functions.invoke("customer-payout-method-record"');
+      expect(source).toMatch(serverGatedInvoke("customer-payout-method-record"));
       expect(source).not.toMatch(/from\\("customer_payout_methods"\\)[\\s\\S]{0,80}\\.(insert|update|delete)/);
       expect(source).not.toMatch(/from\\('customer_payout_methods'\\)[\\s\\S]{0,80}\\.(insert|update|delete)/);
     }
@@ -200,7 +201,7 @@ describe("payouts, earnings, and balances workflow", () => {
     expect(creatorPayoutMethod).toContain("payout_details: payoutDetails");
     expect(creatorPayoutMethod).toContain("paypal_email");
     expect(creatorPayoutMethod).toContain('"X-Idempotency-Cache"');
-    expect(paypalHook).toContain('supabase.functions.invoke("creator-payout-method-record"');
+    expect(paypalHook).toMatch(serverGatedInvoke("creator-payout-method-record"));
     expect(paypalHook).toContain('"Idempotency-Key": idempotencyKey');
     expect(paypalHook).not.toMatch(/from\("creator_profiles"\)[\s\S]{0,240}\.(insert|update)/);
     expect(paypalHook).not.toContain('insert({ user_id: params.userId, payout_method: "paypal"');
@@ -290,7 +291,7 @@ describe("payouts, earnings, and balances workflow", () => {
     const driverPayout = read("supabase/functions/driver-payout/index.ts");
 
     expect(hook).toContain("\"Idempotency-Key\": `instant-payout-${idempotencyKey}`");
-    expect(hook).toContain('supabase.functions.invoke("connect-instant-payout"');
+    expect(hook).toMatch(serverGatedInvoke("connect-instant-payout"));
 
     expect(instant).toContain("getIdempotencyKey(req)");
     expect(instant).toContain("withIdempotency(req, \"connect-instant-payout\", user.id");
@@ -313,7 +314,7 @@ describe("payouts, earnings, and balances workflow", () => {
     expect(withdrawal).toContain("trackNetwork: \"suspicious\"");
 
     expect(liveEarnings).toContain("\"Idempotency-Key\": idempotencyKey");
-    expect(liveEarnings).toContain('supabase.functions.invoke("creator-payout-request"');
+    expect(liveEarnings).toMatch(serverGatedInvoke("creator-payout-request"));
     expect(creatorPayout).toContain("withIdempotency(req, \"creator-payout-request\", user.id");
     expect(creatorPayout).toContain("\"X-Idempotency-Cache\": result.cached ? \"HIT\" : \"MISS\"");
     expect(creatorPayout).toContain("enforceAal2(auth, corsHeaders)");
@@ -427,7 +428,7 @@ describe("payouts, earnings, and balances workflow", () => {
     expect(dataApiGrants).toContain("GRANT SELECT ON TABLE public.referral_shares TO authenticated;");
     expect(dataApiGrants).toContain("GRANT SELECT ON TABLE public.referral_conversions TO authenticated;");
 
-    expect(shareHook).toContain('supabase.functions.invoke("share-to-earn-manage"');
+    expect(shareHook).toMatch(serverGatedInvoke("share-to-earn-manage"));
     expect(shareHook).not.toMatch(/from\("user_referral_codes"\)[\s\S]{0,180}\.(insert|update|delete|upsert)/);
     expect(shareHook).not.toMatch(/from\("referral_shares"\)[\s\S]{0,180}\.(insert|update|delete|upsert)/);
     expect(shareHook).not.toMatch(/from\("referral_conversions"\)[\s\S]{0,180}\.(insert|update|delete|upsert)/);
@@ -459,7 +460,7 @@ describe("payouts, earnings, and balances workflow", () => {
     expect(loyaltyGate).toContain("loyalty_points_block_direct_update");
     expect(loyaltyGate).toContain("trusted server-side point accounting");
 
-    expect(loyaltyHook).toContain('supabase.functions.invoke("loyalty-points-manage"');
+    expect(loyaltyHook).toMatch(serverGatedInvoke("loyalty-points-manage"));
     expect(loyaltyHook).not.toMatch(/from\("loyalty_points"\)[\s\S]{0,240}\.(insert|update|delete|upsert)/);
   });
 
@@ -488,7 +489,7 @@ describe("payouts, earnings, and balances workflow", () => {
     expect(walletGate).toContain("customer_wallets_block_direct_update");
     expect(walletGate).toContain("trusted server-side balance checks");
 
-    expect(walletHook).toContain('supabase.functions.invoke("wallet-payment-deduct"');
+    expect(walletHook).toMatch(serverGatedInvoke("wallet-payment-deduct"));
     expect(walletHook).not.toMatch(/from\("customer_wallets"\)[\s\S]{0,240}\.(insert|update|delete|upsert)/);
     expect(walletHook).not.toMatch(/from\("customer_wallet_transactions"\)[\s\S]{0,240}\.(insert|update|delete|upsert)/);
   });

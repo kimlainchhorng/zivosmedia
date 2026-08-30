@@ -43,6 +43,8 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeSensitive } from "@/lib/security/sensitiveInvoke";
+import { useStepUpMfa } from "@/hooks/useStepUpMfa";
 import { useGoBack } from "@/hooks/useGoBack";
 import {
   getModerationContentLabel,
@@ -399,15 +401,29 @@ export default function AdminModerationPage() {
     return { pending, actioned, dismissed, high, total: reports.length };
   }, [reports]);
 
+  // admin-moderation-review is enforceAal2-gated: it answers
+  // 403 {"code":"mfa_required"} to any session below AAL2. A plain invoke
+  // surfaced that as supabase-js's generic "Edge Function returned a non-2xx
+  // status code", so the moderator saw "Could not update report" with no way
+  // forward. invokeSensitive catches that code, runs the step-up challenge and
+  // retries; with no factor enrolled the hook says so and points at Account
+  // Security.
+  const { ensureAal2, dialog: mfaDialog } = useStepUpMfa();
+
   const handleReviewAction = async (report: ModerationReport, action: ModerationReviewAction) => {
     setActioningId(report.id);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-moderation-review", {
-        body: {
-          report_id: report.id,
-          action,
+      const { data, error } = await invokeSensitive<{ status?: string; successLabel?: string }>(
+        "admin-moderation-review",
+        {
+          body: {
+            report_id: report.id,
+            action,
+          },
         },
-      });
+        ensureAal2,
+        "Confirm moderation",
+      );
       if (error) throw error;
 
       const nextStatus = data?.status === "actioned" || data?.status === "dismissed" ? data.status : report.status;
@@ -430,6 +446,8 @@ export default function AdminModerationPage() {
   ];
 
   return (
+    <>
+    {mfaDialog}
     <div className="min-h-screen bg-background pb-20">
       <SEOHead title="Moderation - ZIVO" description="Admin moderation panel." canonical="/admin/moderation" noIndex />
       <div className="sticky top-0 safe-area-top z-10 bg-background/95 backdrop-blur-sm border-b border-border p-4">
@@ -731,5 +749,6 @@ export default function AdminModerationPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }

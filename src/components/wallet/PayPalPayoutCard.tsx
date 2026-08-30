@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePayPalPayout, useSavePayPalEmail } from "@/hooks/usePayPalPayout";
+import { useStepUpMfa } from "@/hooks/useStepUpMfa";
 
 interface Props {
   balanceDollars: number;
@@ -18,8 +19,11 @@ interface Props {
 
 export default function PayPalPayoutCard({ balanceDollars }: Props) {
   const { user } = useAuth();
-  const payout = usePayPalPayout();
-  const saveEmail = useSavePayPalEmail();
+  // paypal-payout and creator-payout-method-record both require AAL2. Without
+  // this the 403 arrives as a generic non-2xx error and neither button works.
+  const { ensureAal2, dialog: mfaDialog } = useStepUpMfa();
+  const payout = usePayPalPayout(ensureAal2);
+  const saveEmail = useSavePayPalEmail(ensureAal2);
   const [amount, setAmount] = useState("");
   const [emailDraft, setEmailDraft] = useState("");
   const [editing, setEditing] = useState(false);
@@ -56,6 +60,8 @@ export default function PayPalPayoutCard({ balanceDollars }: Props) {
   if (!savedEmail || editing) {
     const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailDraft);
     return (
+      <>
+      {mfaDialog}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -102,11 +108,14 @@ export default function PayPalPayoutCard({ balanceDollars }: Props) {
           </div>
         </div>
       </motion.div>
+    </>
     );
   }
 
   // Saved — show payout form
   return (
+    <>
+    {mfaDialog}
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
       <div className="rounded-2xl bg-gradient-to-br from-[#003087] to-[#009cde] text-white p-4 shadow-lg shadow-[#003087]/20">
         <div className="flex items-center justify-between gap-2">
@@ -172,5 +181,6 @@ export default function PayPalPayoutCard({ balanceDollars }: Props) {
         Funds arrive in your PayPal account within minutes. PayPal fees may apply on their side.
       </p>
     </motion.div>
+  </>
   );
 }
