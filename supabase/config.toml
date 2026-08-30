@@ -227,3 +227,43 @@ project_id = "slirphzzwcogdbkeicff"
     verify_jwt = true
   [functions.zivosmedia-auth-validate-code]
     verify_jwt = false
+
+  # Chat, contacts, privacy and safety surface — deployed 2026-08-30 after
+  # every one of them had been answering 404 in production. All do their own
+  # bearer-token auth on top of the gateway check; verify_jwt is stated here
+  # rather than left to the platform default so a default change cannot
+  # quietly open them.
+  [functions.block-user-manage]
+    verify_jwt = true
+  [functions.chat-consume-view-once]
+    verify_jwt = true
+  [functions.chat-thread-settings-update]
+    verify_jwt = true
+  [functions.muted-conversation-manage]
+    verify_jwt = true
+  [functions.contact-manage]
+    verify_jwt = true
+  [functions.contact-request-manage]
+    verify_jwt = true
+  [functions.close-friend-manage]
+    verify_jwt = true
+  [functions.device-key-manage]
+    verify_jwt = true
+  [functions.linked-device-manage]
+    verify_jwt = true
+  [functions.notification-preferences-update]
+    verify_jwt = true
+  [functions.privacy-settings-update]
+    verify_jwt = true
+  [functions.social-safety-report]
+    verify_jwt = true
+  [functions.support-ticket-manage]
+    verify_jwt = true
+  [functions.support-ticket-submit]
+    verify_jwt = true
+  [functions.user-safety-action-manage]
+    verify_jwt = true
+  [functions.user-session-presence]
+    verify_jwt = true
+  [functions.concierge-message-submit]
+    verify_jwt = true
