@@ -85,6 +85,37 @@ serve(withSecurity("salon-stylist-manage", async (req, ctx) => {
   if (!await canManageStore(admin, user.id, existing.data.store_id)) return json({ error: "Not authorized for this store" }, 403);
 
   if (action === "delete") {
+    // Nine tables reference salon_stylists. Five of them CASCADE, and two of
+    // those five are the pay record: salon_commission_payouts (commission_cents,
+    // total_paid_cents, paid_at) and salon_time_entries (the hours those
+    // payouts were computed from). Postgres raises no error when it cascades,
+    // so the 409 below never fired — a delete silently destroyed the stylist's
+    // entire financial history and returned { ok: true }.
+    //
+    // salon_stylists.is_active already exists and the UI already edits it, so
+    // there is a correct action to point at rather than a dead end.
+    for (const [table, label] of [
+      ["salon_commission_payouts", "commission payouts"],
+      ["salon_time_entries", "time entries"],
+    ] as const) {
+      const { count, error: countError } = await admin
+        .from(table)
+        .select("id", { count: "exact", head: true })
+        .eq("stylist_id", stylistId);
+      if (countError) {
+        console.error(`[salon-stylist-manage:delete:${table}]`, countError.message);
+        return json({ error: "Could not verify stylist records" }, 500);
+      }
+      if ((count ?? 0) > 0) {
+        return json({
+          error: `This stylist has ${count} ${label} on record. Deleting would erase them. Deactivate the stylist instead.`,
+          code: "stylist_has_financial_records",
+          table,
+          count,
+        }, 409);
+      }
+    }
+
     const { error } = await admin
       .from("salon_stylists")
       .delete()

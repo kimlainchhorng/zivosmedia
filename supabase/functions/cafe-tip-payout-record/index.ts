@@ -107,6 +107,37 @@ serve(withSecurity("cafe-tip-payout-record", async (req, ctx) => {
         };
       }
 
+      // Refuse a window that overlaps one already paid. The idempotency key is
+      // not enough on its own: the caller derives it from
+      // `new Date(Date.now() - windowDays * 86_400_000)`, which is a new value
+      // on every press, so two clicks produce two different keys and nothing
+      // dedupes them. cafe_tip_payouts has no uniqueness on
+      // (store_id, window_start, window_end) either — verified against the
+      // live schema, which carries only the pkey, the two FKs and two CHECKs.
+      // So the same tips could be paid out twice, and the UI would still show
+      // the full pool as payable afterwards.
+      const { data: overlapping, error: overlapError } = await supabase
+        .from("cafe_tip_payouts")
+        .select("id, window_start, window_end, total_cents")
+        .eq("store_id", storeId)
+        .lt("window_start", windowEnd)
+        .gt("window_end", windowStart)
+        .limit(1);
+      if (overlapError) {
+        console.error("[cafe-tip-payout-record:overlap]", overlapError.message);
+        return { status: 500, body: { error: "Could not verify existing payouts" } };
+      }
+      if (overlapping && overlapping.length > 0) {
+        return {
+          status: 409,
+          body: {
+            error: "Tips for this period have already been paid out.",
+            code: "payout_window_overlaps",
+            existing: overlapping[0],
+          },
+        };
+      }
+
       const { data: payout, error: payoutError } = await supabase
         .from("cafe_tip_payouts")
         .insert({

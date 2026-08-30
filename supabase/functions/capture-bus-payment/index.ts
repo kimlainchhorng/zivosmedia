@@ -122,8 +122,29 @@ Deno.serve(withSecurity("capture-bus-payment", async (req, ctx) => {
     } catch (e) {
       // Already captured out-of-band → reconcile instead of failing.
       if (String((e as { code?: string })?.code || "") !== "payment_intent_unexpected_state") throw e;
-      captured = await stripe.paymentIntents.retrieve(paymentIntentId);
+      captured = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge"] });
       if (captured.status !== "succeeded") throw e;
+
+      // A refund does NOT move a PaymentIntent off "succeeded". Without this,
+      // an operator who captured in the Stripe dashboard and then refunded
+      // would land here and have the booking written back to
+      // confirmed/captured — the passenger keeps a seat they were paid back
+      // for. Nothing else corrects it either: stripe-bus-webhook is staged and
+      // not deployed, so the database never hears about dashboard activity.
+      const charge = captured.latest_charge as { refunded?: boolean; amount_refunded?: number } | null;
+      const refundedCents = Number(charge?.amount_refunded || 0);
+      if (charge?.refunded || refundedCents > 0) {
+        const { error: rErr } = await admin
+          .from("bus_bookings")
+          .update({ status: "cancelled", payment_status: "refunded" })
+          .eq("id", booking.id);
+        if (rErr) console.error("[capture-bus-payment:refund-reconcile]", rErr.message);
+        return json({
+          error: "This payment was refunded and cannot be captured.",
+          code: "payment_refunded",
+          amount_refunded: refundedCents,
+        }, 409);
+      }
     }
 
     const capturedCents = Number(captured.amount_received || captured.amount || booking.amount_cents);
