@@ -84,9 +84,25 @@ export function useNotifications(limit = 50): UseNotificationsResult {
       });
       setNotifications(typedData);
 
-      // Count unread
-      const unread = typedData.filter(n => !n.is_read).length;
-      setUnreadCount(unread);
+      // Count unread from the SERVER, not from the page we just fetched.
+      // Deriving it from `typedData` capped the badge at `limit`: callers pass
+      // 20, so an account with 45 unread displayed 18 (15 chat + 3 other + the
+      // 2 read rows that filled the page). The list stays paged; only the count
+      // is exact.
+      const { count, error: countError } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', session.session.user.id)
+        .eq('channel', 'in_app')
+        .eq('is_read', false);
+
+      if (countError) {
+        // Fall back to the page rather than showing nothing; an undercount is
+        // still better than a missing badge.
+        setUnreadCount(typedData.filter(n => !n.is_read).length);
+      } else {
+        setUnreadCount(count ?? 0);
+      }
 
     } catch (err: any) {
       console.error('Error fetching notifications:', err);

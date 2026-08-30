@@ -25,7 +25,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useI18n } from "@/hooks/useI18n";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { useNotifications } from "@/hooks/useNotifications";
+import { useUnreadBadgeCounts } from "@/hooks/useUnreadBadgeCounts";
 import { useLiveActivityCount } from "@/hooks/useLiveActivityCount";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useRoutePrefetch } from "@/components/shared/RoutePrefetcher";
@@ -43,37 +43,6 @@ interface NavTab {
   fillable?: boolean;
 }
 
-type NavNotificationLike = {
-  action_url: string | null;
-  category?: string | null;
-  template?: string | null;
-  metadata?: Record<string, any> | null;
-  is_read?: boolean;
-};
-
-const isChatNotification = (notification: NavNotificationLike) => {
-  const template = (notification.template || "").toLowerCase();
-  const category = (notification.category || "").toLowerCase();
-  const actionUrl = (notification.action_url || "").toLowerCase();
-  const metadata = notification.metadata || {};
-
-  return (
-    category === "chat" ||
-    template === "chat_message" ||
-    template === "bot_reply" ||
-    template.includes("chat") ||
-    actionUrl.startsWith("/chat") ||
-    actionUrl.includes("?with=") ||
-    actionUrl.includes("&with=") ||
-    Boolean(
-      metadata.thread_id ||
-      metadata.chat_id ||
-      metadata.conversation_id ||
-      metadata.message_id,
-    )
-  );
-};
-
 const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>(
   (_props, ref) => {
     const navigate = useNavigate();
@@ -82,26 +51,12 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>(
     const { t } = useI18n();
     const { user } = useAuth();
     const { data: profile } = useUserProfile();
-    const { notifications } = useNotifications(20);
+    // Counted server-side from unread rows only. Deriving these from the 20
+    // most recent notifications capped both badges: 45 unread showed as 18.
+    const { chatUnread, accountUnread } = useUnreadBadgeCounts();
     const liveActivity = useLiveActivityCount();
 
     const { prefetch } = useRoutePrefetch();
-
-    const accountUnread = useMemo(
-      () =>
-        notifications.filter((n) => !n.is_read && !isChatNotification(n))
-          .length,
-      [notifications],
-    );
-
-    // accountUnread deliberately excludes chat notifications. Without a Chat
-    // tab to carry them they were counted nowhere and the user saw no badge at
-    // all for unread messages; this is the surface that owns them. The tab
-    // routes to /chat, which ZivoChatRedirectGuard hands off to zivoschat.com.
-    const chatUnread = useMemo(
-      () => notifications.filter((n) => !n.is_read && isChatNotification(n)).length,
-      [notifications],
-    );
 
     // On the Zivo Travel host (or `?zt=1` preview) the bottom nav becomes a
     // travel-only tab set — never the social Feed/Reels/Ride tabs.
