@@ -2194,22 +2194,22 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
 
       {activePinnedMessage && pinnedPreview && (
         <div className="zivo-chat-card w-full px-3 py-2">
-          <div className="flex items-center gap-2 border-l-2 border-sky-500/70 pl-2 lg:max-w-4xl lg:mx-auto lg:w-full">
+          <div className="flex items-center gap-2 border-l-2 border-primary/70 pl-2 lg:max-w-4xl lg:mx-auto lg:w-full">
             <button
               type="button"
               onClick={() => setNavigatorMode("pinned")}
-              className="flex min-w-0 flex-1 items-center gap-2 rounded-xl py-1 pr-2 text-left hover:bg-sky-500/10 active:scale-[0.99]"
+              className="flex min-w-0 flex-1 items-center gap-2 rounded-xl py-1 pr-2 text-left hover:bg-primary/10 active:scale-[0.99]"
               aria-label={`Open pinned messages ${safePinnedIndex + 1} of ${pinnedMessages.length}`}
               title="Open pinned messages"
             >
-              <Pin className="h-3.5 w-3.5 shrink-0 text-sky-500" />
+              <Pin className="h-3.5 w-3.5 shrink-0 text-primary" />
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-300">
+                  <span className="text-[11px] font-semibold text-primary">
                     Pinned message
                   </span>
                   {pinnedMessages.length > 1 && (
-                    <span className="rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-bold leading-none text-sky-700 dark:text-sky-300">
+                    <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary">
                       {safePinnedIndex + 1}/{pinnedMessages.length}
                     </span>
                   )}
@@ -2223,7 +2223,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
               <button
                 type="button"
                 onClick={() => setActivePinnedIndex((index) => (index + 1) % pinnedMessages.length)}
-                className="h-8 rounded-full bg-sky-500/15 px-2 text-[10px] font-bold text-sky-700 active:scale-95 dark:text-sky-300"
+                className="h-8 rounded-full bg-primary/15 px-2 text-[10px] font-bold text-primary active:scale-95"
                 aria-label="Show next pinned message"
                 title="Next pinned message"
               >

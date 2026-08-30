@@ -871,6 +871,20 @@
      ============================================= */
   :root {
     --ig-gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+
+    /* The same five stops as HSL, so tints and washes can be brand-coloured
+       without hard-coding hexes miles away from this definition. */
+    --ig-warm: 31 86% 57%;  /* #f09433 */
+    --ig-hot: 351 72% 51%;  /* #dc2743 */
+    --ig-mid: 336 71% 47%;  /* #cc2366 */
+    --ig-deep: 319 77% 42%; /* #bc1888 */
+
+    /* The half of the ramp that white text can actually sit on.
+       White on #f09433 is 2.34:1 and on #e6683c is 3.25:1 — both fail AA for
+       the 10-11px labels these pills carry. Every stop below clears 4.7:1.
+       Use --ig-gradient where the element is decorative or the text sits
+       beside it; use this where white text sits ON it. */
+    --ig-gradient-legible: linear-gradient(135deg, hsl(var(--ig-hot)), hsl(var(--ig-mid)), hsl(var(--ig-deep)));
   }
 
   .bg-ig-gradient { background: var(--ig-gradient); }
@@ -3447,8 +3461,8 @@ body[data-reel-sheet-open="true"] [data-zivo-mobile-nav] {
 /* ── Chat hub glass system ───────────────────────────────────────────── */
 .zivo-chat-surface {
   background:
-    radial-gradient(circle at 12% 0%, hsl(189 94% 43% / 0.12), transparent 28%),
-    radial-gradient(circle at 88% 6%, hsl(318 88% 58% / 0.10), transparent 24%),
+    radial-gradient(circle at 12% 0%, hsl(var(--ig-warm) / 0.12), transparent 28%),
+    radial-gradient(circle at 88% 6%, hsl(var(--ig-deep) / 0.10), transparent 24%),
     linear-gradient(180deg, hsl(var(--background) / 0.94), hsl(var(--background) / 0.84));
 }
 
@@ -3495,15 +3509,25 @@ body[data-reel-sheet-open="true"] [data-zivo-mobile-nav] {
 }
 
 .zivo-chat-chip-active {
-  background: linear-gradient(135deg, hsl(189 94% 43%), hsl(var(--primary)), hsl(318 88% 58%));
+  background: var(--ig-gradient-legible);
   color: white;
-  box-shadow: 0 14px 28px hsl(189 94% 43% / 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.34);
+  box-shadow: 0 14px 28px hsl(var(--ig-deep) / 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.34);
+}
+
+/* A filled brand pill already declares `color: white`, but Tailwind text
+   utilities on its children win: text-foreground, text-primary and
+   text-muted-foreground put near-black or violet straight onto the gradient.
+   At the deep end that is 3.6:1, on 9-10px labels. So direct children inherit
+   the white the pill asked for. Children carrying their own light surface are
+   left alone — white on those would disappear. */
+.zivo-chat-chip-active > :not(.zivo-chat-icon-button):not(.zivo-chat-chip) {
+  color: white;
 }
 
 .zivo-chat-avatar-ring {
   box-shadow:
     0 0 0 2px hsl(var(--background)),
-    0 0 0 4px hsl(189 94% 43% / 0.28),
+    0 0 0 4px hsl(var(--ig-deep) / 0.28),
     0 12px 28px hsl(var(--foreground) / 0.12);
 }
 
@@ -3521,10 +3545,22 @@ body[data-reel-sheet-open="true"] [data-zivo-mobile-nav] {
 }
 
 .zivo-chat-row-unread {
+  /* Magenta, not the warm end: at 10% over a dark card, orange reads as muddy
+     brown rather than as a highlight. */
   background:
-    linear-gradient(90deg, hsl(189 94% 43% / 0.10), transparent 38%),
+    linear-gradient(90deg, hsl(var(--ig-deep) / 0.12), transparent 38%),
     linear-gradient(145deg, hsl(var(--card) / 0.80), hsl(var(--background) / 0.58));
-  border-color: hsl(189 94% 43% / 0.28);
+  border-color: hsl(var(--ig-deep) / 0.30);
+}
+
+/* The flash that lands on a message after "jump to". Was sky-500; ZIVO's
+   accent is --primary. */
+.zivo-chat-message-highlight {
+  background-color: hsl(var(--primary) / 0.10);
+  box-shadow:
+    inset 4px 0 0 hsl(var(--primary) / 0.78),
+    0 0 0 1px hsl(var(--primary) / 0.32),
+    0 12px 30px hsl(var(--primary) / 0.12);
 }
 
 .zivo-chat-danger-orb {

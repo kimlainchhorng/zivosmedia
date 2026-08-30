@@ -112,7 +112,7 @@ export default function SuggestedContactsRow() {
                     "mt-1 mb-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none " +
                     (isFollower
                       ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25"
-                      : "bg-sky-500/15 text-sky-700 dark:text-sky-300 hover:bg-sky-500/25")
+                      : "bg-primary/15 text-primary hover:bg-primary/25")
                   }
                 >
                   {isFollower ? <UserCheck className="w-2.5 h-2.5" /> : <MessageCircle className="w-2.5 h-2.5" />}

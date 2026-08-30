@@ -1602,9 +1602,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     <button
       type="button"
       onClick={() => setShowArchived(true)}
-      className="flex min-h-[6rem] w-full items-center gap-4 px-4 py-2.5 text-left transition-colors hover:bg-[#e7f2ff] active:bg-[#d9ecff] dark:hover:bg-white/5 dark:active:bg-white/10"
+      className="flex min-h-[6rem] w-full items-center gap-4 px-4 py-2.5 text-left transition-colors hover:bg-accent active:bg-accent/70 dark:hover:bg-white/5 dark:active:bg-white/10"
     >
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-sky-500 text-white shadow-sm">
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-ig-gradient text-white shadow-sm">
         <Archive className="h-7 w-7" />
       </div>
       <div className="min-w-0 flex-1">
@@ -1615,7 +1615,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
           {archivedList.map((chat: any) => chat.name).filter(Boolean).join(", ")}
         </p>
       </div>
-      <span className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-full bg-[#b7c3cf] px-2 text-[17px] font-bold leading-none text-white dark:bg-slate-600">
+      <span className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-full bg-ig-gradient px-2 text-[17px] font-bold leading-none text-white">
         {archivedSummaryCount > 99 ? "99+" : archivedSummaryCount}
       </span>
     </button>
@@ -2451,7 +2451,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
           >
             {!embedded ? (
 	              <div className={cn(
-	                "flex min-h-[4.75rem] items-center gap-2.5 bg-[#eaf5ff]/95 px-3 py-2.5 text-slate-950 dark:bg-slate-900/95 dark:text-slate-50 sm:gap-3 md:min-h-0 md:bg-transparent md:px-4 md:py-1.5",
+	                "flex min-h-[4.75rem] items-center gap-2.5 bg-card/95 px-3 py-2.5 text-foreground dark:bg-slate-900/95 sm:gap-3 md:min-h-0 md:bg-transparent md:px-4 md:py-1.5",
 	                desktopTwoColumn && sidebarCollapsed && "lg:flex-col lg:items-stretch lg:gap-1 lg:px-2"
 	              )}>
                 <div className={cn(
@@ -2480,10 +2480,10 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 	                      </label>
 	                      <label
 	                        htmlFor="chat-hub-menu-toggle"
-	                        className="fixed inset-0 z-[2190] hidden cursor-default bg-sky-200/55 backdrop-blur-[1px] peer-checked:block dark:bg-slate-950/60"
+	                        className="fixed inset-0 z-[2190] hidden cursor-default bg-foreground/25 backdrop-blur-[1px] peer-checked:block dark:bg-slate-950/60"
 	                        aria-label="Close chat menu"
 	                      />
-		                      <div className="fixed left-[15px] top-[6.45rem] z-[2200] hidden max-h-[calc(100dvh-7rem)] w-[min(calc(100vw-30px),23.5rem)] flex-col overflow-hidden rounded-[24px] border border-sky-200/45 bg-[#dceeff]/95 text-slate-950 shadow-[0_22px_50px_rgba(30,64,175,0.20)] backdrop-blur-xl peer-checked:flex dark:border-white/10 dark:bg-slate-900/95 dark:text-slate-50">
+		                      <div className="fixed left-[15px] top-[6.45rem] z-[2200] hidden max-h-[calc(100dvh-7rem)] w-[min(calc(100vw-30px),23.5rem)] flex-col overflow-hidden rounded-[24px] border border-border bg-popover/95 text-popover-foreground shadow-[0_22px_50px_rgba(15,23,42,0.20)] backdrop-blur-xl peer-checked:flex dark:border-white/10 dark:bg-slate-900/95 dark:text-slate-50">
 		                        <div className="flex-1 overflow-y-auto py-2">
 		                          <button
 		                            type="button"
@@ -2493,7 +2493,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 	                            }}
 		                            className="flex h-[4.25rem] w-full items-center gap-6 px-5 text-left text-[21px] font-bold transition hover:bg-white/25 active:bg-white/45 dark:hover:bg-white/10"
 		                          >
-		                            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-500 text-lg font-bold leading-none text-white ring-2 ring-sky-400 ring-offset-2 ring-offset-[#dceeff] dark:ring-offset-slate-900">
+		                            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-500 text-lg font-bold leading-none text-white ring-2 ring-primary ring-offset-2 ring-offset-popover">
 		                              {chatMenuAvatar ? (
 		                                <img src={chatMenuAvatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
 		                              ) : (
@@ -2636,7 +2636,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 	                    placeholder="Search"
 	                    value={search}
 	                    onChange={(e) => setSearch(e.target.value)}
-	                    className="h-12 w-full rounded-full border-0 bg-white/70 py-0 pl-14 pr-[7.25rem] text-[20px] font-normal text-slate-700 shadow-inner shadow-sky-950/5 outline-none transition-all placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-sky-300/70 dark:bg-white/10 dark:text-slate-50 dark:placeholder:text-slate-400 dark:focus:bg-white/15 md:h-auto md:rounded-2xl md:py-2.5 md:pl-9 md:pr-10 md:text-sm md:text-foreground md:placeholder:text-muted-foreground md:focus:ring-primary/30"
+	                    className="h-12 w-full rounded-full border-0 bg-white/70 py-0 pl-14 pr-[7.25rem] text-[20px] font-normal text-slate-700 shadow-inner shadow-foreground/5 outline-none transition-all placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-border dark:bg-white/10 dark:text-slate-50 dark:placeholder:text-slate-400 dark:focus:bg-white/15 md:h-auto md:rounded-2xl md:py-2.5 md:pl-9 md:pr-10 md:text-sm md:text-foreground md:placeholder:text-muted-foreground md:focus:ring-primary/30"
 	                  />
 	                  {search ? (
 	                    <button type="button" onClick={() => setSearch("")} className="absolute right-4 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-200/70 active:scale-95 dark:text-slate-300 dark:hover:bg-white/10 md:right-3 md:h-auto md:w-auto" aria-label="Clear search" title="Clear search">
@@ -2647,7 +2647,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 	                      {chatHeaderAvatarStack.map((item, index) => (
 	                        <div
 	                          key={`${item.id}-${index}`}
-	                          className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-sky-100 text-[11px] font-black leading-none text-sky-700 ring-2 ring-white shadow-sm dark:bg-slate-800 dark:text-sky-200 dark:ring-slate-900"
+	                          className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-accent text-[11px] font-black leading-none text-accent-foreground ring-2 ring-white shadow-sm dark:bg-slate-800 dark:ring-slate-900"
 	                        >
 	                          {item.avatar ? (
 	                            <img src={item.avatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
@@ -2674,7 +2674,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 	                      setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false });
 	                    }}
 	                    disabled={!user}
-	                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sky-500 transition hover:bg-white/60 active:scale-95 disabled:pointer-events-none disabled:opacity-50 dark:text-sky-300 dark:hover:bg-white/10 md:h-9 md:w-9"
+	                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-primary transition hover:bg-accent active:scale-95 disabled:pointer-events-none disabled:opacity-50 dark:hover:bg-white/10 md:h-9 md:w-9"
 	                    aria-label="Saved Messages"
 	                    title="Saved Messages"
 	                  >
@@ -3981,7 +3981,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 		                              className={cn(
 		                                "flex h-14 items-center justify-center gap-2 rounded-[1.7rem] text-[20px] font-bold transition-colors active:scale-[0.99]",
 		                                isActiveSegment
-		                                  ? "bg-[#eaf5ff] text-sky-500 shadow-sm shadow-sky-200/60 dark:bg-sky-500/15 dark:text-sky-300 dark:shadow-none"
+		                                  ? "bg-ig-gradient text-white shadow-sm shadow-primary/25"
 		                                  : "text-slate-500 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-white/10",
 		                              )}
 		                            >
@@ -3990,7 +3990,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 		                                <span className={cn(
 		                                  "flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[18px] font-bold leading-none shadow-sm",
 		                                  isActiveSegment
-		                                    ? "bg-sky-500 text-white"
+		                                    ? "bg-ig-gradient text-white"
 		                                    : "bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-200",
 		                                )}>
 		                                  {tab.unread > 99 ? "99+" : tab.unread}
@@ -4139,7 +4139,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 	                    <div className="min-h-[calc(100dvh-6rem)] bg-white dark:bg-slate-950">
 	                      {archivedList.length === 0 ? (
 	                        <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
-	                          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sky-50 text-sky-500 dark:bg-sky-500/10">
+	                          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent text-accent-foreground">
 	                            <Archive className="h-7 w-7" />
 	                          </div>
 	                          <p className="text-base font-bold text-slate-900 dark:text-slate-50">No archived chats</p>
@@ -4167,7 +4167,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 	                                  label: "Unarchive",
 	                                  icon: <ArchiveRestore className="h-4 w-4" />,
 	                                  onPress: () => { toggleArchive(chat.id); toast.success("Unarchived"); },
-	                                  className: "bg-sky-500 text-white",
+	                                  className: "bg-ig-gradient text-white",
 	                                },
 	                                {
 	                                  key: "delete",
@@ -4181,7 +4181,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 	                              <button
 	                                type="button"
 	                                onClick={openArchivedChat}
-	                                className="flex min-h-[5.05rem] w-full items-center gap-4 bg-white px-4 py-2.5 text-left transition hover:bg-[#e7f2ff] active:bg-[#d9ecff] dark:bg-slate-950 dark:hover:bg-white/5 dark:active:bg-white/10"
+	                                className="flex min-h-[5.05rem] w-full items-center gap-4 bg-white px-4 py-2.5 text-left transition hover:bg-accent active:bg-accent/70 dark:bg-slate-950 dark:hover:bg-white/5 dark:active:bg-white/10"
 	                              >
 	                                <ChatRowAvatar
 	                                  avatar={chat.avatar}
@@ -4208,7 +4208,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 	                                      {preview}
 	                                    </span>
 	                                    {chat.unread > 0 && (
-	                                      <span className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-full bg-[#b7c3cf] px-2 text-[16px] font-bold leading-none text-white dark:bg-slate-600">
+	                                      <span className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-full bg-ig-gradient px-2 text-[16px] font-bold leading-none text-white">
 	                                        {chat.unread > 99 ? "99+" : chat.unread}
 	                                      </span>
 	                                    )}

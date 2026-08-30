@@ -3089,9 +3089,9 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             aria-label="Open pinned messages"
             title="Open pinned messages"
           >
-            <div className="flex items-center gap-2 border-l-2 border-sky-500/70 pl-2 min-w-0 flex-1">
-              <Pin className="w-3 h-3 text-sky-600 dark:text-sky-300 shrink-0" />
-              <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-300 shrink-0">Pinned</span>
+            <div className="flex items-center gap-2 border-l-2 border-primary/70 pl-2 min-w-0 flex-1">
+              <Pin className="w-3 h-3 text-primary shrink-0" />
+              <span className="text-[11px] font-semibold text-primary shrink-0">Pinned</span>
               <span className="text-[11px] text-foreground/85 truncate">
                 {pinnedMessages[pinnedMessages.length - 1].message || "📷 Media"}
               </span>
