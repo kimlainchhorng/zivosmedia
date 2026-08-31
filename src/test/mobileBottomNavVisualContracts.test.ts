@@ -28,7 +28,7 @@ describe("mobile bottom nav visual contracts", () => {
       'const label = tab.label ?? (tab.labelKey ? t(tab.labelKey) : "");',
     );
     expect(nav).toMatch(
-      /isActive\s*\?\s*"flex-\[1\.8\] flex-row gap-1 px-1\.5 text-white"/,
+      /isActive\s*\?\s*"flex-\[1\.8\] flex-row gap-1 px-1\.5 text-white max-\[340px\]:gap-0\.5 max-\[340px\]:px-1"/,
     );
     expect(nav).toMatch(
       /isActive\s*\?\s*"relative z-10 block max-w-\[76px\] truncate/,
