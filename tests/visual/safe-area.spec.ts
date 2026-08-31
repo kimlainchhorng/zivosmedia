@@ -181,6 +181,34 @@ async function waitForStableVisuals(
   });
 }
 
+async function isolateHomeBottomChrome(
+  page: import("@playwright/test").Page,
+  routeName: string,
+) {
+  if (routeName !== "home") return;
+
+  // The mobile nav is portaled directly under <body>. Hide the animated Home
+  // route behind it so the translucent backdrop cannot sample a different
+  // card frame on each run; the real nav, touch targets, and safe inset remain.
+  await page.addStyleTag({
+    content: `
+      html, body {
+        background: #ffffff !important;
+      }
+      #root {
+        visibility: hidden !important;
+      }
+    `,
+  });
+  await page.locator("[data-zivo-mobile-nav]").waitFor({ state: "visible" });
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }),
+  );
+}
+
 for (const vp of VIEWPORTS) {
   test.describe(`safe-area · ${vp.name}`, () => {
     test.use({
@@ -231,6 +259,7 @@ for (const vp of VIEWPORTS) {
         await prepareStableVisualPage(page);
         await page.goto(route.path, { waitUntil: "domcontentloaded" });
         await waitForStableVisuals(page, route.name);
+        await isolateHomeBottomChrome(page, route.name);
         const h = vp.viewport.height;
         await expect(page).toHaveScreenshot(
           safeAreaSnapshotName(vp.name, route.name, "bottom"),
