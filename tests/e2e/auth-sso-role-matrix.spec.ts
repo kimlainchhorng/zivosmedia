@@ -96,7 +96,9 @@ test.describe("auth SSO role matrix", () => {
       expect(callback).toContain(needle);
     }
 
+    expect(authContext).toContain("checkAdminRole(userId)");
     expect(authContext).toContain("resolveAdminRole(nextSession.user.id, revision)");
+    expect(authContext).toContain("resolveAdminRole(restoredSession.user.id, revision)");
     expect(authContext).toContain('event === "SIGNED_IN"');
     expect(authContext).toContain("TOKEN_REFRESHED");
     expect(serviceWorker).toContain("Skip OAuth callback routes");

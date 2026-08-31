@@ -52,6 +52,7 @@ describe("shop owner workflow", () => {
       "car-rental-review-submit",
       "car-dealership-review-manage",
       "car-dealership-review-submit",
+      "car-dealership-test-drive-submit",
       "car-rental-expense-manage",
       "car-rental-maintenance-manage",
       "car-rental-vehicle-manage",
@@ -63,7 +64,7 @@ describe("shop owner workflow", () => {
       "car-rental-settings-update",
     ]) {
       const fn = source(`supabase/functions/${route}/index.ts`);
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expect(fn).toMatch(new RegExp(`withSecurity\\(\\s*["']${route}["']`));
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('allowedMethods: ["POST"]');
       expect(fn).toContain('trackNetwork: "suspicious"');
@@ -961,10 +962,11 @@ describe("shop owner workflow", () => {
     expect(dealershipReviewManage).toContain('.from("car_dealership_reviews")');
     expect(dealershipReviewManage).toContain('.from("store_profiles")');
     expect(dealershipReviewManage).toContain('rpc("has_role"');
-    expect(dealershipReviewSubmit).toContain('withSecurity("car-dealership-review-submit"');
-    expect(dealershipReviewSubmit).toContain("REVIEWABLE_STATUSES");
-    expect(dealershipReviewSubmit).toContain('.from("car_dealership_sales")');
-    expect(dealershipReviewSubmit).toContain('.from("car_dealership_reviews")');
+    expect(dealershipReviewSubmit).toMatch(/withSecurity\(\s*["']car-dealership-review-submit["']/);
+    expect(dealershipReviewSubmit).toContain("authorizeCarDealershipSaleReviewAccess");
+    expect(dealershipReviewSubmit).toContain('"car_dealership_submit_review"');
+    expect(dealershipReviewSubmit).not.toContain('.from("car_dealership_sales")');
+    expect(dealershipReviewSubmit).not.toContain('.from("car_dealership_reviews")');
     expect(dealershipReviewGate).toContain("Car dealership review inserts require trusted server-side validation");
     expect(dealershipReviewGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_dealership_reviews FROM anon, authenticated");
     expect(dealershipTradeInsHook).toContain('functions.invoke("car-dealership-trade-in-manage"');
