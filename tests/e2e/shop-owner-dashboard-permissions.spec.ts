@@ -73,7 +73,7 @@ test.describe("shop owner dashboard permission contracts", () => {
 
     expect(wallet).toContain('.eq("owner_id", user.id)');
     expect(wallet).toContain('.eq("store_id", store.id)');
-    expect(wallet).toContain('supabase.functions.invoke("merchant-payout-request"');
+    expect(wallet).toMatch(/invokeSensitive(?:<[^>]+>)?\(\s*"merchant-payout-request"/);
     expect(wallet).not.toContain('.from("merchant_payouts").insert');
 
     expect(employeeSection).toContain("send-employee-email-invite");

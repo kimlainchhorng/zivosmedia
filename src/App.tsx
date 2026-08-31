@@ -133,9 +133,11 @@ import {
   ZIVO_DRIVER_HOME_PATH,
 } from "@/config/zivoDriverDomain";
 import {
+  isStandaloneChatRoute,
   isZivoChatHost,
   isZivoChatPath,
   ZIVO_CHAT_HOME_PATH,
+  zivoChatUrl,
 } from "@/config/zivoChatDomain";
 import {
   isZivoTravelHost,
@@ -1414,6 +1416,14 @@ function DirectThreadRedirect() {
   return <Navigate to={`/chat${query ? `?${query}` : ""}${location.hash}`} replace />;
 }
 
+function ZivoSoftwareChatRedirect({ destination }: { destination: string }) {
+  useEffect(() => {
+    window.location.replace(destination);
+  }, [destination]);
+
+  return <PageLoader />;
+}
+
 function ZivoSoftwareHostGate() {
   const location = useLocation();
 
@@ -1435,6 +1445,7 @@ function ZivoSoftwareHostGate() {
     "/auth/google-ads/callback",
     "/connect/media",
     "/connect/software",
+    "/connect/chat",
   ];
   const isAuthPath = authPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
   const isLegalPath =
@@ -1463,6 +1474,11 @@ function ZivoSoftwareHostGate() {
 
   if (pathname === "/business/dashboard") {
     return <Navigate to={`${ZIVO_SOFTWARE_AUTH_REDIRECT_PATH}${location.search}${location.hash}`} replace />;
+  }
+
+  if (isStandaloneChatRoute(pathname)) {
+    const destination = zivoChatUrl(`${pathname}${location.search}${location.hash}`);
+    return <ZivoSoftwareChatRedirect destination={destination} />;
   }
 
   if (isAuthPath || isLegalPath || isSoftwareBusinessPath || isAutoRepairPath || isSoftwareDashboardPath || isOperationalAsset) {
