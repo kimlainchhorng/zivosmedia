@@ -4,6 +4,13 @@
 
 66+ commits have landed since release 1.0.0, including the chat/channel suite and the ZIVO Ride unification work. Note: many recent commits are **not** conventional-commit formatted, so release-please will not capture them automatically — the next release notes will need manual curation.
 
+## [1.0.1](https://github.com/kimlainchhorng/zivosmedia/compare/v1.0.0...v1.0.1) (2026-08-31)
+
+
+### Bug Fixes
+
+* update Linux safe-area visual regression baselines ([#222](https://github.com/kimlainchhorng/zivosmedia/issues/222)) ([2f8f50d](https://github.com/kimlainchhorng/zivosmedia/commit/2f8f50d123309ad81de0c60ff0b0b7c321caee19))
+
 ## 1.0.0 (2026-07-21)
 
 
