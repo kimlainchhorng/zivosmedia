@@ -663,7 +663,7 @@ export default function CreatePostModal({
       if (sharedPostId) insertData.shared_from_post_id = sharedPostId;
       if (sharedPostAuthorId) insertData.shared_from_user_id = sharedPostAuthorId;
 
-      let { data: insertedPost, error: insertErr } = await (supabase as any)
+      const { data: insertedPost, error: insertErr } = await (supabase as any)
         .from("user_posts")
         .insert(insertData)
         .select("id")
