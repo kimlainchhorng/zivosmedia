@@ -54,7 +54,7 @@ test("zivosoftware.com opens the business software login flow", async () => {
     // The software host gate keeps non-software routes inside the dedicated
     // business shell.
     await page.goto(`http://${host}:${port}/chat`, { waitUntil: "domcontentloaded" });
-    await expect(page).toHaveURL(new RegExp(`^http://${host}:${port}/business(?:\\?.*)?$`));
+    await expect(page).toHaveURL(new RegExp(`^http://${host.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:${port}/business(?:\\?.*)?$`));
 
     await page.goto(`http://${host}:${port}/admin/stores/${STORE_ID}?tab=ar-dashboard`, {
       waitUntil: "domcontentloaded",
