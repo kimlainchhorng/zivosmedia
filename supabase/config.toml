@@ -228,6 +228,13 @@ project_id = "slirphzzwcogdbkeicff"
   [functions.zivosmedia-auth-validate-code]
     verify_jwt = false
 
+  # Public dealership forms validate their own short-lived customer capability
+  # or guest intake payload, and apply server-side rate limits in the handler.
+  [functions.car-dealership-test-drive-submit]
+    verify_jwt = false
+  [functions.car-dealership-review-submit]
+    verify_jwt = false
+
   # Chat, contacts, privacy and safety surface — deployed 2026-08-30 after
   # every one of them had been answering 404 in production. All do their own
   # bearer-token auth on top of the gateway check; verify_jwt is stated here
