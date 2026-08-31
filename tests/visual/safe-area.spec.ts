@@ -127,24 +127,46 @@ async function waitForStableVisuals(
       .getByText("More Services", { exact: true })
       .waitFor({ state: "visible" });
     await page.locator("[data-zivo-mobile-nav]").waitFor({ state: "visible" });
-    await page
-      .locator('section[aria-labelledby="home-services-heading"] img')
-      .evaluateAll(async (images) => {
-        await Promise.all(
-          images.map(async (node) => {
-            const image = node as HTMLImageElement;
-            if (!image.complete) {
-              await new Promise<void>((resolve) => {
-                image.addEventListener("load", () => resolve(), { once: true });
-                image.addEventListener("error", () => resolve(), {
-                  once: true,
-                });
+    const serviceTiles = page.locator(
+      'section[aria-labelledby="home-services-heading"] .grid > button',
+    );
+    await serviceTiles.first().waitFor({ state: "visible" });
+    // Framer Motion owns tile opacity in JavaScript, so CSS duration overrides
+    // cannot settle the stagger by themselves. Wait until every mounted tile
+    // has reached its final opacity before capturing the service row.
+    await page.waitForFunction(() => {
+      const tiles = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          'section[aria-labelledby="home-services-heading"] .grid > button',
+        ),
+      );
+      return (
+        tiles.length > 0 &&
+        tiles.every(
+          (tile) => Number.parseFloat(getComputedStyle(tile).opacity) >= 0.999,
+        )
+      );
+    });
+    const serviceImages = page.locator(
+      'section[aria-labelledby="home-services-heading"] img',
+    );
+    await serviceImages.first().waitFor({ state: "visible" });
+    await serviceImages.evaluateAll(async (images) => {
+      await Promise.all(
+        images.map(async (node) => {
+          const image = node as HTMLImageElement;
+          if (!image.complete) {
+            await new Promise<void>((resolve) => {
+              image.addEventListener("load", () => resolve(), { once: true });
+              image.addEventListener("error", () => resolve(), {
+                once: true,
               });
-            }
-            await image.decode().catch(() => undefined);
-          }),
-        );
-      });
+            });
+          }
+          await image.decode().catch(() => undefined);
+        }),
+      );
+    });
   } else if (routeName === "account") {
     await page
       .getByRole("button", { name: "Back to Zivo" })

@@ -49,6 +49,8 @@ describe("safe-area visual baseline contracts", () => {
       "zivo:swipe-nav-hint-seen-v1",
       'emulateMedia({ reducedMotion: "reduce" })',
       'locator("[data-zivo-mobile-nav]")',
+      "Number.parseFloat(getComputedStyle(tile).opacity) >= 0.999",
+      "serviceImages.first().waitFor",
       "document.fonts.ready",
       "image.decode()",
       'waitUntil: "domcontentloaded"',
