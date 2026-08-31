@@ -7,7 +7,7 @@
  * form (Request info / Schedule test drive). Anonymous submit creates a new
  * `web`-sourced lead that lands in the dealer's admin Leads kanban.
  */
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
@@ -26,6 +26,11 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  buildCarDealershipTestDriveAccessPath,
+  normalizeCarDealershipCustomerAccessToken,
+  persistCarDealershipCustomerAccessToken,
+} from "@/lib/carDealershipCustomerAccess";
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -356,10 +361,35 @@ interface LeadDialogProps {
   onOpenChange: (o: boolean) => void;
   mode: LeadMode;
   storeId: string;
+  storeSlug: string;
   vehicle: DetailVehicle;
 }
 
-function LeadCaptureDialog({ open, onOpenChange, mode, storeId, vehicle }: LeadDialogProps) {
+interface TestDriveSubmission {
+  id: string;
+  accessToken: string | null;
+  accessExpiresAt: string | null;
+  accountOwned: boolean;
+}
+
+interface LeadSubmitResponse {
+  test_drive_id?: unknown;
+  test_drive_scheduled?: unknown;
+  already_processed?: unknown;
+  access_token?: unknown;
+  access_expires_at?: unknown;
+  account_owned?: unknown;
+}
+
+const readLeadSubmitResponse = (data: unknown): LeadSubmitResponse | null => {
+  const root = Array.isArray(data) ? data[0] : data;
+  if (!root || typeof root !== "object") return null;
+  const nested = (root as { data?: unknown }).data;
+  const value = nested && typeof nested === "object" ? nested : root;
+  return value as LeadSubmitResponse;
+};
+
+function LeadCaptureDialog({ open, onOpenChange, mode, storeId, storeSlug, vehicle }: LeadDialogProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -384,9 +414,12 @@ function LeadCaptureDialog({ open, onOpenChange, mode, storeId, vehicle }: LeadD
   });
   const [driveAt, setDriveAt] = useState<string>(defaultDriveAt());
   const [bookedAt, setBookedAt] = useState<string | null>(null);
+  const [testDriveSubmission, setTestDriveSubmission] = useState<TestDriveSubmission | null>(null);
+  const [alreadyProcessed, setAlreadyProcessed] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const requestIdRef = useRef<string | null>(null);
 
   // Reset when (re)opening
   useEffect(() => {
@@ -397,9 +430,11 @@ function LeadCaptureDialog({ open, onOpenChange, mode, storeId, vehicle }: LeadD
       setMessage(mode === "test_drive" ? "I'd like to schedule a test drive." : "");
       setDriveAt(defaultDriveAt());
       setBookedAt(null);
+      setTestDriveSubmission(null);
+      setAlreadyProcessed(false);
       setSubmitted(false);
+      requestIdRef.current = null;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, mode]);
 
   const handleSubmit = async () => {
@@ -431,66 +466,92 @@ function LeadCaptureDialog({ open, onOpenChange, mode, storeId, vehicle }: LeadD
     }
 
     setSubmitting(true);
-    const vehicleLabel = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim]
-      .filter(Boolean).join(" ");
+    if (!requestIdRef.current) {
+      if (typeof globalThis.crypto?.randomUUID !== "function") {
+        setSubmitting(false);
+        toast.error("Secure request setup is unavailable. Please call the dealer directly.");
+        return;
+      }
+      requestIdRef.current = globalThis.crypto.randomUUID();
+    }
 
-    const leadPayload = {
-      store_id: storeId,
-      vehicle_id: vehicle.id,
-      vehicle_label: vehicleLabel,
-      display_name: name.trim(),
-      email: email.trim() || null,
-      phone: phone.trim() || null,
-      notes: message.trim() || null,
-      source: "web" as const,
-      status: mode === "test_drive" ? ("test_drive_scheduled" as const) : ("new" as const),
-      desired_make: vehicle.make,
-      desired_model: vehicle.model,
-      trade_in_interested: false,
-      financing_needed: false,
-    };
+    const { data, error: submitError } = await supabase.functions.invoke("car-dealership-test-drive-submit", {
+      body: {
+        mode,
+        store_id: storeId,
+        vehicle_id: vehicle.id,
+        scheduled_at: scheduledAtIso,
+        customer_name: name.trim(),
+        customer_email: email.trim() || null,
+        customer_phone: phone.trim() || null,
+        notes: message.trim() || null,
+        request_id: requestIdRef.current,
+      },
+    });
 
-    const { data: leadRow, error: leadErr } = await supabase
-      .from("car_dealership_leads")
-      .insert(leadPayload as never)
-      .select("id")
-      .single();
-
-    if (leadErr) {
+    if (submitError) {
       setSubmitting(false);
-      console.error("[lead capture] insert failed", leadErr);
+      console.error("[dealership customer intake] submit failed", submitError);
       toast.error("Something went wrong. Please try again or call the dealer directly.");
       return;
     }
 
-    if (mode === "test_drive" && scheduledAtIso) {
-      const { error: rpcErr } = await supabase.rpc("schedule_public_test_drive", {
-        p_store_id: storeId,
-        p_vehicle_id: vehicle.id,
-        p_scheduled_at: scheduledAtIso,
-        p_customer_name: name.trim(),
-        p_customer_phone: phone.trim() || null,
-        p_notes: message.trim() || null,
-        p_lead_id: (leadRow as { id: string } | null)?.id ?? null,
-      });
+    const response = readLeadSubmitResponse(data);
+    if (!response) {
+      setSubmitting(false);
+      toast.error("The dealer couldn't confirm that request yet. Please retry.");
+      return;
+    }
+    setAlreadyProcessed(response.already_processed === true);
 
-      if (rpcErr) {
-        setSubmitting(false);
-        console.error("[test drive schedule] RPC failed", rpcErr);
-        toast.error(
-          "We saved your inquiry, but couldn't lock in that time. The dealer will reach out to confirm.",
+    if (mode === "test_drive") {
+      const testDriveId = typeof response.test_drive_id === "string"
+        ? response.test_drive_id
+        : null;
+      const accessToken = normalizeCarDealershipCustomerAccessToken(
+        response.access_token,
+      );
+      const accountOwned = response.account_owned === true;
+      const accessExpiresAt = typeof response.access_expires_at === "string"
+        ? response.access_expires_at
+        : null;
+      const scheduled = response.test_drive_scheduled === true
+        && Boolean(testDriveId)
+        && Boolean(scheduledAtIso);
+
+      if (scheduled && testDriveId && scheduledAtIso) {
+        persistCarDealershipCustomerAccessToken(
+          "test-drive",
+          testDriveId,
+          "manage",
+          accessToken,
         );
-        // Still mark as submitted so the user sees a friendly confirmation.
+        setTestDriveSubmission({
+          id: testDriveId,
+          accessToken,
+          accessExpiresAt,
+          accountOwned,
+        });
+        setBookedAt(scheduledAtIso);
+      } else {
+        setTestDriveSubmission(null);
         setBookedAt(null);
-        setSubmitted(true);
-        return;
       }
-      setBookedAt(scheduledAtIso);
     }
 
+    requestIdRef.current = null;
     setSubmitting(false);
     setSubmitted(true);
   };
+
+  const testDrivePath = testDriveSubmission
+    && (testDriveSubmission.accessToken || testDriveSubmission.accountOwned)
+    ? buildCarDealershipTestDriveAccessPath(
+        storeSlug,
+        testDriveSubmission.id,
+        testDriveSubmission.accessToken,
+      )
+    : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -526,6 +587,30 @@ function LeadCaptureDialog({ open, onOpenChange, mode, storeId, vehicle }: LeadD
                     {[vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(" ")}
                   </span>. The dealer will reach out to confirm.
                 </p>
+                {testDrivePath ? (
+                  <div className="space-y-1.5">
+                    <Button asChild className="min-h-11">
+                      <Link to={testDrivePath}>View my test drive</Link>
+                    </Button>
+                    {testDriveSubmission?.accessToken
+                      && testDriveSubmission.accessExpiresAt && (
+                        <p className="text-[11px] text-muted-foreground">
+                          Keep this link private. It expires {new Date(testDriveSubmission.accessExpiresAt).toLocaleString()}.
+                        </p>
+                      )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    The dealer can send a fresh secure link if you need to view or cancel this appointment.
+                  </p>
+                )}
+              </>
+            ) : mode === "test_drive" ? (
+              <>
+                <p className="text-lg font-bold">Your inquiry was saved</p>
+                <p className="text-sm text-muted-foreground">
+                  We couldn't lock in that drive time, but the dealer has your request and will contact you to confirm another slot.
+                </p>
               </>
             ) : (
               <>
@@ -537,6 +622,11 @@ function LeadCaptureDialog({ open, onOpenChange, mode, storeId, vehicle }: LeadD
                   </span>.
                 </p>
               </>
+            )}
+            {alreadyProcessed && (
+              <p className="text-[11px] text-muted-foreground">
+                We recovered your earlier request without creating a duplicate.
+              </p>
             )}
             <Button onClick={() => onOpenChange(false)} className="mt-2">Done</Button>
           </div>
@@ -636,6 +726,8 @@ export default function PublicCarDealershipDetailPage() {
         .from("store_profiles")
         .select("id,name,slug,logo_url,address,phone")
         .eq("slug", slug)
+        .eq("category", "car-dealership")
+        .eq("is_active", true)
         .maybeSingle();
 
       if (cancelled) return;
@@ -1045,6 +1137,7 @@ export default function PublicCarDealershipDetailPage() {
         onOpenChange={setLeadOpen}
         mode={leadMode}
         storeId={store.id}
+        storeSlug={store.slug}
         vehicle={vehicle}
       />
     </div>

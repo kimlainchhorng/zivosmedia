@@ -416,6 +416,7 @@ const PublicCarRentalBookingPage = lazy(() => import("./pages/car-rental/PublicC
 const PublicCarRentalBookingDetailPage = lazy(() => import("./pages/car-rental/PublicCarRentalBookingDetailPage"));
 const PublicCarDealershipListingPage = lazy(() => import("./pages/car-dealership/PublicCarDealershipListingPage"));
 const PublicCarDealershipDetailPage = lazy(() => import("./pages/car-dealership/PublicCarDealershipDetailPage"));
+const PublicCarDealershipTestDrivePage = lazy(() => import("./pages/car-dealership/PublicCarDealershipTestDrivePage"));
 const PublicCarDealershipReviewSubmitPage = lazy(() => import("./pages/car-dealership/PublicCarDealershipReviewSubmitPage"));
 const CarRentalDailySheetPage = lazy(() => import("./pages/admin/CarRentalDailySheetPage"));
 const CarRentalReceiptPage = lazy(() => import("./pages/admin/CarRentalReceiptPage"));
@@ -1858,7 +1859,8 @@ const App = () => (
                 <Route path="/salon/:slug" element={<PublicSalonBookingPage />} />
                 <Route path="/car-rental/:slug" element={<PublicCarRentalBookingPage />} />
                 {/* More-specific routes first so React Router matches /v/:vehicleId
-                    and /review/:dealId before /:slug. */}
+                    /test-drive/:testDriveId, and /review/:dealId before /:slug. */}
+                <Route path="/car-dealership/:slug/test-drive/:testDriveId" element={<PublicCarDealershipTestDrivePage />} />
                 <Route path="/car-dealership/:slug/v/:vehicleId" element={<PublicCarDealershipDetailPage />} />
                 <Route path="/car-dealership/:slug/review/:dealId" element={<PublicCarDealershipReviewSubmitPage />} />
                 <Route path="/car-dealership/:slug" element={<PublicCarDealershipListingPage />} />

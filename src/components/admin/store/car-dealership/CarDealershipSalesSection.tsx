@@ -30,6 +30,10 @@ import VehiclePicker from "./VehiclePicker";
 import CustomerPicker from "./CustomerPicker";
 import { printDealSheet } from "@/lib/car-dealership/dealSheetPdf";
 import {
+  buildCarDealershipSaleReviewAccessPath,
+  issueCarDealershipSaleReviewAccess,
+} from "@/lib/carDealershipCustomerAccess";
+import {
   useDealershipDealDocuments,
   type DealDocumentType,
   type DealDocument,
@@ -316,6 +320,8 @@ function CarDealershipSalesSectionInner({ storeId, storeName = "Auto Dealership"
   const [editing, setEditing] = useState<DealershipSale | null>(null);
   const [draft, setDraft] = useState<DealershipSaleDraft>(emptyDraft());
   const [tab, setTab] = useState<"parties" | "pricing" | "status" | "docs">("parties");
+  const [reviewLinkBusy, setReviewLinkBusy] = useState<Record<string, boolean>>({});
+  const [reviewLinkErrors, setReviewLinkErrors] = useState<Record<string, string>>({});
   // vehicle cost for gross profit display — populated when vehicle selected from inventory
   const [vehicleCostCents, setVehicleCostCents] = useState(0);
 
@@ -380,13 +386,38 @@ function CarDealershipSalesSectionInner({ storeId, storeName = "Auto Dealership"
       toast.error("This store doesn't have a public slug set up yet.");
       return;
     }
-    const url = `${window.location.origin}/car-dealership/${storeSlug}/review/${s.id}`;
+
+    setReviewLinkBusy((current) => ({ ...current, [s.id]: true }));
+    setReviewLinkErrors((current) => {
+      const next = { ...current };
+      delete next[s.id];
+      return next;
+    });
+
     try {
+      const issued = await issueCarDealershipSaleReviewAccess(s.id);
+      if (!issued.token && !issued.accountOwned) {
+        throw new Error("The server did not issue customer access for this sale.");
+      }
+      const path = buildCarDealershipSaleReviewAccessPath(
+        storeSlug,
+        s.id,
+        issued.token,
+      );
+      const url = `${window.location.origin}${path}`;
       await navigator.clipboard.writeText(url);
-      toast.success("Review link copied — send it to your customer.");
+      toast.success(
+        issued.token
+          ? "Secure review link copied — send it to your customer."
+          : "Account-linked review route copied — the customer must sign in.",
+      );
     } catch (e) {
-      console.error("[copy review link] clipboard failed", e);
-      toast.error("Couldn't copy. The link is: " + url);
+      console.error("[copy secure review link] failed", e);
+      const message = "Couldn't create and copy a protected review link. No unprotected link was copied.";
+      setReviewLinkErrors((current) => ({ ...current, [s.id]: message }));
+      toast.error(message);
+    } finally {
+      setReviewLinkBusy((current) => ({ ...current, [s.id]: false }));
     }
   };
 
@@ -423,6 +454,11 @@ function CarDealershipSalesSectionInner({ storeId, storeName = "Auto Dealership"
                   <p className="text-xs text-muted-foreground truncate">
                     #{s.deal_number} · {s.vehicle_label}
                   </p>
+                  {reviewLinkErrors[s.id] && (
+                    <p role="alert" className="mt-1 text-xs text-destructive">
+                      {reviewLinkErrors[s.id]}
+                    </p>
+                  )}
                 </div>
                 <div className="text-right shrink-0">
                   <p className="font-bold">{formatPrice(s.total_cents)}</p>
@@ -435,10 +471,15 @@ function CarDealershipSalesSectionInner({ storeId, storeName = "Auto Dealership"
                     <Button
                       size="sm"
                       variant="ghost"
-                      title="Copy public review link — send this to the customer to ask for a review"
+                      title="Create and copy a secure review link"
                       onClick={() => handleCopyReviewLink(s)}
+                      disabled={reviewLinkBusy[s.id] === true}
                     >
-                      <Star className="h-3.5 w-3.5 text-amber-500" />
+                      {reviewLinkBusy[s.id] ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" />
+                      ) : (
+                        <Star className="h-3.5 w-3.5 text-amber-500" />
+                      )}
                     </Button>
                   )}
                   <Button size="sm" variant="ghost" title="Print deal sheet" onClick={() => printDealSheet(s, storeName)}><Printer className="h-3.5 w-3.5" /></Button>
