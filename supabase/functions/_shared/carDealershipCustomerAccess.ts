@@ -4,6 +4,18 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CAPABILITY_RE = /^[0-9a-f]{64}$/;
 
+export const createCarDealershipServiceClient = (
+  supabaseUrl: string,
+  serviceKey: string,
+) =>
+  createClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false },
+  });
+
+type CarDealershipServiceClient = ReturnType<
+  typeof createCarDealershipServiceClient
+>;
+
 export type CarDealershipSaleReviewAuthorization = {
   accessToken: string | null;
   userId: string | null;
@@ -33,7 +45,7 @@ export const resolveCarDealershipUserId = async (
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authorization } },
       auth: { persistSession: false },
-    }) as any;
+    });
     const { data, error } = await userClient.auth.getUser();
     if (error) return null;
     return cleanCarDealershipUuid(data?.user?.id);
@@ -43,7 +55,7 @@ export const resolveCarDealershipUserId = async (
 };
 
 export const authorizeCarDealershipSaleReviewAccess = async (input: {
-  admin: any;
+  admin: CarDealershipServiceClient;
   req: Request;
   supabaseUrl: string;
   anonKey: string;

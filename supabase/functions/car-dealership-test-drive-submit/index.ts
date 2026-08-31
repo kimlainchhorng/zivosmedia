@@ -5,10 +5,11 @@
  * supplies contact intent only; the database derives every CRM relationship
  * and writes the lead/test drive atomically behind a service-only RPC.
  */
-import { createClient, serve } from "../_shared/deps.ts";
+import { serve } from "../_shared/deps.ts";
 import {
   cleanCarDealershipCapability,
   cleanCarDealershipUuid,
+  createCarDealershipServiceClient,
   resolveCarDealershipUserId,
 } from "../_shared/carDealershipCustomerAccess.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
@@ -104,9 +105,7 @@ serve(
         }
       }
 
-      const admin = createClient(supabaseUrl, serviceKey, {
-        auth: { persistSession: false },
-      }) as any;
+      const admin = createCarDealershipServiceClient(supabaseUrl, serviceKey);
       const userId = await resolveCarDealershipUserId(
         req,
         supabaseUrl,
