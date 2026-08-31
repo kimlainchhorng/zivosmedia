@@ -1476,6 +1476,11 @@ function ZivoSoftwareHostGate() {
     return <Navigate to={`${ZIVO_SOFTWARE_AUTH_REDIRECT_PATH}${location.search}${location.hash}`} replace />;
   }
 
+  if (isStandaloneChatRoute(pathname)) {
+    const destination = zivoChatUrl(`${pathname}${location.search}${location.hash}`);
+    return <ZivoSoftwareChatRedirect destination={destination} />;
+  }
+
   if (isAuthPath || isLegalPath || isSoftwareBusinessPath || isAutoRepairPath || isSoftwareDashboardPath || isOperationalAsset) {
     return null;
   }
