@@ -113,10 +113,10 @@ test.describe("staff, driver, admin, and retired creator access contracts", () =
     for (const fn of [
       "driver-connect-status",
       "driver-connect-onboard",
-      "customer-payout-method-record",
     ]) {
       expect(driverPayouts).toContain(`supabase.functions.invoke("${fn}"`);
     }
+    expect(driverPayouts).toMatch(/invokeSensitive(?:<[^>]+>)?\(\s*"customer-payout-method-record"/);
     expect(driverPayouts).not.toMatch(/from\("driver_earnings"\)[\s\S]{0,200}\.(insert|update|delete)/);
 
     expect(app).not.toContain('path="/creator-dashboard"');
