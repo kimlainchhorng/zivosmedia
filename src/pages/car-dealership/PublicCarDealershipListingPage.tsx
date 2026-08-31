@@ -6,7 +6,7 @@
  * Mirrors the car-rental public flow: anonymous slug lookup → vehicle grid
  * (filtered to active + non-retired via RLS) → click into the detail page.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
@@ -138,6 +138,7 @@ function ListingLeadDialog({
   const [financing, setFinancing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const requestIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -149,7 +150,9 @@ function ListingLeadDialog({
       setMessage("");
       setTradeIn(false);
       setFinancing(false);
+      setSubmitting(false);
       setSubmitted(false);
+      requestIdRef.current = null;
     }
   }, [open, prefillDesiredMake]);
 
@@ -163,37 +166,56 @@ function ListingLeadDialog({
       return;
     }
 
-    setSubmitting(true);
     const budgetDollars = budget.replace(/[^\d]/g, "");
-    const payload = {
-      store_id: storeId,
-      vehicle_id: null,
-      vehicle_label: null,
-      display_name: name.trim(),
-      email: email.trim() || null,
-      phone: phone.trim() || null,
-      notes: message.trim() || null,
-      source: "web" as const,
-      status: "new" as const,
-      desired_make: desiredMake.trim() || null,
-      desired_model: null,
-      budget_max_cents: budgetDollars ? parseInt(budgetDollars, 10) * 100 : null,
-      trade_in_interested: tradeIn,
-      financing_needed: financing,
-    };
+    const budgetMaxCents = budgetDollars
+      ? Number.parseInt(budgetDollars, 10) * 100
+      : null;
+    if (
+      budgetMaxCents !== null &&
+      (!Number.isSafeInteger(budgetMaxCents) || budgetMaxCents > 2147483647)
+    ) {
+      toast.error("Please enter a smaller maximum budget.");
+      return;
+    }
+    if (typeof globalThis.crypto?.randomUUID !== "function") {
+      toast.error("Secure request setup is unavailable. Please call the dealer directly.");
+      return;
+    }
+    if (!requestIdRef.current) {
+      requestIdRef.current = globalThis.crypto.randomUUID();
+    }
 
-    const { error } = await supabase
-      .from("car_dealership_leads")
-      .insert(payload as never);
+    setSubmitting(true);
+    const { error } = await supabase.functions.invoke(
+      "car-dealership-test-drive-submit",
+      {
+        body: {
+          mode: "info",
+          store_id: storeId,
+          vehicle_id: null,
+          scheduled_at: null,
+          customer_name: name.trim(),
+          customer_email: email.trim() || null,
+          customer_phone: phone.trim() || null,
+          notes: message.trim() || null,
+          desired_make: desiredMake.trim() || null,
+          budget_max_cents: budgetMaxCents,
+          trade_in_interested: tradeIn,
+          financing_needed: financing,
+          request_id: requestIdRef.current,
+        },
+      },
+    );
 
     setSubmitting(false);
 
     if (error) {
-      console.error("[listing lead capture] insert failed", error);
+      console.error("[listing lead capture] secure intake failed", error);
       toast.error("Something went wrong. Please try again or call the dealer directly.");
       return;
     }
 
+    requestIdRef.current = null;
     setSubmitted(true);
   };
 
@@ -341,6 +363,8 @@ export default function PublicCarDealershipListingPage() {
         .from("store_profiles")
         .select("id,name,slug,logo_url,description,address,phone")
         .eq("slug", slug)
+        .eq("category", "car-dealership")
+        .eq("is_active", true)
         .maybeSingle();
 
       if (cancelled) return;
@@ -362,8 +386,8 @@ export default function PublicCarDealershipListingPage() {
           .eq("is_featured", true)
           .order("created_at", { ascending: false })
           .limit(3),
-        supabase
-          .from("car_dealership_reviews")
+        (supabase as any)
+          .from("car_dealership_public_reviews")
           .select("id,customer_name,vehicle_label,rating,title,body,owner_response,created_at")
           .eq("store_id", (storeRow as any).id)
           .eq("is_visible", true)

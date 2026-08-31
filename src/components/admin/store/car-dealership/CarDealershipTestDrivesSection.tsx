@@ -8,11 +8,11 @@
  *  • Upcoming drives grouped by day
  *  • Header stats strip: today / this week / completed
  */
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 import {
   Plus, Calendar, Car, Loader2, Pencil, Trash2,
   CheckCircle, Play, CheckCheck, UserX, ChevronDown, ChevronUp,
-  HandCoins,
+  HandCoins, Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { supabase as typedSupabase } from "@/integrations/supabase/client";
+import {
+  buildCarDealershipTestDriveAccessPath,
+  issueCarDealershipTestDriveAccess,
+} from "@/lib/carDealershipCustomerAccess";
 import {
   useDealershipTestDrives,
   type DealershipTestDrive,
@@ -40,6 +45,8 @@ import { useDealershipInventory } from "@/hooks/car-dealership/useDealershipInve
 import VehiclePicker from "./VehiclePicker";
 import CustomerPicker from "./CustomerPicker";
 import QuickCreateDealDialog, { type QuickDealSeed } from "./QuickCreateDealDialog";
+
+const supabase: any = typedSupabase;
 
 // ─── status helpers ───────────────────────────────────────────────────────────
 
@@ -276,15 +283,18 @@ function DriveActions({ drive, saving, onConfirm, onStart, onComplete, onNoShow,
 interface DriveCardProps {
   drive: DealershipTestDrive;
   saving: boolean;
+  secureLinkBusy: boolean;
+  secureLinkError: string | null;
   showDate?: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onStatusChange: (id: string, status: DealershipTestDriveStatus, extra?: Partial<DealershipTestDriveDraft>) => void;
   onOpenComplete: (drive: DealershipTestDrive) => void;
   onConvertToDeal: (drive: DealershipTestDrive) => void;
+  onCopySecureLink: () => void;
 }
 
-function DriveCard({ drive, saving, showDate = false, onEdit, onDelete, onStatusChange, onOpenComplete, onConvertToDeal }: DriveCardProps) {
+function DriveCard({ drive, saving, secureLinkBusy, secureLinkError, showDate = false, onEdit, onDelete, onStatusChange, onOpenComplete, onConvertToDeal, onCopySecureLink }: DriveCardProps) {
   const isActive = ["scheduled", "confirmed", "in_progress"].includes(drive.status);
 
   return (
@@ -326,6 +336,12 @@ function DriveCard({ drive, saving, showDate = false, onEdit, onDelete, onStatus
           </p>
         )}
 
+        {secureLinkError && (
+          <p role="alert" className="text-xs text-destructive">
+            {secureLinkError}
+          </p>
+        )}
+
         {/* Actions row */}
         <div className="flex items-center justify-between pt-1">
           <DriveActions
@@ -338,6 +354,21 @@ function DriveCard({ drive, saving, showDate = false, onEdit, onDelete, onStatus
             onConvertToDeal={() => onConvertToDeal(drive)}
           />
           <div className="flex gap-1 ml-auto">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0"
+              title="Create and copy a secure customer link"
+              aria-label={`Copy secure customer link for ${drive.customer_name}`}
+              onClick={onCopySecureLink}
+              disabled={secureLinkBusy}
+            >
+              {secureLinkBusy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" />
+              ) : (
+                <Link2 className="h-3.5 w-3.5 text-primary" />
+              )}
+            </Button>
             <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={onEdit}>
               <Pencil className="h-3.5 w-3.5" />
             </Button>
@@ -365,6 +396,9 @@ function CarDealershipTestDrivesSectionInner({ storeId }: Props) {
   const [completeTarget, setCompleteTarget] = useState<DealershipTestDrive | null>(null);
   const [convertTarget, setConvertTarget] = useState<DealershipTestDrive | null>(null);
   const [showPast, setShowPast] = useState(false);
+  const [secureLinkBusy, setSecureLinkBusy] = useState<Record<string, boolean>>({});
+  const [secureLinkErrors, setSecureLinkErrors] = useState<Record<string, string>>({});
+  const storeSlugRef = useRef<{ storeId: string; slug: string } | null>(null);
 
   // Vehicle lookup for seeding deal sale_price from the linked vehicle's asking price.
   const vehicleMap = useMemo(() => {
@@ -486,9 +520,66 @@ function CarDealershipTestDrivesSectionInner({ storeId }: Props) {
     else toast.error("Couldn't create deal.");
   };
 
+  const resolveStoreSlug = async () => {
+    if (storeSlugRef.current?.storeId === storeId) {
+      return storeSlugRef.current.slug;
+    }
+    const { data, error } = await supabase
+      .from("store_profiles")
+      .select("slug")
+      .eq("id", storeId)
+      .maybeSingle();
+    const slug = typeof data?.slug === "string" && data.slug.trim()
+      ? data.slug.trim()
+      : null;
+    if (error || !slug) {
+      if (error) console.error("[test-drive secure link] store lookup failed", error);
+      throw new Error("This store does not have a public dealership route yet.");
+    }
+    storeSlugRef.current = { storeId, slug };
+    return slug;
+  };
+
+  const handleCopySecureLink = async (drive: DealershipTestDrive) => {
+    setSecureLinkBusy((current) => ({ ...current, [drive.id]: true }));
+    setSecureLinkErrors((current) => {
+      const next = { ...current };
+      delete next[drive.id];
+      return next;
+    });
+
+    try {
+      const storeSlug = await resolveStoreSlug();
+      const issued = await issueCarDealershipTestDriveAccess(drive.id);
+      if (!issued.token && !issued.accountOwned) {
+        throw new Error("The server did not issue customer access for this test drive.");
+      }
+      const path = buildCarDealershipTestDriveAccessPath(
+        storeSlug,
+        drive.id,
+        issued.token,
+      );
+      await navigator.clipboard.writeText(`${window.location.origin}${path}`);
+      toast.success(
+        issued.token
+          ? "Secure test-drive link copied."
+          : "Account-linked test-drive route copied — the customer must sign in.",
+      );
+    } catch (error) {
+      console.error("[copy secure test-drive link] failed", error);
+      const message = "Couldn't create and copy a protected test-drive link. No unprotected link was copied.";
+      setSecureLinkErrors((current) => ({ ...current, [drive.id]: message }));
+      toast.error(message);
+    } finally {
+      setSecureLinkBusy((current) => ({ ...current, [drive.id]: false }));
+    }
+  };
+
   const driveCardProps = (d: DealershipTestDrive, extra?: { showDate?: boolean }) => ({
     drive: d,
     saving,
+    secureLinkBusy: secureLinkBusy[d.id] === true,
+    secureLinkError: secureLinkErrors[d.id] ?? null,
     showDate: extra?.showDate,
     onEdit: () => openEdit(d),
     onDelete: () => void handleDelete(d),
@@ -496,6 +587,7 @@ function CarDealershipTestDrivesSectionInner({ storeId }: Props) {
       void handleStatusChange(id, status, patch),
     onOpenComplete: setCompleteTarget,
     onConvertToDeal: setConvertTarget,
+    onCopySecureLink: () => void handleCopySecureLink(d),
   });
 
   return (

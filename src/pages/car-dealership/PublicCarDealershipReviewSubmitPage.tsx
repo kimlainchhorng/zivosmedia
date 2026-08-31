@@ -4,10 +4,8 @@
  *
  * Route: /car-dealership/:slug/review/:dealId
  *
- * The deal_id in the URL acts as a soft token: dealers send the link to
- * the customer after delivery. The page validates the deal via a
- * SECURITY DEFINER function (so customer PII isn't exposed via RLS), then
- * lets the customer leave a 1-5 star review.
+ * The URL carries a customer capability in its fragment. The secret is
+ * scrubbed from browser history before the customer-safe deal is loaded.
  *
  * Submitted reviews land with `is_visible = false` for admin moderation.
  */
@@ -18,7 +16,7 @@ import {
   Car, MapPin, Loader2, Phone, Star, CheckCircle2, AlertTriangle,
   MessageCircle,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as typedSupabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +24,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { readCarDealershipCustomerAccessToken } from "@/lib/carDealershipCustomerAccess";
+
+const supabase: any = typedSupabase;
 
 interface StoreInfo {
   id: string;
@@ -37,17 +38,31 @@ interface StoreInfo {
 }
 
 interface DealForReview {
+  id: string;
   store_id: string;
   vehicle_label: string;
-  vehicle_vin: string | null;
   customer_name: string;
   status: string;
+  already_reviewed: boolean;
+  store_name: string;
+  store_slug: string;
+  store_logo_url: string | null;
+  store_address: string | null;
+  store_phone: string | null;
 }
 
 type LoadState = "loading" | "ready" | "not_found" | "store_mismatch" | "already_reviewed";
 
+const firstRow = (data: unknown) => {
+  const row = Array.isArray(data) ? data[0] : data;
+  return row && typeof row === "object" ? row as DealForReview : null;
+};
+
 export default function PublicCarDealershipReviewSubmitPage() {
   const { slug, dealId } = useParams<{ slug: string; dealId: string }>();
+  const [accessToken] = useState(() => dealId
+    ? readCarDealershipCustomerAccessToken("sale", dealId, "review")
+    : null);
 
   const [store, setStore] = useState<StoreInfo | null>(null);
   const [deal, setDeal] = useState<DealForReview | null>(null);
@@ -55,7 +70,6 @@ export default function PublicCarDealershipReviewSubmitPage() {
 
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
-  const [name, setName] = useState("");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -67,65 +81,60 @@ export default function PublicCarDealershipReviewSubmitPage() {
     (async () => {
       if (!slug || !dealId) { setLoadState("not_found"); return; }
 
-      // 1. Resolve store
-      const { data: storeRow } = await supabase
-        .from("store_profiles")
-        .select("id,name,slug,logo_url,address,phone")
-        .eq("slug", slug)
-        .maybeSingle();
-      if (cancelled) return;
-      if (!storeRow) { setLoadState("not_found"); return; }
-      setStore(storeRow as unknown as StoreInfo);
-
-      // 2. Resolve deal via the SECURITY DEFINER lookup function
-      const { data: dealRows, error: dealErr } = await supabase
-        .rpc("get_deal_for_review", { p_sale_id: dealId });
+      // Resolve the customer-safe deal through the capability-aware RPC.
+      // A null token is accepted only when the signed-in account owns the sale.
+      const { data: dealRows, error: dealErr } = await supabase.rpc(
+        "car_dealership_customer_get_sale_for_review",
+        {
+          p_sale_id: dealId,
+          p_access_token: accessToken,
+        },
+      );
       if (cancelled) return;
       if (dealErr) {
         console.error("[review-submit] deal lookup failed", dealErr);
         setLoadState("not_found");
         return;
       }
-      const dealRow = Array.isArray(dealRows) ? dealRows[0] : null;
-      if (!dealRow) { setLoadState("not_found"); return; }
+      const dealRow = firstRow(dealRows);
+      if (!dealRow || dealRow.id !== dealId) { setLoadState("not_found"); return; }
 
-      // 3. Verify the deal belongs to this store (URL safety)
-      if ((dealRow as any).store_id !== (storeRow as any).id) {
+      // Verify the authorized row belongs to the route's dealership.
+      if (dealRow.store_slug !== slug) {
         setLoadState("store_mismatch");
         return;
       }
 
-      // 4. Check whether a review already exists for this deal
-      const { data: existing } = await supabase
-        .from("car_dealership_reviews")
-        .select("id")
-        .eq("sale_id", dealId)
-        .maybeSingle();
-      if (cancelled) return;
-      if (existing) {
+      setStore({
+        id: dealRow.store_id,
+        name: dealRow.store_name,
+        slug: dealRow.store_slug,
+        logo_url: dealRow.store_logo_url,
+        address: dealRow.store_address,
+        phone: dealRow.store_phone,
+      });
+
+      if (dealRow.already_reviewed) {
         setLoadState("already_reviewed");
         return;
       }
 
-      const d = dealRow as unknown as DealForReview;
-      setDeal(d);
-      setName(d.customer_name);
+      setDeal(dealRow);
       setLoadState("ready");
     })();
     return () => { cancelled = true; };
-  }, [slug, dealId]);
+  }, [accessToken, slug, dealId]);
 
   // ── submit ───────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!store || !deal || !dealId) return;
-    if (!name.trim()) { toast.error("Please enter your name."); return; }
     if (rating < 1 || rating > 5) { toast.error("Please pick a star rating."); return; }
     if (!body.trim()) { toast.error("Please share a few words about your experience."); return; }
 
     setSubmitting(true);
     const payload = {
       sale_id: dealId,
-      customer_name: name.trim(),
+      access_token: accessToken,
       rating,
       title: title.trim() || null,
       body: body.trim(),
@@ -164,13 +173,25 @@ export default function PublicCarDealershipReviewSubmitPage() {
           <AlertTriangle className="mx-auto h-12 w-12 text-amber-500" />
           <h1 className="mt-3 text-2xl font-bold">Link not valid</h1>
           <p className="mt-2 text-muted-foreground">
-            This review link doesn't match an active deal at this dealership.
+            This secure review link is invalid or expired. Sign in if this purchase belongs to your account, or ask the dealership for a fresh secure review link.
           </p>
-          {slug && (
-            <Link to={`/car-dealership/${slug}`} className="mt-4 inline-block text-primary underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              ← Back to inventory
-            </Link>
-          )}
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            {slug && dealId && (
+              <Button asChild>
+                <Link to={`/login?redirect=${encodeURIComponent(`/car-dealership/${slug}/review/${dealId}`)}`}>
+                  Sign in
+                </Link>
+              </Button>
+            )}
+            {slug && (
+              <Button asChild variant="outline">
+                <Link to={`/car-dealership/${slug}`}>← Back to inventory</Link>
+              </Button>
+            )}
+            <Button asChild variant="ghost">
+              <Link to="/">Back to ZIVO Home</Link>
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -268,9 +289,6 @@ export default function PublicCarDealershipReviewSubmitPage() {
               <div className="min-w-0">
                 <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">You bought</p>
                 <p className="text-sm font-semibold truncate">{deal.vehicle_label}</p>
-                {deal.vehicle_vin && (
-                  <p className="text-[10px] text-muted-foreground font-mono truncate">VIN {deal.vehicle_vin}</p>
-                )}
               </div>
             </Card>
 
@@ -313,11 +331,12 @@ export default function PublicCarDealershipReviewSubmitPage() {
 
               <div className="space-y-1.5">
                 <Label>Your name</Label>
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="How you'd like to be credited"
-                />
+                <p className="min-h-10 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-foreground">
+                  {deal.customer_name}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  This name comes from the completed sale and cannot be changed here.
+                </p>
               </div>
 
               <div className="space-y-1.5">
@@ -346,13 +365,13 @@ export default function PublicCarDealershipReviewSubmitPage() {
 
               <p className="text-[10px] text-muted-foreground border-t pt-3">
                 Your review will be reviewed by the dealer before it appears publicly.
-                It won't include your phone or email — just your name, rating, and the comments above.
+                It won't include your phone or email — just the sale's display name, rating, and the comments above.
               </p>
 
               <Button
                 className="w-full transition-transform active:scale-[0.98]"
                 onClick={handleSubmit}
-                disabled={submitting || !name.trim() || !body.trim()}
+                disabled={submitting || !body.trim()}
               >
                 {submitting
                   ? <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" />Submitting...</>
