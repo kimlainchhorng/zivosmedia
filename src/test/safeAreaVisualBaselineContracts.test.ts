@@ -19,7 +19,9 @@ describe("safe-area visual baseline contracts", () => {
       "BOTTOM_CLIP_HEIGHT = 140",
       "y: h - BOTTOM_CLIP_HEIGHT",
       "height: BOTTOM_CLIP_HEIGHT",
-      "toMatchSnapshot",
+      "toHaveScreenshot",
+      'animations: "disabled"',
+      'caret: "hide"',
       "maxDiffPixelRatio: 0.001",
     ]) {
       expect(safeAreaVisual).toContain(needle);

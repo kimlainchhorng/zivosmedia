@@ -205,18 +205,19 @@ for (const vp of VIEWPORTS) {
         await prepareStableVisualPage(page);
         await page.goto(route.path, { waitUntil: "domcontentloaded" });
         await waitForStableVisuals(page, route.name);
-        const buf = await page.screenshot({
-          clip: {
-            x: 0,
-            y: 0,
-            width: vp.viewport.width,
-            height: TOP_CLIP_HEIGHT,
-          },
-        });
-        expect(buf).toMatchSnapshot(
+        await expect(page).toHaveScreenshot(
           safeAreaSnapshotName(vp.name, route.name, "top"),
           {
+            animations: "disabled",
+            caret: "hide",
             maxDiffPixelRatio: 0.001,
+            timeout: 20_000,
+            clip: {
+              x: 0,
+              y: 0,
+              width: vp.viewport.width,
+              height: TOP_CLIP_HEIGHT,
+            },
           },
         );
       });
@@ -231,18 +232,19 @@ for (const vp of VIEWPORTS) {
         await page.goto(route.path, { waitUntil: "domcontentloaded" });
         await waitForStableVisuals(page, route.name);
         const h = vp.viewport.height;
-        const buf = await page.screenshot({
-          clip: {
-            x: 0,
-            y: h - BOTTOM_CLIP_HEIGHT,
-            width: vp.viewport.width,
-            height: BOTTOM_CLIP_HEIGHT,
-          },
-        });
-        expect(buf).toMatchSnapshot(
+        await expect(page).toHaveScreenshot(
           safeAreaSnapshotName(vp.name, route.name, "bottom"),
           {
+            animations: "disabled",
+            caret: "hide",
             maxDiffPixelRatio: 0.001,
+            timeout: 20_000,
+            clip: {
+              x: 0,
+              y: h - BOTTOM_CLIP_HEIGHT,
+              width: vp.viewport.width,
+              height: BOTTOM_CLIP_HEIGHT,
+            },
           },
         );
       });
