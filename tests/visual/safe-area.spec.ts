@@ -103,10 +103,11 @@ async function prepareStableVisualPage(page: import("@playwright/test").Page) {
         transition-delay: 0s !important;
         transition-duration: 0s !important;
       }
-      /* Route progress is intentionally timer-driven and can be 8%, 35%,
-         60%, 80%, or 100% wide at capture time. It is not permanent safe-area
-         chrome, so exclude it from this layout baseline. */
-      .zivo-safe-top-none {
+      /* The fixed 2px route-progress bar is intentionally timer-driven and can
+         be 8%, 35%, 60%, 80%, or 100% wide at capture time. It is not
+         permanent safe-area chrome, so exclude only that element from this
+         layout baseline. */
+      [class~="zivo-safe-top-none"][class*="h-[2px]"] {
         opacity: 0 !important;
       }
     `;
