@@ -60,7 +60,7 @@ describe("safe-area visual baseline contracts", () => {
       "image.decode()",
       'waitUntil: "domcontentloaded"',
       "test.setTimeout(90_000)",
-      '[class~="zivo-safe-top-none"][class*="h-[2px]"]',
+      ".zivo-safe-top-none",
       "opacity: 0 !important",
     ]) {
       expect(safeAreaVisual).toContain(needle);
