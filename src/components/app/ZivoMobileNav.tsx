@@ -140,10 +140,10 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>(
         className="fixed inset-x-0 bottom-0 z-[1401] lg:hidden pb-safe pointer-events-none"
       >
         {/* Floating white capsule; the active destination carries the brand gradient. */}
-        <div className="relative mx-auto w-[calc(100%-32px)] max-w-[340px] pb-3">
+        <div className="relative mx-auto w-[calc(100%-32px)] max-w-[340px] pb-3 max-[340px]:w-[calc(100%-16px)]">
           <div
             className={cn(
-              "pointer-events-auto relative flex w-full items-stretch px-1.5 py-2",
+              "pointer-events-auto relative flex w-full items-stretch px-1.5 py-2 max-[340px]:px-0.5",
               "rounded-[26px]",
               "border border-zinc-100 bg-white/95 backdrop-blur-2xl",
               "shadow-[0_14px_38px_rgba(15,23,42,0.14)]",
@@ -197,7 +197,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>(
                     "group relative flex min-h-[52px] min-w-[44px] touch-manipulation items-center justify-center",
                     "rounded-full transition-all duration-200 ease-out active:scale-[0.92]",
                     isActive
-                      ? "flex-[1.8] flex-row gap-1 px-1.5 text-white"
+                      ? "flex-[1.8] flex-row gap-1 px-1.5 text-white max-[340px]:gap-0.5 max-[340px]:px-1"
                       : "flex-1 flex-col px-0.5",
                     isActive
                       ? "text-white"
