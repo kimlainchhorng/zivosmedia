@@ -1,7 +1,7 @@
 {
   "name": "vite_react_shadcn_ts",
   "private": true,
-  "version": "1.3.0",
+  "version": "1.0.1",
   "type": "module",
   "engines": {
     "node": ">=22.13.0"
@@ -80,8 +80,8 @@
     "qa:edge-function-probe": "node scripts/qa/edge-function-production-probe.mjs",
     "qa:conflict-markers": "node scripts/qa/conflict-markers.mjs",
     "qa:safe-area": "node scripts/qa/safe-area-check.mjs",
-  "qa:button-accessible-names": "node scripts/qa/button-accessible-names.mjs",
-  "qa:money-formatting": "node scripts/qa/money-formatting.mjs",
+    "qa:button-accessible-names": "node scripts/qa/button-accessible-names.mjs",
+    "qa:money-formatting": "node scripts/qa/money-formatting.mjs",
     "qa:safe-area:e2e": "playwright test tests/e2e/safe-area.spec.ts",
     "qa:safe-area:all": "node scripts/qa/safe-area-check.mjs && playwright test tests/e2e/safe-area.spec.ts",
     "qa:platform-readiness": "node scripts/qa/platform-readiness-matrix.mjs",
