@@ -62,7 +62,13 @@ type LoadState = "loading" | "ready" | "unavailable";
 
 const firstRow = (data: unknown) => {
   const row = Array.isArray(data) ? data[0] : data;
+<<<<<<< Updated upstream
   return row && typeof row === "object" ? (row as CustomerTestDrive) : null;
+=======
+  return row && typeof row === "object"
+    ? row as CustomerTestDrive
+    : null;
+>>>>>>> Stashed changes
 };
 
 const STATUS_LABEL: Record<TestDriveStatus, string> = {
@@ -75,6 +81,7 @@ const STATUS_LABEL: Record<TestDriveStatus, string> = {
 };
 
 const STATUS_STYLE: Record<TestDriveStatus, string> = {
+<<<<<<< Updated upstream
   scheduled:
     "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300",
   confirmed:
@@ -100,12 +107,32 @@ const formatTime = (iso: string) =>
     hour: "numeric",
     minute: "2-digit",
   });
+=======
+  scheduled: "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300",
+  confirmed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  in_progress: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  completed: "border-border bg-muted text-muted-foreground",
+  cancelled: "border-destructive/30 bg-destructive/10 text-destructive",
+  no_show: "border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300",
+};
+
+const formatDate = (iso: string) => new Date(iso).toLocaleDateString(
+  undefined,
+  { weekday: "long", year: "numeric", month: "long", day: "numeric" },
+);
+
+const formatTime = (iso: string) => new Date(iso).toLocaleTimeString(
+  undefined,
+  { hour: "numeric", minute: "2-digit" },
+);
+>>>>>>> Stashed changes
 
 export default function PublicCarDealershipTestDrivePage() {
   const { slug, testDriveId } = useParams<{
     slug: string;
     testDriveId: string;
   }>();
+<<<<<<< Updated upstream
   const [accessToken] = useState(() =>
     testDriveId
       ? readCarDealershipCustomerAccessToken(
@@ -115,6 +142,15 @@ export default function PublicCarDealershipTestDrivePage() {
         )
       : null,
   );
+=======
+  const [accessToken] = useState(() => testDriveId
+    ? readCarDealershipCustomerAccessToken(
+        "test-drive",
+        testDriveId,
+        "manage",
+      )
+    : null);
+>>>>>>> Stashed changes
   const [testDrive, setTestDrive] = useState<CustomerTestDrive | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -166,12 +202,16 @@ export default function PublicCarDealershipTestDrivePage() {
     const updated = firstRow(data);
     setCancelling(false);
 
+<<<<<<< Updated upstream
     if (
       error ||
       !updated ||
       updated.id !== testDriveId ||
       updated.store_slug !== slug
     ) {
+=======
+    if (error || !updated || updated.id !== testDriveId || updated.store_slug !== slug) {
+>>>>>>> Stashed changes
       setCancelError(
         "We couldn't cancel this test drive. Refresh the secure link or contact the dealership.",
       );
@@ -184,10 +224,16 @@ export default function PublicCarDealershipTestDrivePage() {
   };
 
   const inventoryPath = slug ? `/car-dealership/${slug}` : "/";
+<<<<<<< Updated upstream
   const currentPath =
     slug && testDriveId
       ? `/car-dealership/${slug}/test-drive/${testDriveId}`
       : "/";
+=======
+  const currentPath = slug && testDriveId
+    ? `/car-dealership/${slug}/test-drive/${testDriveId}`
+    : "/";
+>>>>>>> Stashed changes
 
   if (loadState === "loading") {
     return (
@@ -203,14 +249,19 @@ export default function PublicCarDealershipTestDrivePage() {
   if (loadState === "unavailable" || !testDrive) {
     return (
       <div className="min-h-[100dvh] bg-background safe-area-top safe-area-bottom">
+<<<<<<< Updated upstream
         <NativeBackButton
           to={inventoryPath}
           label="Back to dealership inventory"
         />
+=======
+        <NativeBackButton to={inventoryPath} label="Back to dealership inventory" />
+>>>>>>> Stashed changes
         <main className="mx-auto flex min-h-[100dvh] max-w-lg items-center px-4 py-10">
           <Card className="w-full space-y-4 p-6 text-center">
             <AlertTriangle className="mx-auto h-11 w-11 text-amber-500" />
             <div>
+<<<<<<< Updated upstream
               <h1 className="text-xl font-bold text-foreground">
                 Secure link unavailable
               </h1>
@@ -242,6 +293,22 @@ export default function PublicCarDealershipTestDrivePage() {
               variant="ghost"
               className="min-h-11 focus-visible:ring-2 focus-visible:ring-ring"
             >
+=======
+              <h1 className="text-xl font-bold text-foreground">Secure link unavailable</h1>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                This test-drive link is invalid or expired. Sign in if this appointment belongs to your account, or ask the dealership for a fresh secure link.
+              </p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button asChild className="min-h-11 focus-visible:ring-2 focus-visible:ring-ring">
+                <Link to={`/login?redirect=${encodeURIComponent(currentPath)}`}>Sign in</Link>
+              </Button>
+              <Button asChild variant="outline" className="min-h-11 focus-visible:ring-2 focus-visible:ring-ring">
+                <Link to={inventoryPath}>Back to inventory</Link>
+              </Button>
+            </div>
+            <Button asChild variant="ghost" className="min-h-11 focus-visible:ring-2 focus-visible:ring-ring">
+>>>>>>> Stashed changes
               <Link to="/">Back to ZIVO Home</Link>
             </Button>
           </Card>
@@ -250,14 +317,20 @@ export default function PublicCarDealershipTestDrivePage() {
     );
   }
 
+<<<<<<< Updated upstream
   const canCancel =
     testDrive.status === "scheduled" || testDrive.status === "confirmed";
+=======
+  const canCancel = testDrive.status === "scheduled"
+    || testDrive.status === "confirmed";
+>>>>>>> Stashed changes
 
   return (
     <div className="min-h-[100dvh] bg-background safe-area-bottom">
       <Helmet>
         <title>Test drive · {testDrive.store_name}</title>
       </Helmet>
+<<<<<<< Updated upstream
       <NativeBackButton
         to={inventoryPath}
         label="Back to dealership inventory"
@@ -271,6 +344,13 @@ export default function PublicCarDealershipTestDrivePage() {
             size="icon"
             className="h-11 min-h-11 w-11 min-w-11 focus-visible:ring-2 focus-visible:ring-ring"
           >
+=======
+      <NativeBackButton to={inventoryPath} label="Back to dealership inventory" />
+
+      <header className="border-b border-border bg-card safe-area-top">
+        <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
+          <Button asChild variant="ghost" size="icon" className="h-11 min-h-11 w-11 min-w-11 focus-visible:ring-2 focus-visible:ring-ring">
+>>>>>>> Stashed changes
             <Link to={inventoryPath} aria-label="Back to dealership inventory">
               <ArrowLeft className="h-5 w-5" />
             </Link>
@@ -289,9 +369,13 @@ export default function PublicCarDealershipTestDrivePage() {
             </div>
           )}
           <div className="min-w-0 flex-1">
+<<<<<<< Updated upstream
             <p className="truncate text-base font-bold text-foreground">
               {testDrive.store_name}
             </p>
+=======
+            <p className="truncate text-base font-bold text-foreground">{testDrive.store_name}</p>
+>>>>>>> Stashed changes
             <p className="text-xs text-muted-foreground">Your test drive</p>
           </div>
         </div>
@@ -301,6 +385,7 @@ export default function PublicCarDealershipTestDrivePage() {
         <Card className="space-y-5 p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
+<<<<<<< Updated upstream
               <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                 Vehicle
               </p>
@@ -311,6 +396,12 @@ export default function PublicCarDealershipTestDrivePage() {
             <Badge
               className={cn("shrink-0 border", STATUS_STYLE[testDrive.status])}
             >
+=======
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Vehicle</p>
+              <h1 className="mt-1 text-xl font-bold text-foreground">{testDrive.vehicle_label}</h1>
+            </div>
+            <Badge className={cn("shrink-0 border", STATUS_STYLE[testDrive.status])}>
+>>>>>>> Stashed changes
               {STATUS_LABEL[testDrive.status]}
             </Badge>
           </div>
@@ -320,9 +411,13 @@ export default function PublicCarDealershipTestDrivePage() {
               <Calendar className="mt-0.5 h-5 w-5 text-primary" />
               <div>
                 <p className="text-xs text-muted-foreground">Date</p>
+<<<<<<< Updated upstream
                 <p className="text-sm font-semibold text-foreground">
                   {formatDate(testDrive.scheduled_at)}
                 </p>
+=======
+                <p className="text-sm font-semibold text-foreground">{formatDate(testDrive.scheduled_at)}</p>
+>>>>>>> Stashed changes
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -330,8 +425,12 @@ export default function PublicCarDealershipTestDrivePage() {
               <div>
                 <p className="text-xs text-muted-foreground">Time</p>
                 <p className="text-sm font-semibold text-foreground">
+<<<<<<< Updated upstream
                   {formatTime(testDrive.scheduled_at)} ·{" "}
                   {testDrive.duration_minutes} min
+=======
+                  {formatTime(testDrive.scheduled_at)} · {testDrive.duration_minutes} min
+>>>>>>> Stashed changes
                 </p>
               </div>
             </div>
@@ -369,9 +468,13 @@ export default function PublicCarDealershipTestDrivePage() {
         </Card>
 
         <Card className="space-y-3 p-5">
+<<<<<<< Updated upstream
           <h2 className="text-sm font-bold text-foreground">
             Dealership contact
           </h2>
+=======
+          <h2 className="text-sm font-bold text-foreground">Dealership contact</h2>
+>>>>>>> Stashed changes
           {testDrive.store_address && (
             <p className="flex items-start gap-2 text-sm text-muted-foreground">
               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -379,17 +482,22 @@ export default function PublicCarDealershipTestDrivePage() {
             </p>
           )}
           {testDrive.store_phone && (
+<<<<<<< Updated upstream
             <Button
               asChild
               variant="outline"
               className="min-h-11 w-full focus-visible:ring-2 focus-visible:ring-ring"
             >
+=======
+            <Button asChild variant="outline" className="min-h-11 w-full focus-visible:ring-2 focus-visible:ring-ring">
+>>>>>>> Stashed changes
               <a href={`tel:${testDrive.store_phone}`}>
                 <Phone className="mr-2 h-4 w-4" /> Call {testDrive.store_name}
               </a>
             </Button>
           )}
           <div className="grid gap-2 sm:grid-cols-2">
+<<<<<<< Updated upstream
             <Button
               asChild
               variant="outline"
@@ -402,24 +510,40 @@ export default function PublicCarDealershipTestDrivePage() {
               variant="ghost"
               className="min-h-11 focus-visible:ring-2 focus-visible:ring-ring"
             >
+=======
+            <Button asChild variant="outline" className="min-h-11 focus-visible:ring-2 focus-visible:ring-ring">
+              <Link to={inventoryPath}>Back to inventory</Link>
+            </Button>
+            <Button asChild variant="ghost" className="min-h-11 focus-visible:ring-2 focus-visible:ring-ring">
+>>>>>>> Stashed changes
               <Link to="/">Back to ZIVO Home</Link>
             </Button>
           </div>
         </Card>
       </main>
 
+<<<<<<< Updated upstream
       <AlertDialog
         open={cancelOpen}
         onOpenChange={(open) => {
           if (!cancelling) setCancelOpen(open);
         }}
       >
+=======
+      <AlertDialog open={cancelOpen} onOpenChange={(open) => {
+        if (!cancelling) setCancelOpen(open);
+      }}>
+>>>>>>> Stashed changes
         <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel this test drive?</AlertDialogTitle>
             <AlertDialogDescription>
+<<<<<<< Updated upstream
               The dealership will see the updated status immediately. A reason
               is optional.
+=======
+              The dealership will see the updated status immediately. A reason is optional.
+>>>>>>> Stashed changes
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-1.5">
@@ -427,13 +551,18 @@ export default function PublicCarDealershipTestDrivePage() {
             <Textarea
               id="test-drive-cancel-reason"
               value={cancelReason}
+<<<<<<< Updated upstream
               onChange={(event) =>
                 setCancelReason(event.target.value.slice(0, 300))
               }
+=======
+              onChange={(event) => setCancelReason(event.target.value.slice(0, 300))}
+>>>>>>> Stashed changes
               placeholder="For example: My plans changed"
               rows={3}
               maxLength={300}
             />
+<<<<<<< Updated upstream
             <p className="text-right text-[11px] text-muted-foreground">
               {cancelReason.length} / 300
             </p>
@@ -441,6 +570,11 @@ export default function PublicCarDealershipTestDrivePage() {
               <p role="alert" className="text-sm text-destructive">
                 {cancelError}
               </p>
+=======
+            <p className="text-right text-[11px] text-muted-foreground">{cancelReason.length} / 300</p>
+            {cancelError && (
+              <p role="alert" className="text-sm text-destructive">{cancelError}</p>
+>>>>>>> Stashed changes
             )}
           </div>
           <AlertDialogFooter>
@@ -456,6 +590,7 @@ export default function PublicCarDealershipTestDrivePage() {
               }}
             >
               {cancelling ? (
+<<<<<<< Updated upstream
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" />
                   Cancelling…
@@ -463,6 +598,10 @@ export default function PublicCarDealershipTestDrivePage() {
               ) : (
                 "Cancel test drive"
               )}
+=======
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" />Cancelling…</>
+              ) : "Cancel test drive"}
+>>>>>>> Stashed changes
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -157,7 +157,9 @@ describe("contact reachability", () => {
     // a login wall when trying to reach the business. If /contact is ever
     // wrapped in ProtectedRoute, that returns.
     const app = read("src/App.tsx");
-    const route = app.match(/<Route path="\/contact" element=\{[^}]*\} \/>/);
+    const route = app.match(
+      /<Route\s+path="\/contact"\s+element=\{<Contact \/>\}\s*\/>/,
+    );
     expect(route).not.toBeNull();
     expect(route![0]).not.toContain("ProtectedRoute");
   });

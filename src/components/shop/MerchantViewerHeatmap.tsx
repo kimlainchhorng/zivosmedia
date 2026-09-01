@@ -106,12 +106,13 @@ export default function MerchantViewerHeatmap({ storeId }: Props) {
     }
     setIsSending(true);
     try {
-      await supabase.functions.invoke("store-promotion-manage", {
+      const code = couponCode.toUpperCase();
+      const { data, error } = await supabase.functions.invoke("store-promotion-manage", {
         body: {
           action: "create",
           store_id: storeId,
           promotion: {
-            code: couponCode.toUpperCase(),
+            code,
             discount_type: "percentage",
             discount_value: parseInt(couponDiscount),
             expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -120,9 +121,14 @@ export default function MerchantViewerHeatmap({ storeId }: Props) {
           },
         },
       });
+      if (error || (data as { error?: string } | null)?.error) {
+        console.error("[MerchantViewerHeatmap] store-promotion-manage create failed", error ?? data);
+        toast.error("Could not create the coupon. Please try again.");
+        return;
+      }
 
       // In production: trigger push notification to users in the geo-area
-      toast.success(`Coupon sent to ${selectedCluster.viewerCount} viewers in ${selectedCluster.areaName}!`);
+      toast.success(`Coupon ${code} is live for ${selectedCluster.areaName}`);
       setSelectedCluster(null);
       setCouponCode("");
     } catch {

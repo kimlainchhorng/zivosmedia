@@ -1,27 +1,48 @@
 /**
  * Public booking detail page at /booking/:id.
- * The booking UUID acts as the unguessable token: anyone with the link can
- * view + cancel. Backed by SECURITY DEFINER RPCs that scope what anon can do.
+ * Access requires either the account that owns the booking or an expiring
+ * capability delivered in #cap=... and retained only for this browser tab.
  */
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
 import {
-  CheckCircle2, AlertCircle, Loader2, Calendar, Clock, DollarSign, RotateCcw,
-  Store, UserCog, XCircle, ArrowLeft, Heart, CreditCard,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Calendar,
+  Clock,
+  DollarSign,
+  RotateCcw,
+  Store,
+  UserCog,
+  XCircle,
+  ArrowLeft,
+  Heart,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
 const supabase: any = _supabaseTyped;
 import { cn } from "@/lib/utils";
 import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
+import {
+  exchangeSalonBookingActionAccess,
+  readSalonBookingAccessToken,
+} from "@/lib/salonBookingAccess";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface PublicBooking {
@@ -45,6 +66,9 @@ interface PublicBooking {
   source: string;
   cancelled_at: string | null;
   cancellation_window_hours: number;
+  /** False until the live deposit/no-show/tip schema has been reconciled.
+   *  Financial actions and policy claims stay unavailable in that state. */
+  payment_state_available: boolean;
   /** Set by the booking-time sanitize trigger when the salon has Stripe
    *  connected and a non-zero deposit_percent. Zero otherwise. */
   deposit_cents: number;
@@ -54,12 +78,12 @@ interface PublicBooking {
    *  issues a manual refund. Drives the cancellation warning copy so we
    *  don't tell the customer they'll forfeit money the owner already gave
    *  back. */
-  deposit_refunded_cents: number;
+  deposit_refunded_cents: number | null;
   /** Snapshot of the salon's no-show fee at booking-insert time. Used to
    *  remind the customer on the confirmation view that their card may be
    *  charged this amount if they don't show up. Zero means no policy
    *  applies to this booking. */
-  no_show_fee_cents: number;
+  no_show_fee_cents: number | null;
   /** Final tip amount (cents). Updated either inline by charge-salon-tip on
    *  synchronous success, or by the stripe-webhook payment_intent.succeeded
    *  handler on async confirmation. */
@@ -82,21 +106,53 @@ interface TipPolicy {
   stripe_active: boolean;
 }
 
-const STATUS_COPY: Record<string, { label: string; tone: string; description: string }> = {
-  pending: { label: "Pending confirmation", tone: "border-amber-500/40 bg-amber-500/8 text-amber-800 dark:text-amber-200", description: "The salon will confirm this shortly." },
-  confirmed: { label: "Confirmed", tone: "border-sky-500/40 bg-sky-500/8 text-sky-800 dark:text-sky-200", description: "You're all set. See you then!" },
-  completed: { label: "Completed", tone: "border-emerald-500/40 bg-emerald-500/8 text-emerald-800 dark:text-emerald-200", description: "Thanks for visiting." },
-  cancelled: { label: "Cancelled", tone: "border-border bg-muted text-muted-foreground", description: "This booking was cancelled." },
-  no_show: { label: "Marked as no-show", tone: "border-destructive/40 bg-destructive/8 text-destructive", description: "The salon marked this as a no-show." },
+const STATUS_COPY: Record<
+  string,
+  { label: string; tone: string; description: string }
+> = {
+  pending: {
+    label: "Pending confirmation",
+    tone: "border-amber-500/40 bg-amber-500/8 text-amber-800 dark:text-amber-200",
+    description: "The salon will confirm this shortly.",
+  },
+  confirmed: {
+    label: "Confirmed",
+    tone: "border-sky-500/40 bg-sky-500/8 text-sky-800 dark:text-sky-200",
+    description: "You're all set. See you then!",
+  },
+  completed: {
+    label: "Completed",
+    tone: "border-emerald-500/40 bg-emerald-500/8 text-emerald-800 dark:text-emerald-200",
+    description: "Thanks for visiting.",
+  },
+  cancelled: {
+    label: "Cancelled",
+    tone: "border-border bg-muted text-muted-foreground",
+    description: "This booking was cancelled.",
+  },
+  no_show: {
+    label: "Marked as no-show",
+    tone: "border-destructive/40 bg-destructive/8 text-destructive",
+    description: "The salon marked this as a no-show.",
+  },
 };
 
 const formatPrice = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const formatDateTime = (iso: string) =>
-  new Date(iso).toLocaleString(undefined, { weekday: "long", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  new Date(iso).toLocaleString(undefined, {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 
 export default function PublicSalonBookingDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
   const [params] = useSearchParams();
+  const [accessToken] = useState(() =>
+    readSalonBookingAccessToken(id, "manage"),
+  );
   // Optionally authenticated — drives the "go to your salon area" link.
   const { user } = useAuth();
   const [booking, setBooking] = useState<PublicBooking | null>(null);
@@ -120,28 +176,39 @@ export default function PublicSalonBookingDetailPage() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const { data, error: err } = await supabase.rpc("salon_public_get_booking", { p_id: id });
+    const { data, error: err } = await supabase.rpc(
+      "salon_customer_get_booking",
+      {
+        p_id: id,
+        p_access_token: accessToken,
+      },
+    );
     if (err) {
       console.error("[PublicSalonBookingDetailPage] load failed", err);
-      setError("Couldn't load this booking.");
+      setError("This secure booking link is invalid or expired.");
       setLoading(false);
       return;
     }
     const row = (Array.isArray(data) ? data[0] : null) as PublicBooking | null;
     if (!row) {
-      setError("Booking not found.");
+      setError("This secure booking link is invalid or expired.");
       setLoading(false);
       return;
     }
     setBooking(row);
     setLoading(false);
-  }, [id]);
+  }, [accessToken, id]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const handleCancel = async () => {
     setCancelling(true);
-    const { error: err } = await supabase.rpc("salon_public_cancel_booking", { p_id: id });
+    const { error: err } = await supabase.rpc("salon_customer_cancel_booking", {
+      p_id: id,
+      p_access_token: accessToken,
+    });
     setCancelling(false);
     setConfirmCancelOpen(false);
     if (err) {
@@ -160,15 +227,33 @@ export default function PublicSalonBookingDetailPage() {
   // before paying.
   const handlePayDeposit = async () => {
     if (!booking) return;
+    if (!booking.payment_state_available) {
+      toast.error(
+        "Online Salon payment details are temporarily unavailable. Please contact the salon.",
+      );
+      return;
+    }
     setRetryingDeposit(true);
     try {
-      const { data, error: err } = await supabase.functions.invoke("create-salon-deposit", {
-        body: { booking_id: booking.id },
-      });
+      const depositAccess = await exchangeSalonBookingActionAccess(
+        booking.id,
+        accessToken,
+        "deposit",
+      );
+      const { data, error: err } = await supabase.functions.invoke(
+        "create-salon-deposit",
+        {
+          body: {
+            booking_id: booking.id,
+            access_token: depositAccess.token,
+          },
+        },
+      );
       if (err) throw err;
       const url = (data as any)?.url as string | undefined;
       if (url) {
-        if (!isAllowedCheckoutUrl(url)) throw new Error("Invalid Stripe checkout URL");
+        if (!isAllowedCheckoutUrl(url))
+          throw new Error("Invalid Stripe checkout URL");
         window.location.href = url;
       } else {
         toast.error("Stripe didn't return a payment URL.");
@@ -185,44 +270,75 @@ export default function PublicSalonBookingDetailPage() {
   // customer has a card on file from the deposit. Skipping it for everyone
   // else avoids burning an RPC on every booking-detail load.
   const canShowTipCard =
-    booking
-    && (booking.status === "completed" || booking.status === "confirmed")
-    && !!booking.card_last_four
-    && (booking.tip_cents ?? 0) === 0;
+    booking &&
+    booking.payment_state_available &&
+    (booking.status === "completed" || booking.status === "confirmed") &&
+    !!booking.card_last_four &&
+    (booking.tip_cents ?? 0) === 0;
   useEffect(() => {
     if (!canShowTipCard || !booking || tipPolicy) return;
     let cancelled = false;
     (async () => {
-      const { data, error: err } = await supabase.rpc("salon_public_get_tip_policy", {
-        p_store_id: booking.store_id,
-      } as never);
+      const { data, error: err } = await supabase.rpc(
+        "salon_public_get_tip_policy",
+        {
+          p_store_id: booking.store_id,
+        } as never,
+      );
       if (cancelled || err) return;
       const row = (Array.isArray(data) ? data[0] : null) as TipPolicy | null;
       if (row) setTipPolicy(row);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [canShowTipCard, booking, tipPolicy]);
 
   const handleSubmitTip = async () => {
     if (!booking || tipDraftCents <= 0) return;
+    if (!booking.payment_state_available) {
+      toast.error(
+        "Online tipping is temporarily unavailable. Please tip at the salon.",
+      );
+      return;
+    }
     setSubmittingTip(true);
     setTipChargeError(null);
     try {
-      const { data, error: err } = await supabase.functions.invoke("charge-salon-tip", {
-        body: { booking_id: booking.id, tip_cents: tipDraftCents },
-      });
+      const tipAccess = await exchangeSalonBookingActionAccess(
+        booking.id,
+        accessToken,
+        "tip",
+      );
+      const { data, error: err } = await supabase.functions.invoke(
+        "charge-salon-tip",
+        {
+          body: {
+            booking_id: booking.id,
+            tip_cents: tipDraftCents,
+            access_token: tipAccess.token,
+          },
+        },
+      );
       // The function returns 402 on card decline — supabase-js treats non-2xx
       // as `error`, but the body still parses. Check for the {ok:false}
       // shape first to surface the friendly reason; fall through to generic
       // toast otherwise.
-      const payload = data as { ok?: boolean; error_message?: string; error?: string } | null;
+      const payload = data as {
+        ok?: boolean;
+        error_message?: string;
+        error?: string;
+      } | null;
       if (payload?.ok === false) {
-        setTipChargeError(payload.error_message || "Your bank declined the card.");
+        setTipChargeError(
+          payload.error_message || "Your bank declined the card.",
+        );
         return;
       }
       if (err) {
         // Non-2xx without the ok:false shape — last-resort generic.
-        const msg = (err as { message?: string }).message || "Couldn't process the tip.";
+        const msg =
+          (err as { message?: string }).message || "Couldn't process the tip.";
         setTipChargeError(msg);
         return;
       }
@@ -240,7 +356,9 @@ export default function PublicSalonBookingDetailPage() {
   if (loading) {
     return (
       <div className="grid min-h-screen place-items-center bg-background">
-        <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+        </div>
       </div>
     );
   }
@@ -249,7 +367,25 @@ export default function PublicSalonBookingDetailPage() {
       <div className="grid min-h-screen place-items-center bg-background p-6">
         <div className="max-w-md rounded-2xl border border-destructive/30 bg-destructive/8 p-6 text-center">
           <AlertCircle className="mx-auto mb-3 h-8 w-8 text-destructive" />
-          <p className="text-base font-semibold text-foreground">{error ?? "Booking not found."}</p>
+          <p className="text-base font-semibold text-foreground">
+            {error ?? "Booking not found."}
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Sign in if this booking is linked to your ZIVO account, or ask the
+            salon for a new secure link.
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <Button variant="outline" asChild>
+              <Link
+                to={`/login?redirect=${encodeURIComponent(`/booking/${id}`)}`}
+              >
+                Sign in
+              </Link>
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link to="/">Back to ZIVO Home</Link>
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -259,24 +395,42 @@ export default function PublicSalonBookingDetailPage() {
   const startAt = new Date(booking.start_at);
   const now = new Date();
   const windowHours = booking.cancellation_window_hours ?? 0;
-  const cancelDeadline = windowHours > 0 ? new Date(startAt.getTime() - windowHours * 60 * 60 * 1000) : null;
+  const cancelDeadline =
+    windowHours > 0
+      ? new Date(startAt.getTime() - windowHours * 60 * 60 * 1000)
+      : null;
   const pastCancelDeadline = cancelDeadline !== null && now > cancelDeadline;
-  const inActiveStatus = booking.status === "pending" || booking.status === "confirmed";
-  const isCancellable = inActiveStatus && startAt > now && !pastCancelDeadline;
+  const inActiveStatus =
+    booking.status === "pending" || booking.status === "confirmed";
+  const paidStateUnavailable =
+    !booking.payment_state_available && booking.deposit_paid_cents > 0;
+  const isCancellable =
+    inActiveStatus &&
+    startAt > now &&
+    !pastCancelDeadline &&
+    !paidStateUnavailable;
 
   return (
     <div className="min-h-screen bg-background">
-      <Helmet><title>Your booking · {booking.store_name}</title></Helmet>
+      <Helmet>
+        <title>Your booking · {booking.store_name}</title>
+      </Helmet>
       <div className="mx-auto max-w-md px-4 py-10 sm:py-14">
         <div className="mb-4 flex items-center justify-between gap-3 text-xs">
-          <Link to={`/salon/${booking.store_slug}`} className="inline-flex items-center gap-1 rounded-sm text-muted-foreground transition-all hover:text-foreground active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Link
+            to={`/salon/${booking.store_slug}`}
+            className="inline-flex items-center gap-1 rounded-sm text-muted-foreground transition-all hover:text-foreground active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
             <ArrowLeft className="h-3 w-3" /> Back to {booking.store_name}
           </Link>
           {/* Authenticated viewers get a one-tap shortcut to /salon/me so they
               can see all their visits, not just this one. RLS guarantees they
               only land on this page for bookings tied to their account. */}
           {user && (
-            <Link to="/salon/me" className="inline-flex items-center gap-1 rounded-sm text-primary transition-all hover:underline active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <Link
+              to="/salon/me"
+              className="inline-flex items-center gap-1 rounded-sm text-primary transition-all hover:underline active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
               Your salon area <ArrowLeft className="h-3 w-3 rotate-180" />
             </Link>
           )}
@@ -289,54 +443,84 @@ export default function PublicSalonBookingDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {!booking.payment_state_available && (
+              <div className="rounded-xl border border-amber-500/35 bg-amber-500/8 p-3 text-sm text-amber-900 dark:text-amber-200">
+                <AlertCircle className="-mt-0.5 mr-1 inline h-4 w-4" />
+                Refund, no-show fee, saved-card, and tipping details are
+                temporarily unavailable, and online payment actions are paused.
+                Your appointment details remain available; contact{" "}
+                {booking.store_name}
+                before paying, tipping, or cancelling a paid booking.
+              </div>
+            )}
             {/* Stripe return banners — show once after the customer comes back
                 from Checkout. Success banner is informational; cancel banner
                 offers the customer a one-tap retry via "Pay deposit now". */}
-            {depositReturn === "success" && booking.deposit_paid_cents > 0 && (
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/8 p-3 text-sm text-emerald-800 dark:text-emerald-200">
-                <CheckCircle2 className="-mt-0.5 mr-1 inline h-4 w-4" />
-                Deposit of {formatPrice(booking.deposit_paid_cents)} paid. Your booking is confirmed.
-              </div>
-            )}
-            {depositReturn === "cancel" && booking.deposit_cents > 0 && booking.deposit_paid_cents === 0 && (
-              <div className="rounded-xl border border-amber-500/40 bg-amber-500/8 p-3 text-sm text-amber-800 dark:text-amber-200">
-                <AlertCircle className="-mt-0.5 mr-1 inline h-4 w-4" />
-                Payment cancelled — no charge yet. Your booking is held as pending; pay the deposit when you're ready.
-              </div>
-            )}
+            {booking.payment_state_available &&
+              depositReturn === "success" &&
+              booking.deposit_paid_cents > 0 && (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/8 p-3 text-sm text-emerald-800 dark:text-emerald-200">
+                  <CheckCircle2 className="-mt-0.5 mr-1 inline h-4 w-4" />
+                  Deposit of {formatPrice(booking.deposit_paid_cents)} paid.
+                  Your booking is confirmed.
+                </div>
+              )}
+            {booking.payment_state_available &&
+              depositReturn === "cancel" &&
+              booking.deposit_cents > 0 &&
+              booking.deposit_paid_cents === 0 && (
+                <div className="rounded-xl border border-amber-500/40 bg-amber-500/8 p-3 text-sm text-amber-800 dark:text-amber-200">
+                  <AlertCircle className="-mt-0.5 mr-1 inline h-4 w-4" />
+                  Payment cancelled — no charge yet. Your booking is held as
+                  pending; pay the deposit when you're ready.
+                </div>
+              )}
 
             <div className={cn("rounded-xl border p-4", meta.tone)}>
               <div className="flex items-center gap-2">
-                {booking.status === "completed" ? <CheckCircle2 className="h-5 w-5" /> :
-                  booking.status === "cancelled" ? <XCircle className="h-5 w-5" /> :
-                  <Calendar className="h-5 w-5" />}
-                <p className="text-sm font-bold uppercase tracking-wider">{meta.label}</p>
+                {booking.status === "completed" ? (
+                  <CheckCircle2 className="h-5 w-5" />
+                ) : booking.status === "cancelled" ? (
+                  <XCircle className="h-5 w-5" />
+                ) : (
+                  <Calendar className="h-5 w-5" />
+                )}
+                <p className="text-sm font-bold uppercase tracking-wider">
+                  {meta.label}
+                </p>
               </div>
               <p className="mt-1 text-xs">{meta.description}</p>
             </div>
 
             {/* Unpaid deposit prompt — the booking is pending until the
                 customer settles the deposit. */}
-            {booking.deposit_cents > 0
-             && booking.deposit_paid_cents === 0
-             && (booking.status === "pending" || booking.status === "confirmed")
-             && (
-              <div className="rounded-xl border border-primary/40 bg-primary/8 p-3">
-                <p className="text-sm font-semibold text-foreground">Deposit due: {formatPrice(booking.deposit_cents)}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Pay the deposit now to confirm this booking.
-                </p>
-                <Button
-                  onClick={() => void handlePayDeposit()}
-                  disabled={retryingDeposit}
-                  className="mt-2 gap-1.5"
-                  size="sm"
-                >
-                  {retryingDeposit ? <Loader2 className="h-4 w-4 animate-spin" /> : <DollarSign className="h-4 w-4" />}
-                  Pay deposit now
-                </Button>
-              </div>
-            )}
+            {booking.payment_state_available &&
+              booking.deposit_cents > 0 &&
+              booking.deposit_paid_cents === 0 &&
+              (booking.status === "pending" ||
+                booking.status === "confirmed") && (
+                <div className="rounded-xl border border-primary/40 bg-primary/8 p-3">
+                  <p className="text-sm font-semibold text-foreground">
+                    Deposit due: {formatPrice(booking.deposit_cents)}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Pay the deposit now to confirm this booking.
+                  </p>
+                  <Button
+                    onClick={() => void handlePayDeposit()}
+                    disabled={retryingDeposit}
+                    className="mt-2 gap-1.5"
+                    size="sm"
+                  >
+                    {retryingDeposit ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <DollarSign className="h-4 w-4" />
+                    )}
+                    Pay deposit now
+                  </Button>
+                </div>
+              )}
 
             {/* Already-paid deposit acknowledgement — informational. */}
             {booking.deposit_paid_cents > 0 && (
@@ -348,111 +532,138 @@ export default function PublicSalonBookingDetailPage() {
 
             {/* "Tip recorded" acknowledgement — shows once the off-session
                 charge has succeeded (either inline or via webhook). */}
-            {(booking.tip_cents ?? 0) > 0 && booking.tip_charged_at && (
-              <div className="rounded-xl border border-pink-500/30 bg-pink-500/8 p-3 text-xs text-pink-800 dark:text-pink-200">
-                <Heart className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
-                Tip of {formatPrice(booking.tip_cents)} sent to {booking.store_name}
-                {booking.card_last_four ? ` · card ending ${booking.card_last_four}` : ""}.
-                Thank you!
-              </div>
-            )}
+            {booking.payment_state_available &&
+              (booking.tip_cents ?? 0) > 0 &&
+              booking.tip_charged_at && (
+                <div className="rounded-xl border border-pink-500/30 bg-pink-500/8 p-3 text-xs text-pink-800 dark:text-pink-200">
+                  <Heart className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
+                  Tip of {formatPrice(booking.tip_cents)} sent to{" "}
+                  {booking.store_name}
+                  {booking.card_last_four
+                    ? ` · card ending ${booking.card_last_four}`
+                    : ""}
+                  . Thank you!
+                </div>
+              )}
 
             {/* "Leave a tip" card — shows only when the booking has been
                 served (status `completed` or `confirmed`), a card is on
                 file from the deposit, no tip has been recorded yet, and the
                 salon has tips_enabled + an active Stripe account. */}
-            {canShowTipCard && tipPolicy && tipPolicy.tips_enabled && tipPolicy.stripe_active && (() => {
-              const billCents = booking.price_cents + (booking.addons_total_cents ?? 0);
-              return (
-                <div className="rounded-2xl border border-pink-500/30 bg-pink-500/5 p-4">
-                  <div className="flex items-center gap-2">
-                    <Heart className="h-4 w-4 text-pink-600 dark:text-pink-400" />
-                    <p className="text-sm font-bold text-foreground">Leave a tip for {booking.stylist_name ?? "your stylist"}?</p>
-                  </div>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    Charged to the card ending {booking.card_last_four}.
-                  </p>
-
-                  <div className="mt-3 grid grid-cols-3 gap-2">
-                    {tipPolicy.tip_presets.map((pct) => {
-                      const cents = Math.round(billCents * (pct / 100));
-                      const active = tipDraftCents === cents;
-                      return (
-                        <button
-                          key={pct}
-                          type="button"
-                          onClick={() => { setTipDraftCents(cents); setTipCustomInput(""); setTipChargeError(null); }}
-                          className={cn(
-                            "rounded-xl border p-2 text-center transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                            active
-                              ? "border-pink-500/60 bg-pink-500/15 text-pink-800 dark:text-pink-200"
-                              : "border-border bg-card text-foreground hover:border-pink-500/30",
-                          )}
-                        >
-                          <div className="text-lg font-bold leading-none">{pct}%</div>
-                          <div className="mt-0.5 text-[10px] text-muted-foreground">{formatPrice(cents)}</div>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-3 flex items-center gap-2">
-                    <Input
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      step="0.01"
-                      value={tipCustomInput}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        setTipCustomInput(raw);
-                        const dollars = parseFloat(raw);
-                        if (Number.isFinite(dollars) && dollars >= 0) {
-                          setTipDraftCents(Math.round(dollars * 100));
-                          setTipChargeError(null);
-                        } else {
-                          setTipDraftCents(0);
-                        }
-                      }}
-                      placeholder="Custom amount ($)"
-                      className="h-10"
-                    />
-                  </div>
-
-                  {tipChargeError && (
-                    <div className="mt-3 rounded-md border border-destructive/40 bg-destructive/8 p-2 text-xs text-destructive">
-                      <AlertCircle className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
-                      {tipChargeError} — try a different amount or tip in person.
+            {canShowTipCard &&
+              tipPolicy &&
+              tipPolicy.tips_enabled &&
+              tipPolicy.stripe_active &&
+              (() => {
+                const billCents =
+                  booking.price_cents + (booking.addons_total_cents ?? 0);
+                return (
+                  <div className="rounded-2xl border border-pink-500/30 bg-pink-500/5 p-4">
+                    <div className="flex items-center gap-2">
+                      <Heart className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                      <p className="text-sm font-bold text-foreground">
+                        Leave a tip for {booking.stylist_name ?? "your stylist"}
+                        ?
+                      </p>
                     </div>
-                  )}
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Charged to the card ending {booking.card_last_four}.
+                    </p>
 
-                  <Button
-                    onClick={() => void handleSubmitTip()}
-                    disabled={submittingTip || tipDraftCents <= 0}
-                    className="mt-3 w-full gap-1.5 bg-pink-600 text-white hover:bg-pink-700 dark:bg-pink-500 dark:hover:bg-pink-600"
-                  >
-                    {submittingTip
-                      ? <Loader2 className="h-4 w-4 animate-spin" />
-                      : <Heart className="h-4 w-4" />}
-                    {tipDraftCents > 0 ? `Send ${formatPrice(tipDraftCents)} tip` : "Send tip"}
-                  </Button>
-                  <p className="mt-2 text-center text-[10px] text-muted-foreground">
-                    Or pay your tip in person — no charge on close.
-                  </p>
-                </div>
-              );
-            })()}
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      {tipPolicy.tip_presets.map((pct) => {
+                        const cents = Math.round(billCents * (pct / 100));
+                        const active = tipDraftCents === cents;
+                        return (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => {
+                              setTipDraftCents(cents);
+                              setTipCustomInput("");
+                              setTipChargeError(null);
+                            }}
+                            className={cn(
+                              "rounded-xl border p-2 text-center transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                              active
+                                ? "border-pink-500/60 bg-pink-500/15 text-pink-800 dark:text-pink-200"
+                                : "border-border bg-card text-foreground hover:border-pink-500/30",
+                            )}
+                          >
+                            <div className="text-lg font-bold leading-none">
+                              {pct}%
+                            </div>
+                            <div className="mt-0.5 text-[10px] text-muted-foreground">
+                              {formatPrice(cents)}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-3 flex items-center gap-2">
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step="0.01"
+                        value={tipCustomInput}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          setTipCustomInput(raw);
+                          const dollars = parseFloat(raw);
+                          if (Number.isFinite(dollars) && dollars >= 0) {
+                            setTipDraftCents(Math.round(dollars * 100));
+                            setTipChargeError(null);
+                          } else {
+                            setTipDraftCents(0);
+                          }
+                        }}
+                        placeholder="Custom amount ($)"
+                        className="h-10"
+                      />
+                    </div>
+
+                    {tipChargeError && (
+                      <div className="mt-3 rounded-md border border-destructive/40 bg-destructive/8 p-2 text-xs text-destructive">
+                        <AlertCircle className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
+                        {tipChargeError} — try a different amount or tip in
+                        person.
+                      </div>
+                    )}
+
+                    <Button
+                      onClick={() => void handleSubmitTip()}
+                      disabled={submittingTip || tipDraftCents <= 0}
+                      className="mt-3 w-full gap-1.5 bg-pink-600 text-white hover:bg-pink-700 dark:bg-pink-500 dark:hover:bg-pink-600"
+                    >
+                      {submittingTip ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Heart className="h-4 w-4" />
+                      )}
+                      {tipDraftCents > 0
+                        ? `Send ${formatPrice(tipDraftCents)} tip`
+                        : "Send tip"}
+                    </Button>
+                    <p className="mt-2 text-center text-[10px] text-muted-foreground">
+                      Or pay your tip in person — no charge on close.
+                    </p>
+                  </div>
+                );
+              })()}
 
             {/* Tip charge failed previously — surface so the customer can
                 see what went wrong even if they navigated away. */}
-            {(booking.tip_cents ?? 0) === 0
-              && booking.tip_charge_failed_reason
-              && canShowTipCard && (
-              <div className="rounded-xl border border-destructive/40 bg-destructive/8 p-3 text-xs text-destructive">
-                <AlertCircle className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
-                Last tip attempt failed: {booking.tip_charge_failed_reason}. Try a different amount above.
-              </div>
-            )}
+            {(booking.tip_cents ?? 0) === 0 &&
+              booking.tip_charge_failed_reason &&
+              canShowTipCard && (
+                <div className="rounded-xl border border-destructive/40 bg-destructive/8 p-3 text-xs text-destructive">
+                  <AlertCircle className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
+                  Last tip attempt failed: {booking.tip_charge_failed_reason}.
+                  Try a different amount above.
+                </div>
+              )}
 
             {/* No-show fee reminder — courtesy reminder only; consent was
                 captured up front at booking time via the cancellation-policy
@@ -460,20 +671,25 @@ export default function PublicSalonBookingDetailPage() {
                 booking is in a state where a charge could still happen
                 (i.e., not cancelled/completed and the fee isn't already
                 charged). */}
-            {booking.no_show_fee_cents > 0
-              && booking.status !== "cancelled"
-              && booking.status !== "completed"
-              && booking.deposit_paid_cents > 0 && (
-              <div className="rounded-xl border border-dashed border-amber-300/60 bg-amber-50/50 p-3 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
-                <AlertCircle className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
-                No-show fee: {formatPrice(booking.no_show_fee_cents)} may be charged to your card if you don't show up.
-              </div>
-            )}
+            {booking.payment_state_available &&
+              (booking.no_show_fee_cents ?? 0) > 0 &&
+              booking.status !== "cancelled" &&
+              booking.status !== "completed" &&
+              booking.deposit_paid_cents > 0 && (
+                <div className="rounded-xl border border-dashed border-amber-300/60 bg-amber-50/50 p-3 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                  <AlertCircle className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
+                  No-show fee: {formatPrice(booking.no_show_fee_cents ?? 0)} may
+                  be charged to your card if you don't show up.
+                </div>
+              )}
 
             <div className="space-y-2 rounded-xl border border-border bg-card p-4 text-sm">
-              <p className="text-base font-bold text-foreground">{booking.service_name}</p>
+              <p className="text-base font-bold text-foreground">
+                {booking.service_name}
+              </p>
               <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Calendar className="h-3.5 w-3.5" /> {formatDateTime(booking.start_at)}
+                <Calendar className="h-3.5 w-3.5" />{" "}
+                {formatDateTime(booking.start_at)}
               </p>
               <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Clock className="h-3.5 w-3.5" /> {booking.duration_minutes} min
@@ -484,15 +700,24 @@ export default function PublicSalonBookingDetailPage() {
                 </p>
               )}
               <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <DollarSign className="h-3.5 w-3.5" /> {formatPrice(booking.price_cents + (booking.addons_total_cents ?? 0))}
+                <DollarSign className="h-3.5 w-3.5" />{" "}
+                {formatPrice(
+                  booking.price_cents + (booking.addons_total_cents ?? 0),
+                )}
               </p>
             </div>
 
             <div className="rounded-xl border border-dashed border-border p-3 text-xs">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Booked under</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Booked under
+              </p>
               <p className="mt-0.5 text-foreground">{booking.client_name}</p>
-              {booking.client_phone && <p className="text-muted-foreground">{booking.client_phone}</p>}
-              {booking.client_email && <p className="text-muted-foreground">{booking.client_email}</p>}
+              {booking.client_phone && (
+                <p className="text-muted-foreground">{booking.client_phone}</p>
+              )}
+              {booking.client_email && (
+                <p className="text-muted-foreground">{booking.client_email}</p>
+              )}
             </div>
 
             {isCancellable ? (
@@ -507,21 +732,37 @@ export default function PublicSalonBookingDetailPage() {
                 </Button>
                 {cancelDeadline && (
                   <p className="text-center text-[11px] text-muted-foreground">
-                    Free cancellation until {cancelDeadline.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.
+                    Free cancellation until{" "}
+                    {cancelDeadline.toLocaleString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                    .
                   </p>
                 )}
               </div>
+            ) : paidStateUnavailable && inActiveStatus && startAt > now ? (
+              <p className="text-center text-xs text-muted-foreground">
+                Refund details are unavailable, so this paid booking cannot be
+                cancelled online. Please contact {booking.store_name}.
+              </p>
             ) : inActiveStatus && pastCancelDeadline && startAt > now ? (
               <p className="text-center text-xs text-muted-foreground">
-                It's within the {windowHours}-hour cancellation window — please call {booking.store_name} to make changes.
+                It's within the {windowHours}-hour cancellation window — please
+                call {booking.store_name} to make changes.
               </p>
-            ) : booking.status !== "cancelled" && booking.status !== "completed" ? (
+            ) : booking.status !== "cancelled" &&
+              booking.status !== "completed" ? (
               <p className="text-center text-xs text-muted-foreground">
-                Contact the salon directly to make changes — it's too late to cancel online.
+                Contact the salon directly to make changes — it's too late to
+                cancel online.
               </p>
             ) : null}
 
-            {(booking.status === "completed" || booking.status === "cancelled") && (
+            {(booking.status === "completed" ||
+              booking.status === "cancelled") && (
               <Button
                 asChild
                 className="w-full gap-1.5"
@@ -531,9 +772,15 @@ export default function PublicSalonBookingDetailPage() {
                   to={`/salon/${booking.store_slug}${
                     booking.service_id || booking.stylist_id
                       ? `?${[
-                          booking.service_id ? `service=${booking.service_id}` : "",
-                          booking.stylist_id ? `stylist=${booking.stylist_id}` : "",
-                        ].filter(Boolean).join("&")}`
+                          booking.service_id
+                            ? `service=${booking.service_id}`
+                            : "",
+                          booking.stylist_id
+                            ? `stylist=${booking.stylist_id}`
+                            : "",
+                        ]
+                          .filter(Boolean)
+                          .join("&")}`
                       : ""
                   }`}
                 >
@@ -543,7 +790,8 @@ export default function PublicSalonBookingDetailPage() {
             )}
 
             <p className="text-center text-[11px] text-muted-foreground">
-              Reference: <span className="font-mono">{booking.id.slice(0, 8)}</span>
+              Reference:{" "}
+              <span className="font-mono">{booking.id.slice(0, 8)}</span>
             </p>
           </CardContent>
         </Card>
@@ -554,7 +802,8 @@ export default function PublicSalonBookingDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel your booking?</AlertDialogTitle>
             <AlertDialogDescription>
-              We'll let {booking.store_name} know. If you change your mind, you can book again.
+              We'll let {booking.store_name} know. If you change your mind, you
+              can book again.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {/* Non-refundable deposit warning. The platform never auto-refunds
@@ -562,31 +811,45 @@ export default function PublicSalonBookingDetailPage() {
               front so the customer doesn't expect a refund and dispute the
               charge later. Only show when there's a real unrecovered amount
               (paid minus already-refunded > 0). */}
-          {booking.deposit_paid_cents > 0
-            && (booking.deposit_paid_cents - (booking.deposit_refunded_cents ?? 0)) > 0 && (
-            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold">
-                    Your {formatPrice(booking.deposit_paid_cents - (booking.deposit_refunded_cents ?? 0))} deposit is non-refundable.
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed">
-                    Cancelling won't return your deposit automatically. If you have a
-                    question about your deposit, please contact {booking.store_name} directly.
-                  </p>
+          {booking.payment_state_available &&
+            booking.deposit_paid_cents > 0 &&
+            booking.deposit_paid_cents - (booking.deposit_refunded_cents ?? 0) >
+              0 && (
+              <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold">
+                      Your{" "}
+                      {formatPrice(
+                        booking.deposit_paid_cents -
+                          (booking.deposit_refunded_cents ?? 0),
+                      )}{" "}
+                      deposit is non-refundable.
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed">
+                      Cancelling won't return your deposit automatically. If you
+                      have a question about your deposit, please contact{" "}
+                      {booking.store_name} directly.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={cancelling}>Keep booking</AlertDialogCancel>
+            <AlertDialogCancel disabled={cancelling}>
+              Keep booking
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleCancel}
               disabled={cancelling}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cancel booking"}
+              {cancelling ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Cancel booking"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -270,7 +270,6 @@ type LoginAuthError = Error & {
   code?: string;
   status?: number;
   name?: string;
-  _emailExists?: boolean;
 };
 
 const getLoginErrorFacts = (error: Error) => {
@@ -280,7 +279,6 @@ const getLoginErrorFacts = (error: Error) => {
   const code = (authError.code || "").toLowerCase();
 
   return {
-    emailExists: typeof authError._emailExists === "boolean" ? authError._emailExists : null,
     isBadCredentials:
       code === "invalid_credentials" ||
       msg.includes("invalid login") ||
@@ -659,12 +657,10 @@ const Login = () => {
       }
       const facts = getLoginErrorFacts(error);
 
-      if (facts.emailExists === false) {
-        setFieldError("No account found for this email.");
-      } else if (facts.isEmailNotConfirmed) {
+      if (facts.isEmailNotConfirmed) {
         setFieldError("Please verify your email before logging in. Check your inbox.");
       } else if (facts.isBadCredentials) {
-        setFieldError(facts.emailExists === true ? "Wrong password — please try again." : "Email or password is incorrect.");
+        setFieldError("Email or password is incorrect.");
       } else if (facts.isRateLimited) {
         setFieldError("Too many attempts. Please wait a moment and try again.");
       } else if (facts.isNetwork) {

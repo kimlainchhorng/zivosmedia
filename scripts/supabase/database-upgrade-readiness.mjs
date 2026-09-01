@@ -10,6 +10,11 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { KNOWN_DUPLICATE_MIGRATION_VERSION_SET } from "./migration-policy.mjs";
+import {
+  extractCreatedPublicTableNames,
+  extractRlsEnabledPublicTableNames,
+  stripSqlComments,
+} from "./migration-schema-signals.mjs";
 import { getSupabaseCli as readSupabaseCli } from "./supabase-cli.mjs";
 
 const root = process.cwd();
@@ -131,12 +136,6 @@ function extractAccessReviewedTables(sql) {
   return reviewedTables;
 }
 
-function stripSqlComments(sql) {
-  return sql
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/--.*$/gm, " ");
-}
-
 function extractExtensions(migrations) {
   const rows = [];
   const re = /\bcreate\s+extension\s+(?:if\s+not\s+exists\s+)?("?[\w-]+"?)/gi;
@@ -157,20 +156,13 @@ function extractExtensions(migrations) {
 function extractPublicTables(migrations) {
   const created = new Map();
   const rlsEnabled = new Set();
-  const createRe = /\bcreate\s+table\s+(?:if\s+not\s+exists\s+)?(?:(public)\.)?("?[\w]+"?)/gi;
-  const rlsRe = /\balter\s+table\s+(?:if\s+exists\s+)?(?:(public)\.)?("?[\w]+"?)\s+enable\s+row\s+level\s+security\b/gi;
 
   for (const migration of migrations) {
-    const sql = stripSqlComments(migration.sql);
-    for (const match of sql.matchAll(createRe)) {
-      const schema = match[1] ?? "public";
-      const table = stripQuotes(match[2]);
-      if (schema.toLowerCase() !== "public") continue;
+    for (const table of extractCreatedPublicTableNames(migration.sql)) {
       if (!created.has(table)) created.set(table, { table, version: migration.version, file: rel(migration.file) });
     }
-    for (const match of sql.matchAll(rlsRe)) {
-      const schema = match[1] ?? "public";
-      if (schema.toLowerCase() === "public") rlsEnabled.add(stripQuotes(match[2]));
+    for (const table of extractRlsEnabledPublicTableNames(migration.sql)) {
+      rlsEnabled.add(table);
     }
   }
 

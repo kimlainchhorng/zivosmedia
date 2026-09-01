@@ -42,6 +42,8 @@ export interface InlineStripePaymentFormProps {
   amountMinorUnits: number;
   /** ISO code of the PaymentIntent. Defaults to USD. */
   currency?: string;
+  /** Same-origin route Stripe should restore after an authentication redirect. */
+  returnUrl?: string;
   onCancel: () => void;
   onSuccess: (paymentIntentId: string) => Promise<void> | void;
   /**
@@ -65,6 +67,7 @@ export interface InlineStripePaymentFormProps {
 function InnerPaymentForm({
   amountMinorUnits,
   currency = "USD",
+  returnUrl,
   onCancel,
   onSuccess,
   ctaVerb = "Pay",
@@ -112,7 +115,7 @@ function InnerPaymentForm({
 
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
-        confirmParams: { return_url: window.location.href },
+        confirmParams: { return_url: resolveReturnUrl(returnUrl) },
         redirect: "if_required",
       });
 
@@ -228,6 +231,18 @@ function InnerPaymentForm({
       </div>
     </form>
   );
+}
+
+function resolveReturnUrl(value?: string): string {
+  if (!value) return window.location.href;
+  try {
+    const resolved = new URL(value, window.location.origin);
+    return resolved.origin === window.location.origin
+      ? resolved.toString()
+      : window.location.href;
+  } catch {
+    return window.location.href;
+  }
 }
 
 export default function InlineStripePaymentForm({

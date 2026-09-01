@@ -22,6 +22,22 @@ type Fetcher = {
   fetch(request: Request): Promise<Response>;
 };
 
+type ZivoDurableObjectId = object | string;
+type ZivoDurableObjectNamespace = {
+  idFromName(name: string): ZivoDurableObjectId;
+  get(id: ZivoDurableObjectId): Fetcher;
+};
+type ZivoDurableObjectTransaction = {
+  get<T>(key: string): Promise<T | undefined>;
+  put<T>(key: string, value: T): Promise<void>;
+};
+type ZivoDurableObjectStorage = ZivoDurableObjectTransaction & {
+  transaction<T>(callback: (transaction: ZivoDurableObjectTransaction) => Promise<T>): Promise<T>;
+};
+type ZivoDurableObjectState = {
+  storage: ZivoDurableObjectStorage;
+};
+
 type Env = {
   ASSETS?: Fetcher;
   ZIVO_MEDIA: R2Bucket;
@@ -32,8 +48,10 @@ type Env = {
   CLAUDE_API_KEY?: string;
   CHANNEL_OG_FUNCTION_URL?: string;
   SUPABASE_URL?: string;
+  SUPABASE_PUBLISHABLE_KEY?: string;
   ZIVO_SOFTWARE_SUPABASE_URL?: string;
   ZIVO_TRAVEL_SUPABASE_URL?: string;
+  AI_QUOTA?: ZivoDurableObjectNamespace;
 };
 
 type ZivoHtmlRewriterElement = {
@@ -58,6 +76,75 @@ const AUTH_LIMIT = 80;
 const GENERAL_LIMIT = 600;
 const AI_LIMIT = 40;
 const buckets = new Map<string, { count: number; resetAt: number }>();
+
+type AiQuotaWindow = {
+  windowStart: number;
+  count: number;
+};
+
+type AiQuotaDecision = {
+  allowed: boolean;
+  remaining: number;
+  resetAt: number;
+};
+
+const AI_QUOTA_STORAGE_KEY = "active-window";
+const AI_QUOTA_INTERNAL_PATH = "/consume";
+
+/**
+ * One durable object is addressed per authenticated user. This keeps the
+ * existing 40 requests / 10 minutes policy authoritative across Worker
+ * isolates without routing every ZIVO user through one global bottleneck.
+ */
+export class AiQuota {
+  constructor(
+    private readonly state: ZivoDurableObjectState,
+    _env: Env,
+  ) {}
+
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+    if (request.method !== "POST" || url.pathname !== AI_QUOTA_INTERNAL_PATH) {
+      return new Response(JSON.stringify({ error: "Not found" }), {
+        status: 404,
+        headers: { "content-type": "application/json; charset=utf-8" },
+      });
+    }
+
+    const now = Date.now();
+    const decision = await this.state.storage.transaction<AiQuotaDecision>(async (transaction) => {
+      const stored = await transaction.get<AiQuotaWindow>(AI_QUOTA_STORAGE_KEY);
+      const current = stored
+        && Number.isFinite(stored.windowStart)
+        && Number.isInteger(stored.count)
+        && stored.count >= 0
+        && stored.windowStart + WINDOW_MS > now
+        ? stored
+        : { windowStart: now, count: 0 };
+      const resetAt = current.windowStart + WINDOW_MS;
+
+      if (current.count >= AI_LIMIT) {
+        return { allowed: false, remaining: 0, resetAt };
+      }
+
+      const next = { windowStart: current.windowStart, count: current.count + 1 };
+      await transaction.put(AI_QUOTA_STORAGE_KEY, next);
+      return {
+        allowed: true,
+        remaining: Math.max(0, AI_LIMIT - next.count),
+        resetAt,
+      };
+    });
+
+    return new Response(JSON.stringify(decision), {
+      status: decision.allowed ? 200 : 429,
+      headers: {
+        "cache-control": "no-store",
+        "content-type": "application/json; charset=utf-8",
+      },
+    });
+  }
+}
 
 const DEFAULT_ALLOWED_ORIGINS = [
   "https://zivosmedia.com",
@@ -872,7 +959,6 @@ const immutableCache = "public, max-age=31536000, immutable";
 // (image/video/audio/document) to render inline.
 const R2_OBJECT_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; media-src 'self'; font-src 'self'";
 const authPathPattern = /^\/(?:login|signup|auth(?:\/|$)|admin(?:\/|$))/i;
-const aiPathPattern = /^\/api\/(?:ai|deepseek)(?:\/|$)/i;
 const blockedPathPattern =
   /(?:^|\/)(?:\.env|\.git|\.svn|\.hg|wp-admin|wp-login\.php|xmlrpc\.php|phpmyadmin|adminer|\.DS_Store|composer\.json|package-lock\.json)(?:\/|$)|(?:\.\.\/|\/etc\/passwd|\/proc\/self|%2e%2e|%5c)/i;
 
@@ -895,10 +981,12 @@ function clientIp(request: Request) {
 function isRateLimited(request: Request, url: URL) {
   const now = Date.now();
   const isAuthPath = authPathPattern.test(url.pathname);
-  const isAiPath = aiPathPattern.test(url.pathname);
-  const bucket = isAuthPath ? "auth" : isAiPath ? "ai" : "site";
+  // AI has a durable, authenticated per-user quota inside handleAiChat. Keep a
+  // coarse per-IP site limit here only as abuse resistance before auth; the
+  // in-memory map is never treated as the paid-provider quota authority.
+  const bucket = isAuthPath ? "auth" : "site";
   const key = `${bucket}:${clientIp(request)}`;
-  const limit = isAuthPath ? AUTH_LIMIT : isAiPath ? AI_LIMIT : GENERAL_LIMIT;
+  const limit = isAuthPath ? AUTH_LIMIT : GENERAL_LIMIT;
   const current = buckets.get(key);
 
   if (!current || current.resetAt <= now) {
@@ -1237,6 +1325,14 @@ type AiChatMessage = {
   content?: unknown;
 };
 
+type AiAuthResult =
+  | { ok: true; userId: string }
+  | { ok: false; response: Response };
+
+type AiQuotaResult = AiQuotaDecision & {
+  available: boolean;
+};
+
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const DEEPSEEK_MODELS = new Set(["deepseek-v4-flash", "deepseek-v4-pro"]);
@@ -1252,6 +1348,7 @@ const AI_MAX_MESSAGES = 20;
 const AI_MAX_MESSAGE_CHARS = 3000;
 const AI_MAX_TOTAL_CHARS = 12000;
 const AI_MAX_TOKENS = 1200;
+const SUPABASE_USER_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const AI_SYSTEM_PROMPTS: Record<AiChatMode, string> = {
   support:
@@ -1273,6 +1370,160 @@ function isAiProviderRequest(value: unknown): value is AiProviderRequest {
 function clampNumber(value: unknown, min: number, max: number, fallback: number) {
   if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
   return Math.min(max, Math.max(min, value));
+}
+
+function isSupabaseSecretCredential(value: string) {
+  if (value.startsWith("sb_secret_")) return true;
+  const parts = value.split(".");
+  if (parts.length !== 3) return false;
+
+  try {
+    const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    const payload = JSON.parse(atob(padded)) as { role?: unknown };
+    return payload.role === "service_role";
+  } catch {
+    return false;
+  }
+}
+
+async function authenticateAiUser(request: Request, env: Env): Promise<AiAuthResult> {
+  const authorization = request.headers.get("authorization")?.trim() || "";
+  const token = /^Bearer\s+([^\s]+)$/i.exec(authorization)?.[1] || "";
+  if (!token || token.length > 4096) {
+    return {
+      ok: false,
+      response: noStoreJson({ error: "Authentication required" }, { status: 401 }),
+    };
+  }
+
+  const publishableKey = env.SUPABASE_PUBLISHABLE_KEY?.trim() || "";
+  if (!publishableKey || isSupabaseSecretCredential(publishableKey)) {
+    console.error("AI auth is unavailable: a main-project Supabase publishable key is required");
+    return {
+      ok: false,
+      response: noStoreJson({ error: "AI authentication is unavailable" }, { status: 503 }),
+    };
+  }
+
+  const expectedBaseUrl = fallbackSupabaseProjectUrl("media");
+  const configuredBaseUrl = normalizedSupabaseUrl(env.SUPABASE_URL);
+  if (configuredBaseUrl && configuredBaseUrl !== expectedBaseUrl) {
+    console.error("AI auth is unavailable: SUPABASE_URL does not identify the main ZIVO auth project");
+    return {
+      ok: false,
+      response: noStoreJson({ error: "AI authentication is unavailable" }, { status: 503 }),
+    };
+  }
+  const baseUrl = expectedBaseUrl;
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}/auth/v1/user`, {
+      method: "GET",
+      headers: {
+        "apikey": publishableKey,
+        "authorization": `Bearer ${token}`,
+      },
+    });
+  } catch (error) {
+    console.error("AI auth validation request failed", error);
+    return {
+      ok: false,
+      response: noStoreJson({ error: "AI authentication is temporarily unavailable" }, { status: 503 }),
+    };
+  }
+
+  if (!response.ok) {
+    const status = response.status >= 500 || response.status === 429 ? 503 : 401;
+    return {
+      ok: false,
+      response: noStoreJson(
+        { error: status === 401 ? "Authentication required" : "AI authentication is temporarily unavailable" },
+        { status },
+      ),
+    };
+  }
+
+  try {
+    const user = await response.json() as { id?: unknown };
+    if (typeof user.id !== "string" || !SUPABASE_USER_ID_PATTERN.test(user.id)) {
+      throw new Error("Supabase Auth returned an invalid user identifier");
+    }
+    return { ok: true, userId: user.id };
+  } catch (error) {
+    console.error("AI auth validation response was invalid", error);
+    return {
+      ok: false,
+      response: noStoreJson({ error: "AI authentication is temporarily unavailable" }, { status: 503 }),
+    };
+  }
+}
+
+async function consumeAiQuota(env: Env, userId: string): Promise<AiQuotaResult> {
+  if (!env.AI_QUOTA) {
+    console.error("AI quota is unavailable: AI_QUOTA Durable Object binding is missing");
+    return {
+      available: false,
+      allowed: false,
+      remaining: 0,
+      resetAt: Date.now() + 30_000,
+    };
+  }
+
+  try {
+    const id = env.AI_QUOTA.idFromName(userId);
+    const response = await env.AI_QUOTA.get(id).fetch(new Request(
+      `https://ai-quota.internal${AI_QUOTA_INTERNAL_PATH}`,
+      { method: "POST" },
+    ));
+    const data = await response.json() as Partial<AiQuotaDecision>;
+    const now = Date.now();
+    const statusMatchesDecision =
+      (response.status === 200 && data.allowed === true)
+      || (response.status === 429 && data.allowed === false);
+
+    if (
+      !statusMatchesDecision
+      || typeof data.allowed !== "boolean"
+      || typeof data.remaining !== "number"
+      || !Number.isInteger(data.remaining)
+      || data.remaining < 0
+      || data.remaining > AI_LIMIT
+      || typeof data.resetAt !== "number"
+      || !Number.isFinite(data.resetAt)
+      || data.resetAt <= now
+      || data.resetAt > now + WINDOW_MS + 5_000
+    ) {
+      throw new Error(`AI quota returned an invalid response (${response.status})`);
+    }
+
+    return {
+      available: true,
+      allowed: data.allowed,
+      remaining: Math.max(0, Math.floor(data.remaining)),
+      resetAt: data.resetAt,
+    };
+  } catch (error) {
+    console.error("AI quota request failed", error);
+    return {
+      available: false,
+      allowed: false,
+      remaining: 0,
+      resetAt: Date.now() + 30_000,
+    };
+  }
+}
+
+function withAiQuotaHeaders(response: Response, quota: AiQuotaResult) {
+  const headers = new Headers(response.headers);
+  headers.set("x-ratelimit-limit", String(AI_LIMIT));
+  headers.set("x-ratelimit-remaining", String(quota.remaining));
+  headers.set("x-ratelimit-reset", String(Math.ceil(quota.resetAt / 1000)));
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 function sanitizeAiMessages(rawMessages: unknown) {
@@ -1512,6 +1763,11 @@ async function handleAiChat(request: Request, env: Env, url: URL) {
     return withCors(noStoreJson({ error: "Method not allowed" }, { status: 405 }), request, env);
   }
 
+  const auth = await authenticateAiUser(request, env);
+  if (auth.ok === false) {
+    return withCors(auth.response, request, env);
+  }
+
   const contentLength = Number(request.headers.get("content-length") || 0);
   if (contentLength > 48_000) {
     return withCors(noStoreJson({ error: "Request is too large" }, { status: 413 }), request, env);
@@ -1550,6 +1806,35 @@ async function handleAiChat(request: Request, env: Env, url: URL) {
     return withCors(noStoreJson({ error: "AI is not configured" }, { status: 503 }), request, env);
   }
 
+  const quota = await consumeAiQuota(env, auth.userId);
+  if (!quota.available) {
+    return withAiQuotaHeaders(
+      withCors(
+        noStoreJson(
+          { error: "AI quota protection is temporarily unavailable" },
+          { status: 503, headers: { "retry-after": "30" } },
+        ),
+        request,
+        env,
+      ),
+      quota,
+    );
+  }
+  if (!quota.allowed) {
+    const retryAfter = Math.max(1, Math.ceil((quota.resetAt - Date.now()) / 1000));
+    return withAiQuotaHeaders(
+      withCors(
+        noStoreJson(
+          { error: "AI request limit reached. Please try again shortly." },
+          { status: 429, headers: { "retry-after": String(retryAfter) } },
+        ),
+        request,
+        env,
+      ),
+      quota,
+    );
+  }
+
   let lastResponse: Response | null = null;
   for (const provider of configuredProviders) {
     const options = {
@@ -1567,15 +1852,21 @@ async function handleAiChat(request: Request, env: Env, url: URL) {
     const canFallback = response.status === 429 || response.status >= 500;
 
     if (!canFallback || provider === configuredProviders[configuredProviders.length - 1]) {
-      return withAiProviderHeaders(response, provider, isFallback);
+      return withAiQuotaHeaders(withAiProviderHeaders(response, provider, isFallback), quota);
     }
 
     lastResponse = response;
   }
 
   return lastResponse
-    ? withAiProviderHeaders(lastResponse, configuredProviders[configuredProviders.length - 1], true)
-    : withCors(noStoreJson({ error: "AI request failed" }, { status: 502 }), request, env);
+    ? withAiQuotaHeaders(
+        withAiProviderHeaders(lastResponse, configuredProviders[configuredProviders.length - 1], true),
+        quota,
+      )
+    : withAiQuotaHeaders(
+        withCors(noStoreJson({ error: "AI request failed" }, { status: 502 }), request, env),
+        quota,
+      );
 }
 
 export default {

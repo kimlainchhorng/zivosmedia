@@ -41,7 +41,6 @@ import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 const AISmartDeals = lazy(() => import("@/components/home/AISmartDeals"));
 import { usePopularRoutePrices } from "@/hooks/usePopularRoutePrices";
 import { useTravelpayoutsPopularRoutes } from "@/hooks/useTravelpayoutsPopularRoutes";
-import { useFlightAppTrackingTransparencyPrompt } from "@/hooks/useFlightAppTrackingTransparencyPrompt";
 import { format, parseISO } from "date-fns";
 import { Calendar } from "lucide-react";
 import { getAirportByCode } from "@/data/airports";
@@ -1273,7 +1272,6 @@ function Animated3DBackground() {
 
 /* ─── Main Component ─── */
 const FlightLanding = () => {
-  useFlightAppTrackingTransparencyPrompt(true);
   const navigate = useNavigate();
   const { fromCity, toCity } = useParams();
   const flightInitial = useFlightDeepLinkInitial(fromCity, toCity);

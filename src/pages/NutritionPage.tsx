@@ -12,6 +12,7 @@ import SEOHead from "@/components/SEOHead";
 import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { cn } from "@/lib/utils";
 import { useGoBack } from "@/hooks/useGoBack";
+import { useAuth } from "@/contexts/AuthContext";
 
 type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -25,8 +26,11 @@ interface FoodEntry {
   slot: MealSlot;
 }
 
-const STORAGE_KEY = "zivo:nutrition:v1";
-const WATER_KEY = "zivo:nutrition:water:v1";
+const NUTRITION_STORAGE_PREFIX = "zivo:nutrition:v2";
+
+function nutritionStorageKey(userId: string, suffix: "entries" | "water") {
+  return `${NUTRITION_STORAGE_PREFIX}:${userId}:${suffix}`;
+}
 
 const SLOTS: { key: MealSlot; label: string; icon: typeof Coffee }[] = [
   { key: "breakfast", label: "Breakfast", icon: Coffee },
@@ -42,9 +46,9 @@ const SEEDS: FoodEntry[] = [
 
 const TARGETS = { calories: 2000, protein: 100, carbs: 250, fats: 70, water: 8 };
 
-function loadEntries(): FoodEntry[] {
+function loadEntries(userId: string): FoodEntry[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(nutritionStorageKey(userId, "entries"));
     if (!raw) return SEEDS;
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return SEEDS;
@@ -52,27 +56,60 @@ function loadEntries(): FoodEntry[] {
   } catch { return SEEDS; }
 }
 
-function loadWater(): number {
-  try { return Math.max(0, Math.floor(Number(localStorage.getItem(WATER_KEY) || 0))); } catch { return 0; }
+function loadWater(userId: string): number {
+  try {
+    return Math.max(
+      0,
+      Math.floor(
+        Number(localStorage.getItem(nutritionStorageKey(userId, "water")) || 0),
+      ),
+    );
+  } catch {
+    return 0;
+  }
 }
 
-function saveEntries(entries: FoodEntry[]) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); } catch { /* private mode */ }
+function saveEntries(userId: string, entries: FoodEntry[]) {
+  try {
+    localStorage.setItem(
+      nutritionStorageKey(userId, "entries"),
+      JSON.stringify(entries),
+    );
+  } catch {
+    /* private mode */
+  }
 }
 
-function saveWater(n: number) {
-  try { localStorage.setItem(WATER_KEY, String(n)); } catch { /* private mode */ }
+function saveWater(userId: string, n: number) {
+  try {
+    localStorage.setItem(nutritionStorageKey(userId, "water"), String(n));
+  } catch {
+    /* private mode */
+  }
 }
 
 export default function NutritionPage() {
   const navigate = useNavigate();
   const goBack = useGoBack("/");
+  const { user, isLoading: authLoading } = useAuth();
+  const userId = user?.id ?? null;
   const [entries, setEntries] = useState<FoodEntry[]>([]);
   const [water, setWater] = useState(0);
+  const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
   const [adding, setAdding] = useState<MealSlot | null>(null);
   const [draft, setDraft] = useState({ name: "", calories: "", protein: "", carbs: "", fats: "" });
 
-  useEffect(() => { setEntries(loadEntries()); setWater(loadWater()); }, []);
+  useEffect(() => {
+    if (!userId) {
+      setEntries([]);
+      setWater(0);
+      setLoadedUserId(null);
+      return;
+    }
+    setEntries(loadEntries(userId));
+    setWater(loadWater(userId));
+    setLoadedUserId(userId);
+  }, [userId]);
 
   const totals = useMemo(() => {
     return entries.reduce(
@@ -87,12 +124,14 @@ export default function NutritionPage() {
   }, [entries]);
 
   const removeEntry = (id: string) => {
+    if (!userId) return;
     const next = entries.filter((e) => e.id !== id);
     setEntries(next);
-    saveEntries(next);
+    saveEntries(userId, next);
   };
 
   const addEntry = (slot: MealSlot) => {
+    if (!userId) return;
     if (!draft.name.trim()) return;
     const newEntry: FoodEntry = {
       id: `e-${Date.now()}`,
@@ -105,18 +144,34 @@ export default function NutritionPage() {
     };
     const next = [...entries, newEntry];
     setEntries(next);
-    saveEntries(next);
+    saveEntries(userId, next);
     setDraft({ name: "", calories: "", protein: "", carbs: "", fats: "" });
     setAdding(null);
   };
 
   const adjustWater = (delta: number) => {
+    if (!userId) return;
     const next = Math.max(0, Math.min(20, water + delta));
     setWater(next);
-    saveWater(next);
+    saveWater(userId, next);
   };
 
   const caloriePct = Math.min(100, Math.round((totals.calories / TARGETS.calories) * 100));
+
+  if (authLoading || !userId || loadedUserId !== userId) {
+    return (
+      <SwipeBackContainer className="min-h-screen bg-background pb-12">
+        <SEOHead
+          title="Nutrition · ZIVO"
+          description="Log meals, calories, macros, and water intake."
+          noIndex
+        />
+        <div className="mx-auto max-w-2xl px-4 py-10 text-center text-sm text-muted-foreground">
+          Loading your nutrition data…
+        </div>
+      </SwipeBackContainer>
+    );
+  }
 
   return (
     <SwipeBackContainer className="min-h-screen bg-background pb-12">

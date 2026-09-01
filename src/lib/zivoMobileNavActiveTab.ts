@@ -34,5 +34,8 @@ export const getZivoMobileNavActiveTab = (path: string, isTravel: boolean) => {
     path.startsWith("/shop-dashboard")
   )
     return "account";
-  return "home";
+  // Flights, hotels, cars, Bus, Store Map, checkout, and other service routes
+  // are not the Home screen. Keeping every tab inactive makes Home a real
+  // return action instead of a visually selected no-op.
+  return null;
 };

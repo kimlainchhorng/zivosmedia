@@ -19,6 +19,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
+import {
+  buildSalonBookingAccessPath,
+  exchangeSalonBookingActionAccess,
+  persistSalonBookingAccessToken,
+} from "@/lib/salonBookingAccess";
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
 const supabase: any = _supabaseTyped;
 import { computeOpenSlots, type ScheduleRow, type BusyRange } from "@/lib/salon/availability";
@@ -118,7 +123,11 @@ export default function PublicSalonBookingPage() {
   const [remindersOptIn, setRemindersOptIn] = useState(true);
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [confirmed, setConfirmed] = useState<{ id: string; startAt: string } | null>(null);
+  const [confirmed, setConfirmed] = useState<{
+    id: string;
+    startAt: string;
+    accessToken: string | null;
+  } | null>(null);
 
   // Load salon + services + stylists by slug (using public read policies).
   useEffect(() => {
@@ -499,12 +508,26 @@ export default function PublicSalonBookingPage() {
     // via the booking detail page.
     const booking = (data as any)?.booking;
     const newBookingId = booking.id as string;
+    const accessToken = typeof (data as any)?.access_token === "string"
+      ? (data as any).access_token as string
+      : null;
+    persistSalonBookingAccessToken(newBookingId, "manage", accessToken);
     const depositOwed = (booking.deposit_cents as number) ?? 0;
     if (depositOwed > 0) {
       try {
+        const depositAccess = await exchangeSalonBookingActionAccess(
+          newBookingId,
+          accessToken,
+          "deposit",
+        );
         const { data: depositRes, error: depErr } = await supabase.functions.invoke(
           "create-salon-deposit",
-          { body: { booking_id: newBookingId } },
+          {
+            body: {
+              booking_id: newBookingId,
+              access_token: depositAccess.token,
+            },
+          },
         );
         if (depErr) throw depErr;
         const url = (depositRes as any)?.url as string | undefined;
@@ -519,7 +542,11 @@ export default function PublicSalonBookingPage() {
       }
     }
     setSubmitting(false);
-    setConfirmed({ id: newBookingId, startAt: booking.start_at });
+    setConfirmed({
+      id: newBookingId,
+      startAt: booking.start_at,
+      accessToken,
+    });
   };
 
   if (loading) {
@@ -555,7 +582,11 @@ export default function PublicSalonBookingPage() {
             </p>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
               <a
-                href={`/booking/${confirmed.id}`}
+                href={buildSalonBookingAccessPath(
+                  confirmed.id,
+                  "booking",
+                  confirmed.accessToken,
+                )}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:border-primary/40 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 View or cancel this booking
@@ -578,7 +609,7 @@ export default function PublicSalonBookingPage() {
             <p className="mt-1 text-[11px] text-muted-foreground">
               {user
                 ? "This booking is linked to your account — find it any time under your salon area."
-                : "Bookmark this link — anyone with it can view or cancel."}
+                : "Keep this secure link private. It expires after your appointment."}
             </p>
           </div>
         </div>

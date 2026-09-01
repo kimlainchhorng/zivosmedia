@@ -1,17 +1,25 @@
 /**
  * useEatsOrder — Handles placing a food order, payment, and driver dispatch
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { createFoodOrder, type EatsCartItem } from "./useEatsData";
-import { useEatsNotifications } from "./useEatsNotifications";
 import { deductWalletBalance } from "./useWalletPayment";
-import { isAllowedPayPalCheckoutUrl, isAllowedSquareCheckoutUrl } from "@/lib/urlSafety";
+import {
+  isAllowedPayPalCheckoutUrl,
+  isAllowedSquareCheckoutUrl,
+} from "@/lib/urlSafety";
+import {
+  EATS_ORDERING_ENABLED,
+  isEatsPaymentRailEnabled,
+  type EatsPaymentRail,
+} from "@/lib/eatsPaymentCapabilities";
 
 export interface PlaceOrderParams {
   restaurantId: string;
   items: EatsCartItem[];
+  orderMode: "delivery" | "pickup";
   deliveryAddress: string;
   deliveryLat: number;
   deliveryLng: number;
@@ -20,7 +28,7 @@ export interface PlaceOrderParams {
   serviceFee: number;
   tipAmount: number;
   totalAmount: number;
-  paymentType: "cash" | "card" | "wallet" | "paypal" | "square";
+  paymentType: EatsPaymentRail;
   specialInstructions?: string;
   isScheduled?: boolean;
   scheduledFor?: string;
@@ -33,17 +41,57 @@ export interface PlaceOrderParams {
   pickupLng?: number;
 }
 
+type SavedOrderResult = {
+  orderId: string;
+  trackingCode: string;
+};
+
+export type PlaceOrderResult =
+  | (SavedOrderResult & { outcome: "placed" })
+  | (SavedOrderResult & {
+      outcome: "confirmation_pending";
+      rail: "wallet" | "cash";
+    })
+  | (SavedOrderResult & {
+      outcome: "payment_failed";
+      rail: "wallet" | "card" | "paypal" | "square";
+    })
+  | (SavedOrderResult & {
+      outcome: "card_payment_required";
+      rail: "card";
+      clientSecret: string;
+      amountCents: number;
+    })
+  | (SavedOrderResult & {
+      outcome: "external_checkout_started";
+      rail: "paypal" | "square";
+    });
+
 export function useEatsOrder() {
   const [placing, setPlacing] = useState(false);
-  const { notify } = useEatsNotifications();
+  const placingRef = useRef(false);
 
-  const placeOrder = async (params: PlaceOrderParams): Promise<{
-    orderId: string;
-    trackingCode: string;
-  } | null> => {
+  const placeOrder = async (
+    params: PlaceOrderParams,
+  ): Promise<PlaceOrderResult | null> => {
+    if (placingRef.current) return null;
+    placingRef.current = true;
     setPlacing(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      if (!EATS_ORDERING_ENABLED) {
+        toast.error(
+          "Food ordering is temporarily unavailable while restaurant delivery setup is completed",
+        );
+        return null;
+      }
+      if (!isEatsPaymentRailEnabled(params.paymentType)) {
+        toast.error("This payment method is not available yet");
+        return null;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         toast.error("Please sign in to place an order");
         return null;
@@ -54,6 +102,7 @@ export function useEatsOrder() {
         customerId: user.id,
         restaurantId: params.restaurantId,
         items: params.items,
+        orderMode: params.orderMode,
         deliveryAddress: params.deliveryAddress,
         deliveryLat: params.deliveryLat,
         deliveryLng: params.deliveryLng,
@@ -74,96 +123,231 @@ export function useEatsOrder() {
 
       const orderId = result.order.id;
       const trackingCode = result.trackingCode;
+      const payableCents = Math.round(Number(result.order.total_amount) * 100);
+
+      if (
+        params.paymentType !== "cash" &&
+        (!Number.isSafeInteger(payableCents) || payableCents < 50)
+      ) {
+        await markPaymentFailed(orderId, "Saved order total is unavailable");
+        return {
+          orderId,
+          trackingCode,
+          outcome: "payment_failed",
+          rail: params.paymentType,
+        };
+      }
 
       // 2. Handle payment
       if (params.paymentType === "card") {
-        const totalCents = Math.round(params.totalAmount * 100);
-        const { data, error } = await supabase.functions.invoke("create-eats-payment", {
-          body: { order_id: orderId, amount_cents: totalCents },
-        });
-        if (error || !data?.ok) {
-          // Mark order payment failed but don't block - they can retry
-          console.error("[EatsOrder] Payment intent error:", error || data?.error);
-          toast.error("Card payment setup failed. You can retry from order details.");
-        } else {
-          // Update payment status to processing
+        const { data, error } = await supabase.functions.invoke(
+          "create-eats-payment",
+          {
+            body: { order_id: orderId, amount_cents: payableCents },
+          },
+        );
+        if (error || !data?.ok || !data?.client_secret) {
+          console.error(
+            "[EatsOrder] Payment intent error:",
+            error || data?.error,
+          );
+          await markPaymentFailed(orderId, "Card payment setup failed");
+          return {
+            orderId,
+            trackingCode,
+            outcome: "payment_failed",
+            rail: "card",
+          };
+        }
+
+        const { data: statusData, error: statusError } =
           await supabase.functions.invoke("eats-payment-status-update", {
             body: { order_id: orderId, action: "card_processing" },
           });
+        if (statusError || !statusData?.ok) {
+          console.error(
+            "[EatsOrder] card_processing status update failed:",
+            statusError || statusData?.error,
+          );
         }
+
+        // PaymentElement must confirm this intent before any success,
+        // notification, or delivery dispatch is shown.
+        return {
+          orderId,
+          trackingCode,
+          outcome: "card_payment_required",
+          rail: "card",
+          clientSecret: String(data.client_secret),
+          amountCents: payableCents,
+        };
       } else if (params.paymentType === "cash") {
-        await supabase.functions.invoke("eats-payment-status-update", {
-          body: { order_id: orderId, action: "cash_on_delivery" },
-        });
+        const { data, error } = await supabase.functions.invoke(
+          "eats-payment-status-update",
+          {
+            body: { order_id: orderId, action: "cash_on_delivery" },
+          },
+        );
+        if (error || !data?.ok) {
+          // The order already exists. Cash confirmation now owns the trusted
+          // service-role dispatch, so a failed/ambiguous response must move the
+          // saved order to reconciliation instead of creating a second order.
+          console.error(
+            "[EatsOrder] cash_on_delivery status update failed:",
+            error || data?.error,
+          );
+          return {
+            orderId,
+            trackingCode,
+            outcome: "confirmation_pending",
+            rail: "cash",
+          };
+        }
+        if (!isConfirmedOrderResponse(data, orderId, "cash_on_delivery")) {
+          return {
+            orderId,
+            trackingCode,
+            outcome: "confirmation_pending",
+            rail: "cash",
+          };
+        }
       } else if (params.paymentType === "wallet") {
-        const amountCents = Math.round(params.totalAmount * 100);
-        const walletResult = await deductWalletBalance(user.id, amountCents, orderId, `Eats order #${trackingCode}`);
+        const walletResult = await deductWalletBalance(
+          user.id,
+          payableCents,
+          orderId,
+          `Eats order #${trackingCode}`,
+        );
         if (walletResult.success) {
-          await supabase.functions.invoke("eats-payment-status-update", {
-            body: { order_id: orderId, action: "wallet_paid" },
-          });
-          // Fire confirmation email + SMS — wallet flow doesn't trigger any webhook.
-          supabase.functions.invoke("notify-eats-order-confirmed", {
-            body: { order_id: orderId, payment_method: "Wallet" },
-          }).catch((e) => console.warn("[EatsOrder] confirmation email skipped:", e));
+          const { data, error } = await supabase.functions.invoke(
+            "eats-payment-status-update",
+            {
+              body: { order_id: orderId, action: "wallet_paid" },
+            },
+          );
+          if (error || !data?.ok) {
+            // The wallet has already been debited. If the order is not marked
+            // paid it is never dispatched and never reaches the restaurant, so
+            // return the saved order as a recovery outcome. The caller must
+            // clear checkout and move the customer to the non-resubmittable
+            // confirmation-recovery screen instead of returning null.
+            console.error(
+              "[EatsOrder] wallet_paid status update failed:",
+              error || data?.error,
+            );
+            return {
+              orderId,
+              trackingCode,
+              outcome: "confirmation_pending",
+              rail: "wallet",
+            };
+          }
+          if (!isConfirmedOrderResponse(data, orderId, "paid")) {
+            return {
+              orderId,
+              trackingCode,
+              outcome: "confirmation_pending",
+              rail: "wallet",
+            };
+          }
         } else {
-          await supabase.functions.invoke("eats-payment-status-update", {
-            body: { order_id: orderId, action: "payment_failed", error_message: "Wallet payment failed" },
-          });
-          toast.error("Wallet payment failed. Please try another method.");
+          if (walletResult.outcome === "unknown") {
+            // The debit response was ambiguous. Never call the debit endpoint
+            // again from checkout. The tracking screen verifies the existing
+            // ledger by order ID and completes confirmation/dispatch if it
+            // committed.
+            return {
+              orderId,
+              trackingCode,
+              outcome: "confirmation_pending",
+              rail: "wallet",
+            };
+          }
+
+          await markPaymentFailed(orderId, "Wallet payment was not charged");
+          return {
+            orderId,
+            trackingCode,
+            outcome: "payment_failed",
+            rail: "wallet",
+          };
         }
       } else if (params.paymentType === "paypal") {
-        const amountCents = Math.round(params.totalAmount * 100);
-        const returnUrl = `${window.location.origin}/orders?eats_paypal_return=${orderId}`;
-        const cancelUrl = `${window.location.origin}/orders?eats_paypal_cancel=${orderId}`;
-        const { data, error } = await supabase.functions.invoke("create-eats-paypal-order", {
-          body: { order_id: orderId, amount_cents: amountCents, return_url: returnUrl, cancel_url: cancelUrl },
-        });
-        if (error || !data?.approve_url || !isAllowedPayPalCheckoutUrl(data.approve_url)) {
-          toast.error("PayPal checkout could not start. You can retry from order details.");
+        const returnUrl = `${window.location.origin}/eats/track/${orderId}?eats_paypal_return=${orderId}`;
+        const cancelUrl = `${window.location.origin}/eats/track/${orderId}?eats_paypal_cancel=${orderId}`;
+        const { data, error } = await supabase.functions.invoke(
+          "create-eats-paypal-order",
+          {
+            body: {
+              order_id: orderId,
+              return_url: returnUrl,
+              cancel_url: cancelUrl,
+            },
+          },
+        );
+        if (
+          error ||
+          !data?.approve_url ||
+          !isAllowedPayPalCheckoutUrl(data.approve_url)
+        ) {
+          await markPaymentFailed(orderId, "PayPal checkout could not start");
+          return {
+            orderId,
+            trackingCode,
+            outcome: "payment_failed",
+            rail: "paypal",
+          };
         } else {
           window.location.assign(data.approve_url);
+          return {
+            orderId,
+            trackingCode,
+            outcome: "external_checkout_started",
+            rail: "paypal",
+          };
         }
       } else if (params.paymentType === "square") {
-        const amountCents = Math.round(params.totalAmount * 100);
-        const returnUrl = `${window.location.origin}/orders?eats_square_return=${orderId}`;
-        const { data, error } = await supabase.functions.invoke("create-eats-square-checkout", {
-          body: { order_id: orderId, amount_cents: amountCents, return_url: returnUrl },
-        });
+        const returnUrl = `${window.location.origin}/eats/track/${orderId}?eats_square_return=${orderId}`;
+        const { data, error } = await supabase.functions.invoke(
+          "create-eats-square-checkout",
+          {
+            body: {
+              order_id: orderId,
+              amount_cents: payableCents,
+              return_url: returnUrl,
+            },
+          },
+        );
         if (error || !data?.url || !isAllowedSquareCheckoutUrl(data.url)) {
-          toast.error("Square checkout could not start. You can retry from order details.");
+          await markPaymentFailed(orderId, "Square checkout could not start");
+          return {
+            orderId,
+            trackingCode,
+            outcome: "payment_failed",
+            rail: "square",
+          };
         } else {
           window.location.assign(data.url);
+          return {
+            orderId,
+            trackingCode,
+            outcome: "external_checkout_started",
+            rail: "square",
+          };
         }
       }
 
-      // 3. Dispatch delivery driver
-      // For redirect-based payments (PayPal/Square) the page is navigating
-      // away here — dispatching from the hook is racy AND dispatches an
-      // unpaid order. For card payments the webhook fires faster than this
-      // hook completes anyway. So: only dispatch from the hook for synchronous
-      // payment paths (cash on delivery, wallet). Webhooks handle everything else.
-      const dispatchableNow = params.paymentType === "cash" || params.paymentType === "wallet";
-      if (dispatchableNow) {
-        try {
-          const { data: dispatchData, error: dispatchErr } = await supabase.functions.invoke(
-            "dispatch-eats-order",
-            { body: { order_id: orderId } },
-          );
-          if (dispatchErr) {
-            console.error("[EatsOrder] Dispatch error:", dispatchErr);
-          } else if ((dispatchData as any)?.error) {
-            console.warn("[EatsOrder] Dispatch refused:", (dispatchData as any).error);
-          }
-        } catch (dispatchErr) {
-          console.error("[EatsOrder] Dispatch invoke error:", dispatchErr);
-        }
-      }
-      // For card/paypal/square: webhooks (stripe-webhook, paypal-eats-webhook,
-      // square-eats-webhook) call dispatch-eats-order on payment confirmation.
+      // 3. Dispatch authority stays server-side. Wallet and cash confirmation
+      // invoke the idempotent dispatcher with the service role inside
+      // eats-payment-status-update; card/PayPal/Square webhooks do the same.
+      // The browser never invokes dispatch-eats-order directly.
 
       // 3.5 Track promo redemption (non-blocking attribution)
-      if (params.promoCode && params.discountAmount && params.discountAmount > 0) {
+      if (
+        params.promoCode &&
+        params.discountAmount &&
+        params.discountAmount > 0
+      ) {
         supabase.functions
           .invoke("track-promo-redemption", {
             body: {
@@ -174,24 +358,79 @@ export function useEatsOrder() {
               order_total_cents: Math.round(params.totalAmount * 100),
             },
           })
-          .catch((err) => console.warn("[EatsOrder] promo attribution failed:", err));
+          .catch((err) =>
+            console.warn("[EatsOrder] promo attribution failed:", err),
+          );
       }
 
-      // 4. Notify
-      notify("order_placed", {
-        orderId: trackingCode,
-        restaurantName: params.restaurantName,
-      });
-
-      toast.success("Order placed successfully!");
-      return { orderId, trackingCode };
+      return { orderId, trackingCode, outcome: "placed" };
     } catch (err: any) {
       toast.error(err.message || "Failed to place order");
       return null;
     } finally {
+      placingRef.current = false;
       setPlacing(false);
     }
   };
 
   return { placeOrder, placing };
+}
+
+async function markPaymentFailed(orderId: string, message: string) {
+  const { data, error } = await supabase.functions.invoke(
+    "eats-payment-status-update",
+    {
+      body: {
+        order_id: orderId,
+        action: "payment_failed",
+        error_message: message,
+      },
+    },
+  );
+  if (error || !data?.ok) {
+    console.error(
+      "[EatsOrder] payment_failed status update failed:",
+      error || data?.error,
+    );
+  }
+
+  // A known pre-payment failure is not ambiguous: close the exact saved order
+  // so the atomic cancellation trigger releases limited stock and promo quota.
+  // If this cleanup fails, the signed stale-order job remains the server-owned
+  // 60-minute backstop; never create a replacement order here.
+  const { data: cancelData, error: cancelError } =
+    await supabase.functions.invoke("cancel-eats-order", {
+      body: {
+        order_id: orderId,
+        reason: "payment_setup_failed",
+      },
+    });
+  if (
+    cancelError ||
+    cancelData?.ok !== true ||
+    cancelData?.status !== "cancelled"
+  ) {
+    console.error(
+      "[EatsOrder] failed unpaid order cleanup was not confirmed:",
+      cancelError || cancelData?.error,
+    );
+  }
+}
+
+function isConfirmedOrderResponse(
+  data: unknown,
+  orderId: string,
+  expectedPaymentStatus: "paid" | "cash_on_delivery",
+): boolean {
+  const response = data as {
+    ok?: unknown;
+    state?: unknown;
+    order?: { id?: unknown; payment_status?: unknown } | null;
+  } | null;
+  return Boolean(
+    response?.ok === true &&
+    response.state === "confirmed" &&
+    response.order?.id === orderId &&
+    response.order.payment_status === expectedPaymentStatus,
+  );
 }

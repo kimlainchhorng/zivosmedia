@@ -2,7 +2,7 @@
  * EatsTrackingPage — Real-time food order tracking
  * Subscribes to food_orders status changes via Supabase Realtime
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -28,6 +28,9 @@ interface OrderData {
   delivery_address: string;
   total_amount: number;
   payment_type: string | null;
+  payment_status: string | null;
+  payment_provider: string | null;
+  last_payment_error: string | null;
   tip_amount: number | null;
   special_instructions: string | null;
   created_at: string | null;
@@ -54,6 +57,74 @@ const statusIndex = (s: string): number => {
   return idx >= 0 ? idx : 0;
 };
 
+type RecoveryAction =
+  | "wallet_paid"
+  | "cash_on_delivery"
+  | "retry_dispatch";
+type CancellationRecoveryState = "idle" | "checking" | "pending" | "done";
+
+function getRecoveryAction(order: OrderData | null): RecoveryAction | null {
+  if (!order || ["cancelled", "refunded"].includes(order.status)) return null;
+  const paymentStatus = order.payment_status ?? "pending";
+  const dispatchPending =
+    order.last_payment_error === "delivery_dispatch_pending";
+
+  if (
+    dispatchPending &&
+    ["paid", "cash_on_delivery"].includes(paymentStatus)
+  ) {
+    return "retry_dispatch";
+  }
+
+  if (order.payment_type === "wallet") {
+    return ["paid", "refunded", "refund_pending", "failed"].includes(
+      paymentStatus,
+    )
+      ? null
+      : "wallet_paid";
+  }
+
+  if (order.payment_type === "cash") {
+    return ["cash_on_delivery", "failed"].includes(paymentStatus)
+      ? null
+      : "cash_on_delivery";
+  }
+
+  return null;
+}
+
+function needsCancellationRecovery(order: OrderData | null): boolean {
+  if (!order || !["cancelled", "refunded"].includes(order.status)) {
+    return false;
+  }
+
+  if (order.payment_status === "refund_pending") return true;
+  const error = order.last_payment_error?.trim();
+  return Boolean(error && error !== "cancelled_no_refund");
+}
+
+function isConfirmedRecoveryResponse(
+  data: unknown,
+  orderId: string,
+  expectedStatus: "paid" | "cash_on_delivery",
+): data is {
+  ok: true;
+  state: "confirmed";
+  order: Partial<OrderData> & { id: string; payment_status: string };
+} {
+  const response = data as {
+    ok?: unknown;
+    state?: unknown;
+    order?: { id?: unknown; payment_status?: unknown } | null;
+  } | null;
+  return Boolean(
+    response?.ok === true &&
+      response.state === "confirmed" &&
+      response.order?.id === orderId &&
+      response.order.payment_status === expectedStatus,
+  );
+}
+
 export default function EatsTrackingPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
@@ -62,16 +133,41 @@ export default function EatsTrackingPage() {
   const [restaurantName, setRestaurantName] = useState("");
   const [driverName, setDriverName] = useState("");
   const [rating, setRating] = useState<number | null>(null);
+  const [confirmationState, setConfirmationState] = useState<
+    "idle" | "checking" | "pending" | "confirmed"
+  >("idle");
+  const confirmationInFlightRef = useRef<string | null>(null);
+  const confirmationAttemptedRef = useRef<string | null>(null);
+  const [cancellationRecoveryState, setCancellationRecoveryState] =
+    useState<CancellationRecoveryState>("idle");
+  const cancellationRecoveryInFlightRef = useRef(false);
+  const cancellationRecoveryAttemptedRef = useRef(false);
+
+  const recoveryAction = getRecoveryAction(order);
+  const cancellationRecoveryPending = needsCancellationRecovery(order);
 
   // Fetch order
   useEffect(() => {
     if (!orderId) return;
+    let active = true;
+    setLoading(true);
+    setOrder(null);
+    setRestaurantName("");
+    setDriverName("");
+    setConfirmationState("idle");
+    setCancellationRecoveryState("idle");
+    confirmationInFlightRef.current = null;
+    confirmationAttemptedRef.current = null;
+    cancellationRecoveryInFlightRef.current = false;
+    cancellationRecoveryAttemptedRef.current = false;
+
     const fetchOrder = async () => {
       const { data, error } = await supabase
         .from("food_orders")
-        .select("id, status, tracking_code, delivery_address, total_amount, payment_type, tip_amount, special_instructions, created_at, restaurant_id, driver_id, last_driver_lat, last_driver_lng, eta_minutes, items")
+        .select("id, status, tracking_code, delivery_address, total_amount, payment_type, payment_status, payment_provider, last_payment_error, tip_amount, special_instructions, created_at, restaurant_id, driver_id, last_driver_lat, last_driver_lng, eta_minutes, items")
         .eq("id", orderId)
         .single();
+      if (!active) return;
       if (error) {
         console.error("[EatsTracking] Fetch error:", error);
         toast.error("Order not found");
@@ -80,8 +176,152 @@ export default function EatsTrackingPage() {
       }
       setLoading(false);
     };
-    fetchOrder();
+    void fetchOrder();
+    return () => {
+      active = false;
+    };
   }, [orderId]);
+
+  const recoverOrderConfirmation = useCallback(async () => {
+    if (!orderId || !recoveryAction) return;
+    const recoveryKey = `${orderId}:${recoveryAction}`;
+    if (confirmationInFlightRef.current === recoveryKey) return;
+    confirmationInFlightRef.current = recoveryKey;
+    setConfirmationState("checking");
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "eats-payment-status-update",
+        {
+          body: { order_id: orderId, action: recoveryAction },
+        },
+      );
+      const expectedStatus =
+        recoveryAction === "cash_on_delivery" ||
+        (recoveryAction === "retry_dispatch" &&
+          order?.payment_status === "cash_on_delivery")
+          ? "cash_on_delivery"
+          : "paid";
+      if (
+        error ||
+        !isConfirmedRecoveryResponse(data, orderId, expectedStatus)
+      ) {
+        console.error(
+          "[EatsTracking] order confirmation recovery failed:",
+          error || data?.error,
+        );
+        setConfirmationState("pending");
+        return;
+      }
+
+      setOrder((current) =>
+        current?.id === orderId
+          ? { ...current, ...data.order }
+          : current,
+      );
+      setConfirmationState("confirmed");
+      toast.success(
+        recoveryAction === "wallet_paid"
+          ? "Wallet payment and delivery confirmed"
+          : recoveryAction === "cash_on_delivery"
+            ? "Cash order and delivery confirmed"
+            : "Paid order delivery confirmed",
+      );
+    } catch (error) {
+      console.error("[EatsTracking] order confirmation threw:", error);
+      setConfirmationState("pending");
+    } finally {
+      if (confirmationInFlightRef.current === recoveryKey) {
+        confirmationInFlightRef.current = null;
+      }
+    }
+  }, [order?.payment_status, orderId, recoveryAction]);
+
+  useEffect(() => {
+    if (!order || !orderId || !recoveryAction || order.status === "cancelled") {
+      return;
+    }
+    const recoveryKey = `${orderId}:${recoveryAction}`;
+    if (confirmationAttemptedRef.current === recoveryKey) return;
+    confirmationAttemptedRef.current = recoveryKey;
+    void recoverOrderConfirmation();
+  }, [order, orderId, recoveryAction, recoverOrderConfirmation]);
+
+  const recoverCancellation = useCallback(async () => {
+    if (
+      !orderId ||
+      !cancellationRecoveryPending ||
+      cancellationRecoveryInFlightRef.current
+    ) {
+      return;
+    }
+
+    cancellationRecoveryInFlightRef.current = true;
+    setCancellationRecoveryState("checking");
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "cancel-eats-order",
+        {
+          body: {
+            order_id: orderId,
+            reason: "cancellation_recovery_retry",
+          },
+        },
+      );
+      if (
+        error ||
+        (data as any)?.ok !== true ||
+        (data as any)?.status !== "cancelled"
+      ) {
+        console.error(
+          "[EatsTracking] cancellation recovery pending:",
+          error || (data as any)?.error,
+        );
+        setCancellationRecoveryState("pending");
+        return;
+      }
+
+      const result = data as {
+        order_status?: string | null;
+        payment_status?: string | null;
+      };
+      setOrder((current) =>
+        current?.id === orderId
+          ? {
+              ...current,
+              status:
+                result.order_status === "refunded" ? "refunded" : "cancelled",
+              payment_status:
+                result.payment_status ?? current.payment_status,
+              last_payment_error: null,
+            }
+          : current,
+      );
+      setCancellationRecoveryState("done");
+      toast.success("Cancellation recovery completed", {
+        description:
+          result.payment_status === "refunded"
+            ? "Your refund and order cancellation are confirmed."
+            : "Your cancelled order is fully reconciled.",
+      });
+    } catch (error) {
+      console.error("[EatsTracking] cancellation recovery threw:", error);
+      setCancellationRecoveryState("pending");
+    } finally {
+      cancellationRecoveryInFlightRef.current = false;
+    }
+  }, [cancellationRecoveryPending, orderId]);
+
+  useEffect(() => {
+    if (
+      !cancellationRecoveryPending ||
+      cancellationRecoveryAttemptedRef.current
+    ) {
+      return;
+    }
+    cancellationRecoveryAttemptedRef.current = true;
+    void recoverCancellation();
+  }, [cancellationRecoveryPending, recoverCancellation]);
 
   // Fetch restaurant name
   useEffect(() => {
@@ -124,7 +364,32 @@ export default function EatsTrackingPage() {
 
   const currentIdx = statusIndex(order?.status || "pending");
   const isDelivered = order?.status === "delivered";
-  const isCancelled = order?.status === "cancelled";
+  const isCancelled = ["cancelled", "refunded"].includes(order?.status ?? "");
+  const confirmationPending = Boolean(recoveryAction && !isCancelled);
+  const paymentFailed = order?.payment_status === "failed";
+
+  const handleCancelled = useCallback(
+    (result: { payment_status?: string | null }) => {
+      confirmationInFlightRef.current = null;
+      confirmationAttemptedRef.current = null;
+      setConfirmationState("idle");
+      setCancellationRecoveryState("idle");
+      cancellationRecoveryInFlightRef.current = false;
+      cancellationRecoveryAttemptedRef.current = false;
+      setOrder((current) =>
+        current
+          ? {
+              ...current,
+              status: "cancelled",
+              payment_status:
+                result.payment_status ?? current.payment_status,
+              last_payment_error: null,
+            }
+          : current,
+      );
+    },
+    [],
+  );
 
   if (loading) {
     return (
@@ -159,15 +424,131 @@ export default function EatsTrackingPage() {
             <h1 className="text-base font-bold text-ig-gradient">Order Tracking</h1>
             <p className="text-[10px] text-muted-foreground font-mono">#{order.tracking_code || order.id.slice(0, 8)}</p>
           </div>
-          {!isDelivered && !isCancelled && (
+          {confirmationPending ? (
+            <Badge className="bg-amber-500/10 text-amber-700 border-amber-500/20 text-[10px] font-bold">
+              Order check
+            </Badge>
+          ) : !isDelivered && !isCancelled ? (
             <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold animate-pulse">
               Live
             </Badge>
-          )}
+          ) : null}
         </div>
       </div>
 
       <div className="px-4 py-6 max-w-lg mx-auto space-y-5">
+        {cancellationRecoveryPending && (
+          <motion.div
+            role="alert"
+            aria-live="polite"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4"
+          >
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-700">
+                <RefreshCw
+                  className={cn(
+                    "h-5 w-5",
+                    cancellationRecoveryState === "checking" &&
+                      "animate-spin",
+                  )}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="font-bold text-foreground">
+                  {cancellationRecoveryState === "checking"
+                    ? "Finishing cancellation…"
+                    : "Cancellation needs one more check"}
+                </h2>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  Your order stays cancelled. Retry completes any remaining
+                  refund, driver release, or payout reconciliation. It never
+                  creates a new order or charge.
+                </p>
+                {cancellationRecoveryState === "pending" && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => void recoverCancellation()}
+                    className="mt-3 rounded-xl"
+                  >
+                    Retry cancellation recovery
+                  </Button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {confirmationPending && (
+          <motion.div
+            role="alert"
+            aria-live="polite"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4"
+          >
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-700">
+                <RefreshCw
+                  className={cn(
+                    "h-5 w-5",
+                    confirmationState === "checking" && "animate-spin",
+                  )}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="font-bold text-foreground">
+                  {confirmationState === "checking"
+                    ? recoveryAction === "wallet_paid"
+                      ? "Checking wallet payment and delivery…"
+                      : recoveryAction === "cash_on_delivery"
+                        ? "Confirming cash order and delivery…"
+                        : "Retrying paid order delivery…"
+                    : recoveryAction === "wallet_paid"
+                      ? "Wallet order confirmation is delayed"
+                      : recoveryAction === "cash_on_delivery"
+                        ? "Cash order dispatch is delayed"
+                        : "Paid order dispatch is delayed"}
+                </h2>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  {recoveryAction === "wallet_paid"
+                    ? "This order is saved. Do not submit another payment. Retry verifies the existing wallet ledger and never debits again."
+                    : recoveryAction === "cash_on_delivery"
+                      ? "This order is saved. Retry confirms and dispatches this exact order without creating a second order."
+                      : "Payment is already confirmed. Retry only dispatches this saved order and never creates another charge."}
+                </p>
+                <p className="mt-2 text-xs font-mono text-muted-foreground">
+                  Reference: {order.tracking_code || order.id.slice(0, 8)}
+                </p>
+                {confirmationState === "pending" && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => void recoverOrderConfirmation()}
+                    className="mt-3 rounded-xl"
+                  >
+                    Retry saved order
+                  </Button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {paymentFailed && !isCancelled && (
+          <div
+            role="status"
+            className="rounded-2xl border border-destructive/25 bg-destructive/5 p-4"
+          >
+            <h2 className="font-bold text-foreground">Payment was not completed</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              This saved order was not dispatched. You can cancel it safely below, then return to Eats to choose another payment method.
+            </p>
+          </div>
+        )}
+
         {/* Status Hero */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           className={cn("rounded-2xl p-6 text-center", 
@@ -319,11 +700,20 @@ export default function EatsTrackingPage() {
             <div className="flex justify-center gap-2">
               {[1, 2, 3, 4, 5].map(s => (
                 <button type="button" key={s} aria-label={`Rate ${s} star${s !== 1 ? "s" : ""}`} onClick={async () => {
+                  const prevRating = rating;
                   setRating(s);
-                  await supabase.functions.invoke("eats-order-state-update", {
-                    body: { order_id: order.id, action: "rate_order", rating: s },
-                  });
-                  toast.success(`Rated ${s} stars! Thank you!`);
+                  try {
+                    const { data, error } = await supabase.functions.invoke("eats-order-state-update", {
+                      body: { order_id: order.id, action: "rate_order", rating: s },
+                    });
+                    if (error) throw error;
+                    if ((data as any)?.error) throw new Error((data as any).error);
+                    toast.success(`Rated ${s} stars! Thank you!`);
+                  } catch (e: any) {
+                    console.error("[EatsTracking] rate_order failed", e);
+                    setRating(prevRating);
+                    toast.error("Could not save your rating. Tap a star to retry.");
+                  }
                 }} className="touch-manipulation active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Star className={cn("w-8 h-8 transition-all",
                     rating && s <= rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30")} />
@@ -393,13 +783,18 @@ export default function EatsTrackingPage() {
           )}
         </div>
 
-        {/* Cancel — only while order hasn't been picked up yet */}
+        {/* Cancellation stays visible during recovery; the server decides from
+            the wallet ledger whether a refund is required. */}
         {!isDelivered && !isCancelled && (
-          <CancelOrderButton orderId={order.id} />
+          <CancelOrderButton
+            orderId={order.id}
+            disabled={confirmationState === "checking"}
+            onCancelled={handleCancelled}
+          />
         )}
 
         {/* Download receipt — only for paid orders */}
-        {(order as any).payment_status === "paid" && (
+        {order.payment_status === "paid" && (
           <DownloadReceiptButton orderId={order.id} trackingCode={order.tracking_code} />
         )}
       </div>
@@ -446,12 +841,21 @@ function DownloadReceiptButton({ orderId, trackingCode }: { orderId: string; tra
   );
 }
 
-function CancelOrderButton({ orderId }: { orderId: string }) {
+function CancelOrderButton({
+  orderId,
+  disabled = false,
+  onCancelled,
+}: {
+  orderId: string;
+  disabled?: boolean;
+  onCancelled: (result: { payment_status?: string | null }) => void;
+}) {
   const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState<{ eligible: boolean; reason_label: string; refund_cents: number; provider: string } | null>(null);
 
   const onPrep = async () => {
+    if (disabled) return;
     setConfirming(true);
     setPreview(null);
     try {
@@ -468,13 +872,18 @@ function CancelOrderButton({ orderId }: { orderId: string }) {
   };
 
   const onConfirm = async () => {
+    if (disabled || submitting || !preview) return;
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("cancel-eats-order", {
         body: { order_id: orderId, reason: "customer_initiated" },
       });
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
+      if ((data as any)?.ok !== true || (data as any)?.status !== "cancelled") {
+        throw new Error(
+          (data as any)?.error || "Cancellation was not confirmed",
+        );
+      }
       const r = data as any;
       if (r.refund_cents > 0) {
         toast.success("Order cancelled", { description: `$${(r.refund_cents / 100).toFixed(2)} refund ${r.payment_status === "refunded" ? "issued" : "in progress"} via ${r.provider || "your payment method"}.` });
@@ -483,6 +892,7 @@ function CancelOrderButton({ orderId }: { orderId: string }) {
       }
       setConfirming(false);
       setPreview(null);
+      onCancelled({ payment_status: r.payment_status ?? null });
     } catch (e: any) {
       toast.error(e?.message || "Cancellation failed");
     } finally {
@@ -495,6 +905,7 @@ function CancelOrderButton({ orderId }: { orderId: string }) {
       <Button
         variant="outline"
         onClick={onPrep}
+        disabled={disabled}
         className="w-full rounded-xl font-bold border-destructive/30 text-destructive hover:bg-destructive/10"
       >
         Cancel order
@@ -529,7 +940,7 @@ function CancelOrderButton({ orderId }: { orderId: string }) {
         <Button
           variant="destructive"
           onClick={onConfirm}
-          disabled={submitting || !preview}
+          disabled={disabled || submitting || !preview}
           className="flex-1 rounded-xl"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cancel & refund"}

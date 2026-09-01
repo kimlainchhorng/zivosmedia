@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { optimizeAvatar } from "@/utils/optimizeAvatar";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
+import ZivoBusinessRestaurantCards from "@/components/home/ZivoBusinessRestaurantCards";
 
 const FOOD_CATEGORIES = ["restaurant", "food", "coffee", "cafe", "bakery", "eats", "pizza", "sushi", "burger", "asian", "fastfood"];
 
@@ -102,6 +103,7 @@ export default function FeaturedEatsSection() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <ZivoBusinessRestaurantCards />
           {useLive
             ? displayStores.map((store: any, i: number) => (
               <motion.div

@@ -2,22 +2,25 @@
  * Customer self-service portal — show all the user's car-rental reservations
  * across every store, grouped by status.
  *
- * Auth required: the user must be signed in. We look up car_rental_customers
- * rows linked to this user (via user_id) and join their reservations.
+ * Auth required: the account-owned RPC derives the customer from auth.uid()
+ * and returns only reservations belonging to the signed-in user.
  *
  * Route: /my-rentals
  */
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
-  Car, Calendar, MapPin, Loader2, AlertTriangle, ExternalLink, QrCode, Search,
+  Car,
+  Calendar,
+  MapPin,
+  Loader2,
+  AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatMoneyWith } from "@/lib/car-rental/money";
 import { getLoyaltyTier, type LoyaltyTierInfo } from "@/lib/car-rental/loyalty";
@@ -38,6 +41,10 @@ interface Reservation {
   payment_status: PaymentStatus | null;
   deposit_paid_cents: number;
   amount_paid_cents: number;
+  store_name: string | null;
+  store_slug: string | null;
+  store_logo_url: string | null;
+  currency_code: string | null;
 }
 
 type PaymentStatus =
@@ -57,17 +64,19 @@ interface StoreMini {
   logo_url: string | null;
 }
 
-
 export default function MyCarRentalsPage() {
   const { user, isLoading: authLoading } = useAuth();
-  const navigate = useNavigate();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [stores, setStores] = useState<Map<string, StoreMini>>(new Map());
-  const [currencyMap, setCurrencyMap] = useState<Map<string, string>>(new Map());
-  const [loyalty, setLoyalty] = useState<{ totalRentals: number; tier: LoyaltyTierInfo } | null>(null);
+  const [currencyMap, setCurrencyMap] = useState<Map<string, string>>(
+    new Map(),
+  );
+  const [loyalty, setLoyalty] = useState<{
+    totalRentals: number;
+    tier: LoyaltyTierInfo;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lookupCode, setLookupCode] = useState("");
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -76,68 +85,54 @@ export default function MyCarRentalsPage() {
       setLoading(true);
       setError(null);
 
-      // Find every car_rental_customers row linked to this user.
-      // total_rentals is auto-incremented per store, so we sum across rows
-      // to get the cross-network lifetime count that drives the loyalty tier.
-      const { data: custRows, error: custErr } = await supabase
-        .from("car_rental_customers")
-        .select("id, store_id, total_rentals")
-        .eq("user_id", user.id);
-
-      if (cancelled) return;
-      if (custErr) {
-        setError("Couldn't load your rentals.");
-        setLoading(false);
-        return;
-      }
-      const customerIds = (custRows ?? []).map((r: any) => r.id as string);
-      const totalRentals = (custRows ?? []).reduce(
-        (sum: number, row: any) => sum + (Number(row.total_rentals) || 0),
-        0,
+      // The account-owned RPC derives ownership from auth.uid() and returns
+      // only this user's rows. Confirmation codes remain display/support
+      // identifiers; they are never used to authorize or locate a booking.
+      const { data, error: reservationsError } = await (supabase as any).rpc(
+        "car_rental_customer_list_reservations",
       );
-      setLoyalty({ totalRentals, tier: getLoyaltyTier(totalRentals) });
-      if (customerIds.length === 0) {
-        setReservations([]);
-        setLoading(false);
-        return;
-      }
-
-      const { data: resRows, error: resErr } = await supabase
-        .from("car_rental_reservations")
-        .select("id, store_id, vehicle_label, vehicle_category, pickup_at, dropoff_at, rental_days, total_cents, status, confirmation_code, pickup_location_name, payment_status, deposit_paid_cents, amount_paid_cents")
-        .in("customer_id", customerIds)
-        .order("pickup_at", { ascending: false })
-        .limit(100);
 
       if (cancelled) return;
-      if (resErr) {
+      if (reservationsError) {
         setError("Couldn't load your rentals.");
         setLoading(false);
         return;
       }
-      const rs = (resRows ?? []) as unknown as Reservation[];
+      const payload = (Array.isArray(data) ? data[0] : data) as {
+        total_rentals?: unknown;
+        reservations?: unknown;
+      } | null;
+      const rs = Array.isArray(payload?.reservations)
+        ? (payload.reservations as Reservation[])
+        : [];
+      const totalRentals = Number(payload?.total_rentals) || 0;
+
+      setLoyalty({ totalRentals, tier: getLoyaltyTier(totalRentals) });
       setReservations(rs);
 
-      const storeIds = Array.from(new Set(rs.map((r) => r.store_id)));
-      if (storeIds.length > 0) {
-        const [storeRowsR, settingsR] = await Promise.all([
-          supabase.from("store_profiles").select("id, name, slug, logo_url").in("id", storeIds),
-          supabase.from("car_rental_store_settings").select("store_id, currency_code").in("store_id", storeIds),
-        ]);
-        const map = new Map<string, StoreMini>();
-        for (const s of (storeRowsR.data ?? []) as any[]) {
-          map.set(s.id, { id: s.id, name: s.name, slug: s.slug, logo_url: s.logo_url });
+      const storeMap = new Map<string, StoreMini>();
+      const nextCurrencyMap = new Map<string, string>();
+      for (const reservation of rs) {
+        if (!storeMap.has(reservation.store_id)) {
+          storeMap.set(reservation.store_id, {
+            id: reservation.store_id,
+            name: reservation.store_name ?? "Rental store",
+            slug: reservation.store_slug,
+            logo_url: reservation.store_logo_url,
+          });
         }
-        setStores(map);
-        const cmap = new Map<string, string>();
-        for (const s of (settingsR.data ?? []) as any[]) {
-          cmap.set(s.store_id, (s.currency_code ?? "USD").toUpperCase());
-        }
-        setCurrencyMap(cmap);
+        nextCurrencyMap.set(
+          reservation.store_id,
+          (reservation.currency_code ?? "USD").toUpperCase(),
+        );
       }
+      setStores(storeMap);
+      setCurrencyMap(nextCurrencyMap);
       setLoading(false);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user, authLoading]);
 
   const groups = useMemo(() => {
@@ -162,7 +157,7 @@ export default function MyCarRentalsPage() {
     return { upcoming, active, past, cancelled };
   }, [reservations]);
 
-  if (authLoading || loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen grid place-items-center text-muted-foreground">
         <Loader2 className="h-6 w-6 animate-spin" />
@@ -175,16 +170,33 @@ export default function MyCarRentalsPage() {
       <div className="min-h-screen grid place-items-center px-6 text-center">
         <div>
           <h1 className="text-xl font-bold">Sign in to see your rentals</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Your past and upcoming bookings are linked to your account.</p>
-          <Link to="/login" className="mt-4 inline-block text-primary underline">Sign in</Link>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Your past and upcoming bookings are linked to your account.
+          </p>
+          <Link
+            to="/login"
+            className="mt-4 inline-block text-primary underline"
+          >
+            Sign in
+          </Link>
         </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen grid place-items-center text-muted-foreground">
+        <Loader2 className="h-6 w-6 animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <Helmet><title>My rentals</title></Helmet>
+      <Helmet>
+        <title>My rentals</title>
+      </Helmet>
       <header className="border-b border-border bg-card">
         <div className="mx-auto max-w-4xl px-4 py-4 flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
@@ -192,7 +204,9 @@ export default function MyCarRentalsPage() {
           </div>
           <div>
             <h1 className="text-lg font-bold text-foreground">My rentals</h1>
-            <p className="text-[11px] text-muted-foreground">Signed in as {user.email}</p>
+            <p className="text-[11px] text-muted-foreground">
+              Signed in as {user.email}
+            </p>
           </div>
         </div>
       </header>
@@ -208,42 +222,40 @@ export default function MyCarRentalsPage() {
           <LoyaltyCard total={loyalty.totalRentals} tier={loyalty.tier} />
         )}
 
-        {/* Confirmation code lookup */}
-        <Card className="rounded-2xl border-border/60">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <QrCode className="h-4 w-4 text-primary" /> Find a booking by code
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form
-              onSubmit={(e) => { e.preventDefault(); if (lookupCode.trim()) navigate(`/car-rental-booking/${lookupCode.trim().toUpperCase()}`); }}
-              className="flex gap-2"
-            >
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="pl-9 font-mono uppercase"
-                  placeholder="e.g. AB12CD34"
-                  value={lookupCode}
-                  onChange={(e) => setLookupCode(e.target.value.toUpperCase())}
-                />
-              </div>
-              <Button type="submit" disabled={!lookupCode.trim()}>Look up</Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Group title="Active rentals" reservations={groups.active} stores={stores} currencyMap={currencyMap} highlight />
-        <Group title="Upcoming" reservations={groups.upcoming} stores={stores} currencyMap={currencyMap} />
-        <Group title="Past" reservations={groups.past} stores={stores} currencyMap={currencyMap} />
-        <Group title="Cancelled" reservations={groups.cancelled} stores={stores} currencyMap={currencyMap} muted />
+        <Group
+          title="Active rentals"
+          reservations={groups.active}
+          stores={stores}
+          currencyMap={currencyMap}
+          highlight
+        />
+        <Group
+          title="Upcoming"
+          reservations={groups.upcoming}
+          stores={stores}
+          currencyMap={currencyMap}
+        />
+        <Group
+          title="Past"
+          reservations={groups.past}
+          stores={stores}
+          currencyMap={currencyMap}
+        />
+        <Group
+          title="Cancelled"
+          reservations={groups.cancelled}
+          stores={stores}
+          currencyMap={currencyMap}
+          muted
+        />
 
         {reservations.length === 0 && (
           <Card className="rounded-2xl border-dashed border-border">
             <CardContent className="p-10 text-center">
               <Car className="mx-auto h-10 w-10 text-muted-foreground/50" />
-              <h2 className="mt-3 text-base font-semibold text-foreground">No rentals yet</h2>
+              <h2 className="mt-3 text-base font-semibold text-foreground">
+                No rentals yet
+              </h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 When you book a car the reservation will show up here.
               </p>
@@ -255,7 +267,14 @@ export default function MyCarRentalsPage() {
   );
 }
 
-function Group({ title, reservations, stores, currencyMap, highlight, muted }: {
+function Group({
+  title,
+  reservations,
+  stores,
+  currencyMap,
+  highlight,
+  muted,
+}: {
   title: string;
   reservations: Reservation[];
   stores: Map<string, StoreMini>;
@@ -266,10 +285,16 @@ function Group({ title, reservations, stores, currencyMap, highlight, muted }: {
   if (reservations.length === 0) return null;
   return (
     <section>
-      <h2 className={cn(
-        "mb-2 text-[11px] font-bold uppercase tracking-wider",
-        muted ? "text-muted-foreground/70" : highlight ? "text-emerald-600 dark:text-emerald-300" : "text-foreground",
-      )}>
+      <h2
+        className={cn(
+          "mb-2 text-[11px] font-bold uppercase tracking-wider",
+          muted
+            ? "text-muted-foreground/70"
+            : highlight
+              ? "text-emerald-600 dark:text-emerald-300"
+              : "text-foreground",
+        )}
+      >
         {title} ({reservations.length})
       </h2>
       <ul className="space-y-2">
@@ -278,15 +303,25 @@ function Group({ title, reservations, stores, currencyMap, highlight, muted }: {
           return (
             <li key={r.id}>
               <Link
-                to={`/car-rental-booking/${r.confirmation_code}`}
+                to={`/car-rental-booking/${r.id}`}
                 className={cn(
                   "block rounded-2xl border bg-card p-4 transition-colors hover:border-primary/40",
-                  highlight ? "border-emerald-500/30 bg-emerald-500/5" : muted ? "border-border/50 opacity-75" : "border-border",
+                  highlight
+                    ? "border-emerald-500/30 bg-emerald-500/5"
+                    : muted
+                      ? "border-border/50 opacity-75"
+                      : "border-border",
                 )}
               >
                 <div className="flex items-start gap-3">
                   {s?.logo_url ? (
-                    <img src={s.logo_url} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" loading="lazy" decoding="async" />
+                    <img
+                      src={s.logo_url}
+                      alt=""
+                      className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : (
                     <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
                       <Car className="h-5 w-5" />
@@ -294,17 +329,25 @@ function Group({ title, reservations, stores, currencyMap, highlight, muted }: {
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-bold text-foreground">{r.vehicle_label}</p>
-                      <span className="font-mono text-[10px] text-muted-foreground">{r.confirmation_code}</span>
+                      <p className="text-sm font-bold text-foreground">
+                        {r.vehicle_label}
+                      </p>
+                      <span className="font-mono text-[10px] text-muted-foreground">
+                        {r.confirmation_code}
+                      </span>
                       <StatusPill status={r.status} />
                       {r.payment_status && r.payment_status !== "unpaid" && (
                         <PaymentPill status={r.payment_status} />
                       )}
                     </div>
-                    <p className="text-[12px] text-foreground/80">{s?.name ?? "Rental store"}</p>
+                    <p className="text-[12px] text-foreground/80">
+                      {s?.name ?? "Rental store"}
+                    </p>
                     <p className="mt-0.5 text-[11px] text-muted-foreground inline-flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {new Date(r.pickup_at).toLocaleDateString()} → {new Date(r.dropoff_at).toLocaleDateString()} · {r.rental_days} day{r.rental_days === 1 ? "" : "s"}
+                      {new Date(r.pickup_at).toLocaleDateString()} →{" "}
+                      {new Date(r.dropoff_at).toLocaleDateString()} ·{" "}
+                      {r.rental_days} day{r.rental_days === 1 ? "" : "s"}
                     </p>
                     {r.pickup_location_name && (
                       <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
@@ -314,7 +357,12 @@ function Group({ title, reservations, stores, currencyMap, highlight, muted }: {
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-foreground">{formatMoneyWith(r.total_cents, currencyMap.get(r.store_id) ?? "USD")}</p>
+                    <p className="text-sm font-bold text-foreground">
+                      {formatMoneyWith(
+                        r.total_cents,
+                        currencyMap.get(r.store_id) ?? "USD",
+                      )}
+                    </p>
                     <PaymentBreakdown
                       reservation={r}
                       currency={currencyMap.get(r.store_id) ?? "USD"}
@@ -340,23 +388,32 @@ function Group({ title, reservations, stores, currencyMap, highlight, muted }: {
  */
 function PaymentPill({ status }: { status: PaymentStatus }) {
   const tone =
-    status === "authorized"      ? "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30"
-    : status === "processing"    ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
-    : status === "captured" ||
-      status === "paid"          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
-    : status === "refund_pending"? "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/30"
-    : status === "refunded"      ? "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/30 opacity-80"
-    : status === "failed"        ? "bg-destructive/10 text-destructive border-destructive/30"
-    :                              "bg-muted text-muted-foreground border-border";
+    status === "authorized"
+      ? "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30"
+      : status === "processing"
+        ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
+        : status === "captured" || status === "paid"
+          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+          : status === "refund_pending"
+            ? "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/30"
+            : status === "refunded"
+              ? "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/30 opacity-80"
+              : status === "failed"
+                ? "bg-destructive/10 text-destructive border-destructive/30"
+                : "bg-muted text-muted-foreground border-border";
   const label =
-    status === "authorized"      ? "deposit held"
-    : status === "refund_pending"? "refund pending"
-    : status;
+    status === "authorized"
+      ? "deposit held"
+      : status === "refund_pending"
+        ? "refund pending"
+        : status;
   return (
-    <span className={cn(
-      "inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
-      tone,
-    )}>
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+        tone,
+      )}
+    >
       {label}
     </span>
   );
@@ -377,13 +434,19 @@ function PaymentBreakdown({
   const ps = reservation.payment_status;
   if (!ps || ps === "unpaid") return null;
   const fmt = (c: number) => formatMoneyWith(c, currency);
-  const owed = Math.max(0, reservation.total_cents - reservation.amount_paid_cents);
+  const owed = Math.max(
+    0,
+    reservation.total_cents - reservation.amount_paid_cents,
+  );
 
   let line: string;
   if (ps === "authorized" && reservation.deposit_paid_cents > 0) {
     line = `${fmt(reservation.deposit_paid_cents)} held`;
   } else if (ps === "paid" || ps === "captured") {
-    line = owed > 0 ? `${fmt(reservation.amount_paid_cents)} paid · ${fmt(owed)} due` : `${fmt(reservation.amount_paid_cents)} paid`;
+    line =
+      owed > 0
+        ? `${fmt(reservation.amount_paid_cents)} paid · ${fmt(owed)} due`
+        : `${fmt(reservation.amount_paid_cents)} paid`;
   } else if (ps === "refunded") {
     line = "Deposit refunded";
   } else if (ps === "refund_pending") {
@@ -395,21 +458,33 @@ function PaymentBreakdown({
   } else {
     return null;
   }
-  return (
-    <p className="mt-0.5 text-[10px] text-muted-foreground">{line}</p>
-  );
+  return <p className="mt-0.5 text-[10px] text-muted-foreground">{line}</p>;
 }
 
 function StatusPill({ status }: { status: string }) {
   const tone =
-    status === "pending" ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
-    : status === "confirmed" ? "bg-primary/10 text-primary border-primary/30"
-    : status === "picked_up" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
-    : status === "returned" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 opacity-75"
-    : "bg-muted text-muted-foreground border-border";
-  const label = status === "no_show" ? "no-show" : status === "picked_up" ? "on rental" : status;
+    status === "pending"
+      ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
+      : status === "confirmed"
+        ? "bg-primary/10 text-primary border-primary/30"
+        : status === "picked_up"
+          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+          : status === "returned"
+            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 opacity-75"
+            : "bg-muted text-muted-foreground border-border";
+  const label =
+    status === "no_show"
+      ? "no-show"
+      : status === "picked_up"
+        ? "on rental"
+        : status;
   return (
-    <span className={cn("inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider", tone)}>
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+        tone,
+      )}
+    >
       {label}
     </span>
   );

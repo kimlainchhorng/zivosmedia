@@ -14,12 +14,13 @@
  * The component renders nothing.
  */
 import { useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export function PaymentReturnHandler() {
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const handledRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -85,7 +86,15 @@ export function PaymentReturnHandler() {
             body: { order_id: paypalToken },
           });
           if (error) throw error;
-          if ((data as any)?.error) throw new Error((data as any).error);
+          if (
+            (data as any)?.ok !== true ||
+            (data as any)?.payment_status !== "paid" ||
+            (data as any)?.order_id !== eatsPaypalRes
+          ) {
+            throw new Error(
+              (data as any)?.error || "PayPal payment was not confirmed",
+            );
+          }
           toast.success("Order paid via PayPal", { id: t });
         } catch (e: any) {
           toast.error(e?.message || "PayPal capture failed", { id: t });
@@ -94,18 +103,56 @@ export function PaymentReturnHandler() {
           next.delete("eats_paypal_return");
           next.delete("token");
           next.delete("PayerID");
-          setParams(next, { replace: true });
+          navigate(
+            {
+              pathname: `/eats/track/${encodeURIComponent(eatsPaypalRes)}`,
+              search: next.toString() ? `?${next.toString()}` : "",
+            },
+            { replace: true },
+          );
         }
       })();
     }
 
     if (eatsPaypalCancelled && !handledRef.current.has(`eats-cancel-${eatsPaypalCancelled}`)) {
       handledRef.current.add(`eats-cancel-${eatsPaypalCancelled}`);
-      toast.info("PayPal payment cancelled");
-      const next = new URLSearchParams(params);
-      next.delete("eats_paypal_cancel");
-      next.delete("token");
-      setParams(next, { replace: true });
+      (async () => {
+        const t = toast.loading("Saving cancelled PayPal checkout…");
+        try {
+          const { data, error } = await supabase.functions.invoke(
+            "eats-payment-status-update",
+            {
+              body: {
+                order_id: eatsPaypalCancelled,
+                action: "payment_failed",
+                error_message: "PayPal checkout cancelled",
+              },
+            },
+          );
+          if (error || (data as any)?.ok !== true) {
+            throw error || new Error(
+              (data as any)?.error || "Cancellation status was not saved",
+            );
+          }
+          toast.info("PayPal payment cancelled", { id: t });
+        } catch (error: any) {
+          toast.error(
+            error?.message || "PayPal cancellation needs review",
+            { id: t },
+          );
+        } finally {
+          const next = new URLSearchParams(params);
+          next.delete("eats_paypal_cancel");
+          next.delete("token");
+          navigate(
+            {
+              pathname: `/eats/track/${encodeURIComponent(eatsPaypalCancelled)}`,
+              search: next.toString() ? `?${next.toString()}` : "",
+            },
+            { replace: true },
+          );
+        }
+      })();
     }
 
     if (eatsSquareRes && !handledRef.current.has(`eats-sq-${eatsSquareRes}`)) {
@@ -113,7 +160,13 @@ export function PaymentReturnHandler() {
       toast.info("Verifying Square payment…", { description: "We'll update your order as soon as Square confirms." });
       const next = new URLSearchParams(params);
       next.delete("eats_square_return");
-      setParams(next, { replace: true });
+      navigate(
+        {
+          pathname: `/eats/track/${encodeURIComponent(eatsSquareRes)}`,
+          search: next.toString() ? `?${next.toString()}` : "",
+        },
+        { replace: true },
+      );
     }
 
     // Grocery PayPal
@@ -157,7 +210,7 @@ export function PaymentReturnHandler() {
       setParams(next, { replace: true });
     }
 
-  }, [params, setParams]);
+  }, [navigate, params, setParams]);
 
   return null;
 }

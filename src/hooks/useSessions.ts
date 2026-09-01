@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export type ActiveSession = {
   id: string;
@@ -88,19 +89,27 @@ export function useSessions() {
 
   const revoke = useCallback(async (id: string) => {
     if (!user) return;
-    await supabase.functions.invoke("user-session-presence", { body: {
+    const { data, error } = await supabase.functions.invoke("user-session-presence", { body: {
       action: "revoke",
       session_id: id,
     } });
+    if (error || (data as { error?: string } | null)?.error) {
+      console.error("[useSessions] revoke failed", error ?? data);
+      toast.error("Couldn't confirm the session was terminated — check the list.");
+    }
     await refresh();
   }, [user, refresh]);
 
   const revokeAllOthers = useCallback(async () => {
     if (!user) return;
-    await supabase.functions.invoke("user-session-presence", { body: {
+    const { data, error } = await supabase.functions.invoke("user-session-presence", { body: {
       action: "revoke_all_others",
       current_session_id: currentId,
     } });
+    if (error || (data as { error?: string } | null)?.error) {
+      console.error("[useSessions] revoke_all_others failed", error ?? data);
+      toast.error("Couldn't confirm the other sessions were terminated — check the list.");
+    }
     await refresh();
   }, [user, currentId, refresh]);
 

@@ -3,10 +3,13 @@
  * Mirrors metaConversion.ts pattern. Reads gclid from URL/localStorage if present.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { Capacitor } from "@capacitor/core";
+import { isMarketingConsentGranted } from "@/lib/privacy/cookieConsent";
 
 const GCLID_KEY = "zivo_gclid";
 
 export function captureGclidFromUrl() {
+  if (Capacitor.isNativePlatform() || !isMarketingConsentGranted()) return;
   try {
     const params = new URLSearchParams(window.location.search);
     const gclid = params.get("gclid");
@@ -39,11 +42,17 @@ interface ConversionInput {
 }
 
 export async function trackGoogleAdsConversion(input: ConversionInput) {
+  if (Capacitor.isNativePlatform() || !isMarketingConsentGranted()) {
+    return { ok: false, skipped: true };
+  }
   const gclid = getStoredGclid();
   try {
-    const { data, error } = await supabase.functions.invoke("google-ads-conversion", {
-      body: { ...input, gclid },
-    });
+    const { data, error } = await supabase.functions.invoke(
+      "google-ads-conversion",
+      {
+        body: { ...input, gclid },
+      },
+    );
     if (error) {
       console.warn("[googleAdsConversion] failed", error);
       return { ok: false, error };

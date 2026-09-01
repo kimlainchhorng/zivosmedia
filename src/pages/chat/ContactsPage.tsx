@@ -173,7 +173,19 @@ export default function ContactsPage() {
               <Star className="w-4 h-4 mr-2" /> {c.favorite ? "Remove favorite" : "Mark favorite"}
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={async () => { await remove(c.contact_user_id); toast.success("Contact removed"); }}
+              onClick={async () => {
+                try {
+                  const result = await remove(c.contact_user_id);
+                  if (!result.ok) {
+                    toast.error(result.error || "Couldn't remove contact. Please try again.");
+                    return;
+                  }
+                  toast.success("Contact removed");
+                } catch {
+                  // useContacts already reports the failure. Keep this event
+                  // handled so a failed delete never becomes an unhandled task.
+                }
+              }}
               className="text-destructive focus:text-destructive"
             >
               <Trash2 className="w-4 h-4 mr-2" /> Remove

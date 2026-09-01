@@ -119,32 +119,53 @@ export default function AdminEmployeesPage() {
       }
 
       // Send invite email regardless
+      let emailSent = true;
       try {
-        await supabase.functions.invoke("send-transactional-email", {
-          body: {
-            templateName: "employee-invite",
-            recipientEmail: normalizedEmail,
-            templateData: {
-              email: normalizedEmail,
-              role,
-              loginUrl: ADMIN_EMPLOYEE_LOGIN_URL,
+        const { data: emailData, error: emailError } = await supabase.functions.invoke(
+          "send-transactional-email",
+          {
+            body: {
+              templateName: "employee-invite",
+              recipientEmail: normalizedEmail,
+              templateData: {
+                email: normalizedEmail,
+                role,
+                loginUrl: ADMIN_EMPLOYEE_LOGIN_URL,
+              },
             },
-          },
-        });
+          }
+        );
+        const emailResult = emailData as { error?: string; success?: boolean } | null;
+        if (emailError || emailResult?.error || emailResult?.success === false) {
+          emailSent = false;
+          console.error(
+            "[AdminEmployeesPage] send-transactional-email (employee-invite) failed",
+            emailError ?? emailData
+          );
+        }
       } catch (emailErr) {
+        emailSent = false;
         console.warn("Email send failed (role still assigned):", emailErr);
       }
 
-      return { assigned: !!profile?.user_id };
+      return { assigned: !!profile?.user_id, emailSent };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["admin-employees"] });
       queryClient.invalidateQueries({ queryKey: ["admin-invitations"] });
-      toast.success(
-        result?.assigned
-          ? "Role assigned & invitation email sent"
-          : "Invitation email sent (role will be assigned on sign-up)"
-      );
+      if (result?.emailSent) {
+        toast.success(
+          result.assigned
+            ? "Role assigned & invitation email sent"
+            : "Invitation email sent (role will be assigned on sign-up)"
+        );
+      } else {
+        toast.warning(
+          result?.assigned
+            ? "Role assigned, but the invitation email could not be sent — tell them to sign in at zivosmedia.com."
+            : "Invitation saved, but the email could not be sent — send them the sign-up link yourself."
+        );
+      }
       setInviteOpen(false);
       setInviteEmail("");
     },
@@ -154,13 +175,18 @@ export default function AdminEmployeesPage() {
   // Resend invitation email
   const resendInvite = useMutation({
     mutationFn: async (inv: { email: string; role: string }) => {
-      await supabase.functions.invoke("send-transactional-email", {
+      const { data, error } = await supabase.functions.invoke("send-transactional-email", {
         body: {
           templateName: "employee-invite",
           recipientEmail: inv.email,
           templateData: { email: inv.email, role: inv.role, loginUrl: ADMIN_EMPLOYEE_LOGIN_URL },
         },
       });
+      const result = data as { error?: string; success?: boolean } | null;
+      if (error || result?.error || result?.success === false) {
+        console.error("[AdminEmployeesPage] resend invitation email failed", error ?? data);
+        throw new Error(result?.error ?? "Invitation email was not sent");
+      }
     },
     onSuccess: () => toast.success("Invitation resent"),
     onError: () => toast.error("Failed to resend"),

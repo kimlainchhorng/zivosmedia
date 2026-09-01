@@ -44,6 +44,10 @@ import { useSalonBookingSeries, type SalonBookingSeries } from "@/hooks/salon/us
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
 const supabase: any = _supabaseTyped;
 import { consumeBookingPreset } from "@/lib/salon/bookingPreset";
+import {
+  buildSalonBookingAccessPath,
+  issueSalonBookingAccess,
+} from "@/lib/salonBookingAccess";
 import SalonBookingRetailDialog from "./SalonBookingRetailDialog";
 import SalonCheckoutDialog from "./SalonCheckoutDialog";
 import SalonBookingsDayGrid from "./SalonBookingsDayGrid";
@@ -167,6 +171,7 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
   }, [services]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [secureLinkBusy, setSecureLinkBusy] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [waitlistIdToMark, setWaitlistIdToMark] = useState<string | null>(null);
   const [draft, setDraft] = useState<DraftState>({
@@ -606,9 +611,16 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
     if (ok) toast.success(`Marked ${STATUS_META[status].label.toLowerCase()}.`);
   };
 
-  /** Build a mailto URL with booking details pre-filled. */
-  const buildBookingMailto = (b: SalonBooking): string | null => {
+  /** Build a mailto URL only after minting an owner-authorized, expiring
+   * customer link. Account-owned bookings return a tokenless sign-in URL. */
+  const buildBookingMailto = async (b: SalonBooking): Promise<string | null> => {
     if (!b.client_email) return null;
+    const access = await issueSalonBookingAccess(b.id, "manage");
+    const bookingPath = buildSalonBookingAccessPath(
+      b.id,
+      "booking",
+      access.token,
+    );
     const when = new Date(b.start_at).toLocaleString(undefined, { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
     const subject = b.status === "cancelled"
       ? `Your booking was cancelled`
@@ -625,9 +637,21 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
         : `Your ${b.service_name}${b.stylist_name ? ` with ${b.stylist_name}` : ""} is set for ${when}.`,
       "",
       `Booking reference: #${b.id.slice(0, 8).toUpperCase()}`,
-      `View or cancel: ${typeof window !== "undefined" ? window.location.origin : ""}/booking/${b.id}`,
+      `View or cancel: ${typeof window !== "undefined" ? window.location.origin : ""}${bookingPath}`,
     ].join("\n");
     return `mailto:${encodeURIComponent(b.client_email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines)}`;
+  };
+
+  const openBookingEmail = async (b: SalonBooking) => {
+    setSecureLinkBusy(`manage:${b.id}`);
+    try {
+      const mailto = await buildBookingMailto(b);
+      if (mailto) window.location.href = mailto;
+    } catch {
+      toast.error("Couldn't create a secure customer link.");
+    } finally {
+      setSecureLinkBusy(null);
+    }
   };
 
   /** Clone a completed booking N weeks ahead at the same time. */
@@ -1208,10 +1232,18 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                               saving={saving}
                             />
                             {b.client_email && (
-                              <Button size="sm" variant="ghost" className="h-7 gap-1.5" asChild>
-                                <a href={buildBookingMailto(b) ?? "#"} title={`Email ${b.client_email}`}>
-                                  <Mail className="h-3.5 w-3.5" /> Email
-                                </a>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 gap-1.5"
+                                onClick={() => void openBookingEmail(b)}
+                                disabled={secureLinkBusy === `manage:${b.id}`}
+                                title={`Email ${b.client_email}`}
+                              >
+                                {secureLinkBusy === `manage:${b.id}`
+                                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  : <Mail className="h-3.5 w-3.5" />}
+                                Email
                               </Button>
                             )}
                             {b.client_phone && (
@@ -1239,17 +1271,33 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                                 <Button
                                   size="sm" variant="outline" className="h-7 gap-1.5"
                                   onClick={async () => {
-                                    const url = `${window.location.origin}/review/${b.id}`;
+                                    setSecureLinkBusy(`review:${b.id}`);
                                     try {
+                                      const access = await issueSalonBookingAccess(b.id, "review");
+                                      const url = `${window.location.origin}${buildSalonBookingAccessPath(
+                                        b.id,
+                                        "review",
+                                        access.token,
+                                      )}`;
                                       await navigator.clipboard.writeText(url);
-                                      toast.success("Review link copied — text it to your client.");
-                                    } catch {
-                                      toast.info(url);
+                                      toast.success("Secure review link copied — text it to your client.");
+                                    } catch (error) {
+                                      toast.error(
+                                        error instanceof Error
+                                          ? error.message
+                                          : "Couldn't create a secure review link.",
+                                      );
+                                    } finally {
+                                      setSecureLinkBusy(null);
                                     }
                                   }}
+                                  disabled={secureLinkBusy === `review:${b.id}`}
                                   title="Copy a link the client can use to leave a review"
                                 >
-                                  <Star className="h-3.5 w-3.5" /> Review link
+                                  {secureLinkBusy === `review:${b.id}`
+                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    : <Star className="h-3.5 w-3.5" />}
+                                  Review link
                                 </Button>
                               </>
                             )}

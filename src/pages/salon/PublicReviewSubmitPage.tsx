@@ -1,18 +1,21 @@
 /**
- * Public review submission at /review/:bookingId. Owner texts the link to a
- * client after a visit. The booking UUID is the unguessable token. One
- * review per booking — enforced server-side.
+ * Public review submission at /review/:bookingId. The customer must own the
+ * booking account or present an expiring review capability from #cap=....
+ * One review per booking is enforced server-side.
  */
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Loader2, AlertCircle, Star, CheckCircle2, Store } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as typedSupabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { readSalonBookingAccessToken } from "@/lib/salonBookingAccess";
+
+const supabase: any = typedSupabase;
 
 interface BookingForReview {
   id: string;
@@ -33,6 +36,9 @@ const formatDate = (iso: string) =>
 
 export default function PublicReviewSubmitPage() {
   const { bookingId = "" } = useParams<{ bookingId: string }>();
+  const [accessToken] = useState(() =>
+    readSalonBookingAccessToken(bookingId, "review"),
+  );
   const [booking, setBooking] = useState<BookingForReview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,16 +52,19 @@ export default function PublicReviewSubmitPage() {
     if (!bookingId) return;
     let cancelled = false;
     (async () => {
-      const { data, error: err } = await supabase.rpc("salon_public_get_booking_for_review", { p_id: bookingId });
+      const { data, error: err } = await supabase.rpc(
+        "salon_customer_get_booking_for_review",
+        { p_id: bookingId, p_access_token: accessToken },
+      );
       if (cancelled) return;
       if (err) {
-        setError("Couldn't load this booking.");
+        setError("This secure review link is invalid or expired.");
         setLoading(false);
         return;
       }
       const row = (Array.isArray(data) ? data[0] : null) as BookingForReview | null;
       if (!row) {
-        setError("Booking not found.");
+        setError("This secure review link is invalid or expired.");
         setLoading(false);
         return;
       }
@@ -63,14 +72,15 @@ export default function PublicReviewSubmitPage() {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [bookingId]);
+  }, [accessToken, bookingId]);
 
   const handleSubmit = async () => {
     if (!booking) return;
     if (rating < 1) { toast.error("Pick a star rating first."); return; }
     setSubmitting(true);
-    const { error: err } = await supabase.rpc("salon_public_submit_review", {
+    const { error: err } = await supabase.rpc("salon_customer_submit_review", {
       p_booking_id: booking.id,
+      p_access_token: accessToken,
       p_rating: rating,
       p_comment: comment,
     });
@@ -96,6 +106,19 @@ export default function PublicReviewSubmitPage() {
         <div className="max-w-md rounded-2xl border border-destructive/30 bg-destructive/8 p-6 text-center">
           <AlertCircle className="mx-auto mb-3 h-8 w-8 text-destructive" />
           <p className="text-base font-semibold text-foreground">{error ?? "Booking not found."}</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Sign in if this visit is linked to your ZIVO account, or ask the salon for a new secure review link.
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <Button variant="outline" asChild>
+              <Link to={`/login?redirect=${encodeURIComponent(`/review/${bookingId}`)}`}>
+                Sign in
+              </Link>
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link to="/">Back to ZIVO Home</Link>
+            </Button>
+          </div>
         </div>
       </div>
     );

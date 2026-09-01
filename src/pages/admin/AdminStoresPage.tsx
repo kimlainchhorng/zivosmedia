@@ -381,8 +381,9 @@ export default function AdminStoresPage() {
       // Send invite email with store login link
       const storeAccountId = getStoreAccountId(ownerDialog.storeId);
       const loginUrl = getPartnerLoginUrl(storeAccountId);
+      let inviteEmailSent = false;
       try {
-        await supabase.functions.invoke("send-transactional-email", {
+        const { data: emailData, error: emailError } = await supabase.functions.invoke("send-transactional-email", {
           body: {
             templateName: "partner-store-invite",
             recipientEmail: normalizedEmail,
@@ -395,12 +396,22 @@ export default function AdminStoresPage() {
             },
           },
         });
+        const emailResult = emailData as { success?: boolean; error?: string; reason?: string } | null;
+        if (emailError || emailResult?.error || emailResult?.success === false) {
+          console.error("[AdminStoresPage] partner-store-invite email failed", emailError ?? emailData);
+        } else {
+          inviteEmailSent = true;
+        }
       } catch (emailErr) {
         console.error("Failed to send invite email:", emailErr);
       }
 
       queryClient.invalidateQueries({ queryKey: ["admin-stores"] });
-      toast.success(`Store "${ownerDialog.storeName}" linked to ${normalizedEmail} — invite email sent!`);
+      if (inviteEmailSent) {
+        toast.success(`Store "${ownerDialog.storeName}" linked to ${normalizedEmail} — invite email sent!`);
+      } else {
+        toast.warning(`Store "${ownerDialog.storeName}" linked to ${normalizedEmail}, but the invite email did not go out — use "Invite Partner" to copy the login link and send it yourself.`);
+      }
       setOwnerDialog(null);
       setOwnerEmail("");
     } catch (e: any) {

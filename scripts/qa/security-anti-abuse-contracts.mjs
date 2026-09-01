@@ -30,7 +30,15 @@ function requireContains(id, text, needle, relativePath) {
 
 function requireNotContains(id, text, needle, relativePath) {
   if (text.includes(needle)) {
-    failures.push(`${id}: ${relativePath} must not contain ${JSON.stringify(needle)}`);
+    failures.push(
+      `${id}: ${relativePath} must not contain ${JSON.stringify(needle)}`,
+    );
+  }
+}
+
+function requireMatch(id, text, pattern, relativePath) {
+  if (!pattern.test(text)) {
+    failures.push(`${id}: ${relativePath} missing pattern ${pattern}`);
   }
 }
 
@@ -49,7 +57,12 @@ function requireStrictRoute(id, route, expected) {
   requireContains(id, text, 'trackNetwork: "suspicious"', relativePath);
   requireContains(id, text, expected.rateLimit, relativePath);
   requireContains(id, text, expected.risk, relativePath);
-  requireNotContains(id, text, '"Access-Control-Allow-Origin": "*"', relativePath);
+  requireNotContains(
+    id,
+    text,
+    '"Access-Control-Allow-Origin": "*"',
+    relativePath,
+  );
   return text;
 }
 
@@ -82,7 +95,12 @@ const contracts = [
       ]) {
         requireContains(this.id, wrapper, needle, wrapperPath);
       }
-      for (const needle of ["strictCorsHeaders", "Access-Control-Allow-Origin", "idempotency-key", "x-device-fingerprint"]) {
+      for (const needle of [
+        "strictCorsHeaders",
+        "Access-Control-Allow-Origin",
+        "idempotency-key",
+        "x-device-fingerprint",
+      ]) {
         requireContains(this.id, cors, needle, corsPath);
       }
       for (const needle of [
@@ -102,7 +120,8 @@ const contracts = [
     category: "rate-limits",
     check() {
       const limiterPath = "supabase/functions/_shared/rateLimiter.ts";
-      const migrationPath = "supabase/migrations/20260429230000_security_hardening.sql";
+      const migrationPath =
+        "supabase/migrations/20260429230000_security_hardening.sql";
       const limiter = source(limiterPath);
       const migration = source(migrationPath);
 
@@ -119,10 +138,20 @@ const contracts = [
       ]) {
         requireContains(this.id, limiter, `${category}:`, limiterPath);
       }
-      for (const needle of ["rateLimitDb(", "rate_limit_check", "Fail-open with in-memory fallback", "Retry-After"]) {
+      for (const needle of [
+        "rateLimitDb(",
+        "rate_limit_check",
+        "Fail-open with in-memory fallback",
+        "Retry-After",
+      ]) {
         requireContains(this.id, limiter, needle, limiterPath);
       }
-      for (const needle of ["create table if not exists public.rate_limit_buckets", "create or replace function public.rate_limit_check", "for update", "grant execute on function public.rate_limit_check"]) {
+      for (const needle of [
+        "create table if not exists public.rate_limit_buckets",
+        "create or replace function public.rate_limit_check",
+        "for update",
+        "grant execute on function public.rate_limit_check",
+      ]) {
         requireContains(this.id, migration, needle, migrationPath);
       }
 
@@ -130,10 +159,26 @@ const contracts = [
         ["send-otp-email", 'rateLimit: "auth_otp"', "blockNetworkRiskAt: 80"],
         ["send-otp-sms", 'rateLimit: "auth_otp"', "blockNetworkRiskAt: 90"],
         ["log-login", 'rateLimit: "auth_login"', "blockNetworkRiskAt: 80"],
-        ["process-refund", 'rateLimit: "admin_action"', "blockNetworkRiskAt: 85"],
-        ["admin-delete-user", 'rateLimit: "admin_action"', "blockNetworkRiskAt: 85"],
-        ["create-grocery-checkout", 'rateLimit: "payment"', "blockNetworkRiskAt: 80"],
-        ["create-flight-checkout", 'rateLimit: "payment"', "blockNetworkRiskAt: 80"],
+        [
+          "process-refund",
+          'rateLimit: "admin_action"',
+          "blockNetworkRiskAt: 85",
+        ],
+        [
+          "admin-delete-user",
+          'rateLimit: "admin_action"',
+          "blockNetworkRiskAt: 85",
+        ],
+        [
+          "create-grocery-checkout",
+          'rateLimit: "payment"',
+          "blockNetworkRiskAt: 80",
+        ],
+        [
+          "create-flight-checkout",
+          'rateLimit: "payment"',
+          "blockNetworkRiskAt: 80",
+        ],
         ["target-search", 'rateLimit: "search"', "blockNetworkRiskAt: 80"],
       ]) {
         requireStrictRoute(this.id, route, { rateLimit, risk });
@@ -149,7 +194,10 @@ const contracts = [
         ["admin-post-comment", 'rateLimit: "admin_action"'],
         ["admin-moderate-message", 'rateLimit: "admin_action"'],
       ]) {
-        requireStrictRoute(this.id, route, { rateLimit, risk: "blockNetworkRiskAt: 85" });
+        requireStrictRoute(this.id, route, {
+          rateLimit,
+          risk: "blockNetworkRiskAt: 85",
+        });
       }
 
       for (const [route, rateLimit] of [
@@ -159,7 +207,10 @@ const contracts = [
         ["create-user-wallet-topup", 'rateLimit: "payment"'],
         ["verify-user-wallet-topup", 'rateLimit: "payment"'],
       ]) {
-        requireStrictRoute(this.id, route, { rateLimit, risk: "blockNetworkRiskAt: 80" });
+        requireStrictRoute(this.id, route, {
+          rateLimit,
+          risk: "blockNetworkRiskAt: 80",
+        });
       }
     },
   },
@@ -171,9 +222,12 @@ const contracts = [
       const botPath = "supabase/functions/_shared/botDetection.ts";
       const networkPath = "supabase/functions/_shared/networkSignals.ts";
       const threatPath = "supabase/functions/_shared/threatIntel.ts";
-      const threatMigrationPath = "supabase/migrations/20260501100000_threat_intel.sql";
-      const autoBlockPath = "supabase/migrations/20260501110000_auto_block_threat.sql";
-      const networkMigrationPath = "supabase/migrations/20260521183500_network_security_events.sql";
+      const threatMigrationPath =
+        "supabase/migrations/20260501100000_threat_intel.sql";
+      const autoBlockPath =
+        "supabase/migrations/20260501110000_auto_block_threat.sql";
+      const networkMigrationPath =
+        "supabase/migrations/20260521183500_network_security_events.sql";
       const waf = source(wafPath);
       const bot = source(botPath);
       const network = source(networkPath);
@@ -182,24 +236,69 @@ const contracts = [
       const autoBlock = source(autoBlockPath);
       const networkMigration = source(networkMigrationPath);
 
-      for (const needle of ["SQLI", "XSS", "TRAVERSAL", "CMD_INJECTION", "NOSQL", "PROTO_POLLUTION", "MAX_BODY_BYTES", "payload_too_large"]) {
+      for (const needle of [
+        "SQLI",
+        "XSS",
+        "TRAVERSAL",
+        "CMD_INJECTION",
+        "NOSQL",
+        "PROTO_POLLUTION",
+        "MAX_BODY_BYTES",
+        "payload_too_large",
+      ]) {
         requireContains(this.id, waf, needle, wafPath);
       }
-      for (const needle of ["SCRAPER_UA_PATTERNS", "SCANNER_UA_PATTERNS", "missing_ua", "isLikelyMaliciousBot"]) {
+      for (const needle of [
+        "SCRAPER_UA_PATTERNS",
+        "SCANNER_UA_PATTERNS",
+        "missing_ua",
+        "isLikelyMaliciousBot",
+      ]) {
         requireContains(this.id, bot, needle, botPath);
       }
-      for (const needle of ["SUSPICIOUS_PROXY_HEADERS", "long_forwarded_chain", "tor_exit_country_code", "probableProxyOrVpn", "Math.min(riskScore, 100)"]) {
+      for (const needle of [
+        "SUSPICIOUS_PROXY_HEADERS",
+        "long_forwarded_chain",
+        "tor_exit_country_code",
+        "probableProxyOrVpn",
+        "Math.min(riskScore, 100)",
+      ]) {
         requireContains(this.id, network, needle, networkPath);
       }
-      for (const needle of ["isIpBlocked", "lookupThreatHistory", "scoreThreatHistory", "autoBlockIfHighThreat"]) {
+      for (const needle of [
+        "isIpBlocked",
+        "lookupThreatHistory",
+        "scoreThreatHistory",
+        "autoBlockIfHighThreat",
+      ]) {
         requireContains(this.id, threat, needle, threatPath);
       }
-      for (const needle of ["CREATE TABLE IF NOT EXISTS public.ip_blocklist", "CREATE OR REPLACE FUNCTION public.is_ip_blocked", "CREATE OR REPLACE FUNCTION public.get_threat_history"]) {
+      for (const needle of [
+        "CREATE TABLE IF NOT EXISTS public.ip_blocklist",
+        "CREATE OR REPLACE FUNCTION public.is_ip_blocked",
+        "CREATE OR REPLACE FUNCTION public.get_threat_history",
+      ]) {
         requireContains(this.id, threatMigration, needle, threatMigrationPath);
       }
-      requireContains(this.id, autoBlock, "CREATE OR REPLACE FUNCTION public.auto_block_if_high_threat", autoBlockPath);
-      for (const needle of ["CREATE TABLE IF NOT EXISTS public.network_security_events", "risk_score", "request_id", "ip_hash", "signals text[] NOT NULL DEFAULT '{}'"]) {
-        requireContains(this.id, networkMigration, needle, networkMigrationPath);
+      requireContains(
+        this.id,
+        autoBlock,
+        "CREATE OR REPLACE FUNCTION public.auto_block_if_high_threat",
+        autoBlockPath,
+      );
+      for (const needle of [
+        "CREATE TABLE IF NOT EXISTS public.network_security_events",
+        "risk_score",
+        "request_id",
+        "ip_hash",
+        "signals text[] NOT NULL DEFAULT '{}'",
+      ]) {
+        requireContains(
+          this.id,
+          networkMigration,
+          needle,
+          networkMigrationPath,
+        );
       }
     },
   },
@@ -211,7 +310,8 @@ const contracts = [
       const workflowPath = "src/test/workflows/security-anti-abuse.test.ts";
       const focusedDrillsPath = "src/test/securityAttackDrills.test.ts";
       const rateLimitTestPath = "src/test/rateLimitRiskDecisions.test.ts";
-      const accountTakeoverE2ePath = "tests/e2e/account-takeover-protection.spec.ts";
+      const accountTakeoverE2ePath =
+        "tests/e2e/account-takeover-protection.spec.ts";
       const matrixPath = "scripts/qa/platform-readiness-matrix.mjs";
       const coveragePath = "scripts/qa/workflow-coverage.mjs";
       const packagePath = "package.json";
@@ -236,16 +336,62 @@ const contracts = [
         requireContains(this.id, workflow, drill, workflowPath);
         requireContains(this.id, focusedDrills, drill, focusedDrillsPath);
       }
-      requireContains(this.id, rateLimitTest, "sensitive routes on the right rate-limit and network-risk thresholds", rateLimitTestPath);
-      for (const needle of ["auth_precheck_login", "verify-otp-code", "register_trusted_device", "new_device_login", "country_change_login"]) {
-        requireContains(this.id, accountTakeoverE2e, needle, accountTakeoverE2ePath);
+      requireContains(
+        this.id,
+        rateLimitTest,
+        "sensitive routes on the right rate-limit and network-risk thresholds",
+        rateLimitTestPath,
+      );
+      for (const needle of [
+        "auth_precheck_login",
+        "verify-otp-code",
+        "register_trusted_device",
+        "new_device_login",
+        "country_change_login",
+      ]) {
+        requireContains(
+          this.id,
+          accountTakeoverE2e,
+          needle,
+          accountTakeoverE2ePath,
+        );
       }
-      requireContains(this.id, matrix, "src/test/securityAttackDrills.test.ts", matrixPath);
-      requireContains(this.id, matrix, "tests/e2e/account-takeover-protection.spec.ts", matrixPath);
-      requireContains(this.id, matrix, "qa:security-anti-abuse-contracts", matrixPath);
-      requireContains(this.id, coverage, "qa:security-anti-abuse-contracts", coveragePath);
-      requireContains(this.id, packageJson, '"qa:security-anti-abuse-contracts"', packagePath);
-      requireContains(this.id, packageJson, "npm run qa:security-anti-abuse-contracts", packagePath);
+      requireContains(
+        this.id,
+        matrix,
+        "src/test/securityAttackDrills.test.ts",
+        matrixPath,
+      );
+      requireContains(
+        this.id,
+        matrix,
+        "tests/e2e/account-takeover-protection.spec.ts",
+        matrixPath,
+      );
+      requireContains(
+        this.id,
+        matrix,
+        "qa:security-anti-abuse-contracts",
+        matrixPath,
+      );
+      requireContains(
+        this.id,
+        coverage,
+        "qa:security-anti-abuse-contracts",
+        coveragePath,
+      );
+      requireContains(
+        this.id,
+        packageJson,
+        '"qa:security-anti-abuse-contracts"',
+        packagePath,
+      );
+      requireContains(
+        this.id,
+        packageJson,
+        "npm run qa:security-anti-abuse-contracts",
+        packagePath,
+      );
     },
   },
   {
@@ -253,13 +399,19 @@ const contracts = [
     category: "abuse-prevention",
     check() {
       const stripeWebhookPath = "supabase/functions/stripe-webhook/index.ts";
-      const carDepositPath = "supabase/functions/create-car-rental-deposit/index.ts";
-      const lodgingDepositPath = "supabase/functions/create-lodging-deposit/index.ts";
-      const groceryCheckoutPath = "supabase/functions/create-grocery-checkout/index.ts";
+      const carDepositPath =
+        "supabase/functions/create-car-rental-deposit/index.ts";
+      const lodgingDepositPath =
+        "supabase/functions/create-lodging-deposit/index.ts";
+      const groceryCheckoutPath =
+        "supabase/functions/create-grocery-checkout/index.ts";
       const notifyDispatchPath = "supabase/functions/notify-dispatch/index.ts";
-      const bookingSecurityPath = "supabase/migrations/20260524110000_salon_public_booking_security.sql";
-      const bookingGatePath = "supabase/migrations/20260601231500_salon_bookings_public_submit_gate.sql";
-      const bookingSubmitPath = "supabase/functions/salon-booking-submit/index.ts";
+      const bookingSecurityPath =
+        "supabase/migrations/20260524110000_salon_public_booking_security.sql";
+      const bookingGatePath =
+        "supabase/migrations/20260601231500_salon_bookings_public_submit_gate.sql";
+      const bookingSubmitPath =
+        "supabase/functions/salon-booking-submit/index.ts";
       const bookingPagePath = "src/pages/salon/PublicSalonBookingPage.tsx";
       const stripeWebhook = source(stripeWebhookPath);
       const carDeposit = source(carDepositPath);
@@ -271,31 +423,87 @@ const contracts = [
       const bookingSubmit = source(bookingSubmitPath);
       const bookingPage = source(bookingPagePath);
 
-      requireContains(this.id, stripeWebhook, 'withSecurity("stripe-webhook"', stripeWebhookPath);
+      requireMatch(
+        this.id,
+        stripeWebhook,
+        /withSecurity\(\s*["']stripe-webhook["']/,
+        stripeWebhookPath,
+      );
       requireContains(this.id, stripeWebhook, "idempotency", stripeWebhookPath);
-      requireContains(this.id, stripeWebhook, "purchase_records", stripeWebhookPath);
+      requireContains(
+        this.id,
+        stripeWebhook,
+        "purchase_records",
+        stripeWebhookPath,
+      );
       for (const [text, relativePath] of [
         [carDeposit, carDepositPath],
         [lodgingDeposit, lodgingDepositPath],
         [groceryCheckout, groceryCheckoutPath],
       ]) {
-        requireContains(this.id, text, 'rateLimit', relativePath);
+        requireContains(this.id, text, "rateLimit", relativePath);
         requireContains(this.id, text, "strictCors: true", relativePath);
-        requireContains(this.id, text, 'trackNetwork: "suspicious"', relativePath);
+        requireContains(
+          this.id,
+          text,
+          'trackNetwork: "suspicious"',
+          relativePath,
+        );
         requireContains(this.id, text, "blockNetworkRiskAt: 80", relativePath);
       }
-      requireContains(this.id, carDeposit, "TERMINAL_PAYMENT_STATES", carDepositPath);
-      requireContains(this.id, carDeposit, "const idempotencyKey = `car_rental_dep_", carDepositPath);
-      requireContains(this.id, lodgingDeposit, "TERMINAL_PAYMENT_STATES", lodgingDepositPath);
-      requireContains(this.id, lodgingDeposit, "checkout.sessions.create(sessionParams, { idempotencyKey })", lodgingDepositPath);
-      for (const needle of ["marketing_enabled", "marketing_disabled", "deliveryAllowed"]) {
+      requireContains(
+        this.id,
+        carDeposit,
+        'code: "car_rental_payment_authority_unavailable"',
+        carDepositPath,
+      );
+      requireContains(this.id, carDeposit, "status: 503", carDepositPath);
+      for (const retiredNeedle of ["Stripe", "paymentIntents", "req.json"]) {
+        if (carDeposit.includes(retiredNeedle)) {
+          failures.push(
+            `${this.id}: ${carDepositPath} must not contain retired charge path ${retiredNeedle}`,
+          );
+        }
+      }
+      requireContains(
+        this.id,
+        lodgingDeposit,
+        "TERMINAL_PAYMENT_STATES",
+        lodgingDepositPath,
+      );
+      requireContains(
+        this.id,
+        lodgingDeposit,
+        "checkout.sessions.create(sessionParams, { idempotencyKey })",
+        lodgingDepositPath,
+      );
+      for (const needle of [
+        "marketing_enabled",
+        "marketing_disabled",
+        "deliveryAllowed",
+      ]) {
         requireContains(this.id, notifyDispatch, needle, notifyDispatchPath);
       }
-      for (const needle of ["tg_salon_sanitize_public_booking", "NEW.price_cents := v_svc.price_cents", "NEW.status := 'pending'", "Public can request bookings"]) {
+      for (const needle of [
+        "tg_salon_sanitize_public_booking",
+        "NEW.price_cents := v_svc.price_cents",
+        "NEW.status := 'pending'",
+        "Public can request bookings",
+      ]) {
         requireContains(this.id, bookingSecurity, needle, bookingSecurityPath);
       }
-      requireContains(this.id, bookingPage, '"salon-booking-submit"', bookingPagePath);
-      requireNotMatch(this.id, bookingPage, /from\("salon_bookings"\)[\s\S]{0,360}\.(insert|upsert)/, bookingPagePath);
+      requireContains(
+        this.id,
+        bookingPage,
+        '"salon-booking-submit"',
+        bookingPagePath,
+      );
+      requireNotMatch(
+        this.id,
+        bookingPage,
+        /from\("salon_bookings"\)[\s\S]{0,360}\.(insert|upsert)/,
+        bookingPagePath,
+      );
       for (const needle of [
         'withSecurity("salon-booking-submit"',
         'allowedMethods: ["POST"]',
@@ -322,10 +530,13 @@ const contracts = [
     category: "audit",
     check() {
       const auditPath = "supabase/functions/_shared/audit.ts";
-      const sentinelPath = "supabase/migrations/20260411160000_security_sentinel_project.sql";
-      const chatSecurityPath = "supabase/migrations/20260411124500_chat_security_enforcement.sql";
+      const sentinelPath =
+        "supabase/migrations/20260411160000_security_sentinel_project.sql";
+      const chatSecurityPath =
+        "supabase/migrations/20260411124500_chat_security_enforcement.sql";
       const loginPath = "supabase/functions/log-login/index.ts";
-      const securityNotificationsPath = "supabase/functions/process-security-notifications/index.ts";
+      const securityNotificationsPath =
+        "supabase/functions/process-security-notifications/index.ts";
       const secretScannerPath = "scripts/security/check-secrets.mjs";
       const rotationRunbookPath = "docs/supabase-secret-rotation-runbook.md";
       const deploySecretsPath = "docs/production-deploy-secrets.md";
@@ -340,25 +551,74 @@ const contracts = [
       const deploySecrets = source(deploySecretsPath);
       const drills = source(drillsPath);
 
-      for (const needle of ["redactPii", "recordSecurityEvent", "recordNetworkEvent", "recordAudit", "security_events"]) {
+      for (const needle of [
+        "redactPii",
+        "recordSecurityEvent",
+        "recordNetworkEvent",
+        "recordAudit",
+        "security_events",
+      ]) {
         requireContains(this.id, audit, needle, auditPath);
       }
-      for (const needle of ["CREATE TABLE IF NOT EXISTS public.security_incidents", "chain_hash", "prev_chain_hash", "compute_incident_chain_hash", "admin_ack_security_incident", "Only admins can acknowledge incidents"]) {
+      for (const needle of [
+        "CREATE TABLE IF NOT EXISTS public.security_incidents",
+        "chain_hash",
+        "prev_chain_hash",
+        "compute_incident_chain_hash",
+        "admin_ack_security_incident",
+        "Only admins can acknowledge incidents",
+      ]) {
         requireContains(this.id, sentinel, needle, sentinelPath);
       }
-      for (const needle of ["CREATE TABLE IF NOT EXISTS public.chat_security_events", "analyze_chat_content_security", "enforce_chat_message_security", "RAISE EXCEPTION 'Message blocked by security policy"]) {
+      for (const needle of [
+        "CREATE TABLE IF NOT EXISTS public.chat_security_events",
+        "analyze_chat_content_security",
+        "enforce_chat_message_security",
+        "RAISE EXCEPTION 'Message blocked by security policy",
+      ]) {
         requireContains(this.id, chatSecurity, needle, chatSecurityPath);
       }
       requireContains(this.id, login, "login_history", loginPath);
-      requireContains(this.id, securityNotifications, "new-device-login", securityNotificationsPath);
-      requireContains(this.id, securityNotifications, "country-change-login", securityNotificationsPath);
-      for (const secretGuard of ["Supabase service-role JWT", "Supabase publishable key", "Supabase secret key", "Supabase access token", "Private key block", "OpenAI API key"]) {
+      requireContains(
+        this.id,
+        securityNotifications,
+        "new-device-login",
+        securityNotificationsPath,
+      );
+      requireContains(
+        this.id,
+        securityNotifications,
+        "country-change-login",
+        securityNotificationsPath,
+      );
+      for (const secretGuard of [
+        "Supabase service-role JWT",
+        "Supabase publishable key",
+        "Supabase secret key",
+        "Supabase access token",
+        "Private key block",
+        "OpenAI API key",
+      ]) {
         requireContains(this.id, secretScanner, secretGuard, secretScannerPath);
       }
-      for (const needle of ["Supabase Secret Rotation Runbook", "Treat the value as compromised", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ANON_KEY", "SUPABASE_ACCESS_TOKEN", "rg -l --hidden", "--glob '!.env.local'", "Incident Closeout"]) {
+      for (const needle of [
+        "Supabase Secret Rotation Runbook",
+        "Treat the value as compromised",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_ACCESS_TOKEN",
+        "rg -l --hidden",
+        "--glob '!.env.local'",
+        "Incident Closeout",
+      ]) {
         requireContains(this.id, rotationRunbook, needle, rotationRunbookPath);
       }
-      requireContains(this.id, deploySecrets, "docs/supabase-secret-rotation-runbook.md", deploySecretsPath);
+      requireContains(
+        this.id,
+        deploySecrets,
+        "docs/supabase-secret-rotation-runbook.md",
+        deploySecretsPath,
+      );
       requireContains(this.id, drills, "Supabase rotation runbook", drillsPath);
     },
   },
@@ -366,15 +626,21 @@ const contracts = [
 
 for (const contract of contracts) contract.check();
 
-console.log(JSON.stringify({
-  generated: new Date().toISOString(),
-  counts: {
-    contracts: contracts.length,
-    failures: failures.length,
-  },
-  contracts: contracts.map(({ id, category }) => ({ id, category })),
-  failures,
-}, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      generated: new Date().toISOString(),
+      counts: {
+        contracts: contracts.length,
+        failures: failures.length,
+      },
+      contracts: contracts.map(({ id, category }) => ({ id, category })),
+      failures,
+    },
+    null,
+    2,
+  ),
+);
 
 if (failures.length > 0) {
   process.exitCode = 1;

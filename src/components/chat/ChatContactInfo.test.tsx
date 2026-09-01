@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentProps, ReactNode } from "react";
 import ChatContactInfo from "./ChatContactInfo";
 
@@ -16,6 +16,17 @@ const mocks = vi.hoisted(() => ({
     created_at: string;
   }>,
   navigate: vi.fn(),
+  pin: vi.fn(),
+  unpin: vi.fn(),
+  archive: vi.fn(),
+  unarchive: vi.fn(),
+  mute: vi.fn(),
+  setMode: vi.fn(),
+  togglePin: vi.fn(),
+  toggleArchive: vi.fn(),
+  toggleMute: vi.fn(),
+  toastSuccess: vi.fn(),
+  toastError: vi.fn(),
 }));
 
 vi.mock("@/contexts/AuthContext", () => ({
@@ -56,12 +67,12 @@ vi.mock("@/hooks/useThreadSettings", () => ({
     isPinned: () => false,
     isArchived: () => false,
     isMuted: () => false,
-    pin: vi.fn(),
-    unpin: vi.fn(),
-    archive: vi.fn(),
-    unarchive: vi.fn(),
-    mute: vi.fn(),
-    setMode: vi.fn(),
+    pin: mocks.pin,
+    unpin: mocks.unpin,
+    archive: mocks.archive,
+    unarchive: mocks.unarchive,
+    mute: mocks.mute,
+    setMode: mocks.setMode,
     get: () => ({ notification_mode: "all", muted_until: null }),
   }),
 }));
@@ -72,9 +83,9 @@ vi.mock("@/hooks/useChatPrefs", () => ({
     isArchived: () => false,
     isMuted: () => false,
     isMarkedUnread: () => false,
-    togglePin: vi.fn(),
-    toggleArchive: vi.fn(),
-    toggleMute: vi.fn(),
+    togglePin: mocks.togglePin,
+    toggleArchive: mocks.toggleArchive,
+    toggleMute: mocks.toggleMute,
     toggleMarkUnread: vi.fn(),
   }),
 }));
@@ -90,8 +101,8 @@ vi.mock("react-router-dom", () => ({
 vi.mock("sonner", () => ({
   toast: {
     info: vi.fn(),
-    success: vi.fn(),
-    error: vi.fn(),
+    success: mocks.toastSuccess,
+    error: mocks.toastError,
   },
 }));
 
@@ -132,6 +143,27 @@ describe("ChatContactInfo", () => {
   beforeEach(() => {
     mocks.sharedMedia = [];
     mocks.navigate.mockReset();
+    for (const mock of [
+      mocks.pin,
+      mocks.unpin,
+      mocks.archive,
+      mocks.unarchive,
+      mocks.mute,
+      mocks.setMode,
+      mocks.togglePin,
+      mocks.toggleArchive,
+      mocks.toggleMute,
+      mocks.toastSuccess,
+      mocks.toastError,
+    ]) {
+      mock.mockReset();
+    }
+    mocks.pin.mockResolvedValue(undefined);
+    mocks.unpin.mockResolvedValue(undefined);
+    mocks.archive.mockResolvedValue(undefined);
+    mocks.unarchive.mockResolvedValue(undefined);
+    mocks.mute.mockResolvedValue(undefined);
+    mocks.setMode.mockResolvedValue(undefined);
   });
 
   it("keeps Media, GIFs, Music, Files, and Links reachable when media preview exists", () => {
@@ -184,5 +216,35 @@ describe("ChatContactInfo", () => {
     expect(onStartCall).toHaveBeenNthCalledWith(2, "video");
     expect(onOpenSearch).toHaveBeenCalledTimes(1);
     expect(mocks.navigate).toHaveBeenCalledWith("/user/peer");
+  });
+
+  it("does not update local pin state or announce success when the server rejects", async () => {
+    mocks.pin.mockRejectedValueOnce(new Error("save failed"));
+    renderContactInfo();
+
+    fireEvent.click(screen.getByRole("button", { name: "Pin Conversation" }));
+
+    await waitFor(() => expect(mocks.pin).toHaveBeenCalledWith("dm:peer"));
+    expect(mocks.togglePin).not.toHaveBeenCalled();
+    expect(mocks.toastSuccess).not.toHaveBeenCalledWith("Pinned to top");
+  });
+
+  it("updates local pin state only after the server confirms", async () => {
+    let confirmSave: (() => void) | undefined;
+    mocks.pin.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        confirmSave = resolve;
+      }),
+    );
+    renderContactInfo();
+
+    fireEvent.click(screen.getByRole("button", { name: "Pin Conversation" }));
+    expect(mocks.togglePin).not.toHaveBeenCalled();
+    expect(mocks.toastSuccess).not.toHaveBeenCalledWith("Pinned to top");
+
+    confirmSave?.();
+
+    await waitFor(() => expect(mocks.togglePin).toHaveBeenCalledWith("peer"));
+    expect(mocks.toastSuccess).toHaveBeenCalledWith("Pinned to top");
   });
 });

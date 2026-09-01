@@ -305,13 +305,21 @@ export default function AdminMetaAdsPage() {
 
       if (saveToServer) {
         const serverMsg = JSON.stringify({ page_id: cfg.pageId, page_name: cfg.pageName, token: btoa(verifiedToken) });
-        await supabase.functions.invoke("admin-feedback-queue-write", { body: {
+        const { data, error } = await supabase.functions.invoke("admin-feedback-queue-write", { body: {
           action: "replace_fb_config",
           category: "admin_fb_config",
           message: serverMsg,
           status: "resolved",
         } });
-        toast.success(`"${verifiedName}" connected & saved for auto-posting!`);
+        if (error || (data as any)?.error) {
+          console.error("[AdminMetaAds] replace_fb_config failed", error ?? data);
+          const localOnly: FbPageConfig = { ...cfg, serverSaved: false };
+          saveLocalConfig(localOnly);
+          setConfig(localOnly);
+          toast.error(`"${verifiedName}" connected in this browser only — saving it on the server failed, so scheduled auto-posting will not run.`);
+        } else {
+          toast.success(`"${verifiedName}" connected & saved for auto-posting!`);
+        }
       } else {
         toast.success(`"${verifiedName}" connected!`);
       }
@@ -332,7 +340,12 @@ export default function AdminMetaAdsPage() {
     setFormToken("");
     setTestResult(null);
     setTestError(null);
-    await supabase.functions.invoke("admin-feedback-queue-write", { body: { action: "delete_fb_config", category: "admin_fb_config" } });
+    const { data, error } = await supabase.functions.invoke("admin-feedback-queue-write", { body: { action: "delete_fb_config", category: "admin_fb_config" } });
+    if (error || (data as any)?.error) {
+      console.error("[AdminMetaAds] delete_fb_config failed", error ?? data);
+      toast.error("Disconnected in this browser, but the server could not confirm removal of the saved page token — scheduled auto-posting may still run.");
+      return;
+    }
     toast.info("Facebook Page disconnected");
   };
 

@@ -3,6 +3,11 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import path from "node:path";
 import { config as loadDotenv } from "dotenv";
 import { KNOWN_DUPLICATE_MIGRATION_VERSIONS } from "./migration-policy.mjs";
+import {
+  allCreatedPublicTablesHaveRls,
+  createsPublicTable,
+  extractRlsEnabledPublicTableNames,
+} from "./migration-schema-signals.mjs";
 import { runSupabaseCli } from "./supabase-cli.mjs";
 
 const root = process.cwd();
@@ -106,10 +111,13 @@ function classifyDomain(name, sql) {
 
 function migrationSignals(sql) {
   const text = sql.toLowerCase();
+  const createTable = createsPublicTable(sql);
   return {
-    createTable: /\bcreate\s+table\b/.test(text),
+    createTable,
     createsSequenceBackedId: /\b(?:bigserial|serial|smallserial)\b|\bgenerated\s+(?:always|by\s+default)\s+as\s+identity\b|\bcreate\s+sequence\b|\bnextval\s*\(/.test(text),
-    enableRls: /\benable\s+row\s+level\s+security\b/.test(text),
+    enableRls: createTable
+      ? allCreatedPublicTablesHaveRls(sql)
+      : extractRlsEnabledPublicTableNames(sql).length > 0,
     createPolicy: /\bcreate\s+policy\b/.test(text),
     grant: /\bgrant\b/.test(text),
     sequenceGrant: /\bgrant\b[\s\S]{0,500}?\bon\s+(?:all\s+sequences\s+in\s+schema|sequence)\b|\bgrant\s+usage\s*,\s*select\b[\s\S]{0,500}?\bsequences?\b/.test(text),
@@ -749,7 +757,7 @@ function renderReport(summary) {
     "",
   ];
 
-  return `${lines.join("\n")}\n`;
+  return `${lines.join("\n").replace(/\n*$/, "")}\n`;
 }
 
 const { files: local, invalid } = readLocalMigrations();

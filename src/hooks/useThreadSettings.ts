@@ -3,6 +3,7 @@
  * Backed by public.chat_thread_settings. Realtime-synced.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -71,12 +72,29 @@ export function useThreadSettings() {
   const update = useCallback(
     async (threadId: string, patch: Partial<Omit<ThreadSettings, "thread_id">>) => {
       if (!user) return;
-      const current = byThread[threadId] ?? { thread_id: threadId, ...empty };
-      const next = { ...current, ...patch, thread_id: threadId };
-      setByThread((prev) => ({ ...prev, [threadId]: next as ThreadSettings }));
-      await supabase.functions.invoke("chat-thread-settings-update", {
+      const prior = byThread[threadId];
+      const current = prior ?? { thread_id: threadId, ...empty };
+      const next = { ...current, ...patch, thread_id: threadId } as ThreadSettings;
+      setByThread((prev) => ({ ...prev, [threadId]: next }));
+      const { data, error } = await supabase.functions.invoke("chat-thread-settings-update", {
         body: { thread_id: threadId, patch },
       });
+      const failure = error ?? (data as { error?: string } | null)?.error ?? null;
+      if (failure) {
+        // Nothing was persisted — undo the optimistic pin/mute/archive so the UI
+        // matches the server instead of reverting on the next reload.
+        setByThread((prev) => {
+          if (prev[threadId] !== next) return prev; // a newer write or realtime refresh already won
+          const rolled = { ...prev };
+          if (prior) rolled[threadId] = prior;
+          else delete rolled[threadId];
+          return rolled;
+        });
+        console.error("[useThreadSettings] chat-thread-settings-update failed", failure);
+        toast.error("Couldn't save chat setting. Try again.");
+        // Throw so callers don't announce success for a change that never saved.
+        throw failure instanceof Error ? failure : new Error(String(failure));
+      }
     },
     [user, byThread],
   );

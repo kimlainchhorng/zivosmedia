@@ -34,13 +34,19 @@ import {
   type SoftwarePricingCatalogPlan,
 } from "@/lib/software/publicPricingCatalog";
 import { cn } from "@/lib/utils";
+import NativeDigitalPurchaseNotice from "@/components/payments/NativeDigitalPurchaseNotice";
+import { isNativeDigitalPurchaseRestricted } from "@/lib/nativeDigitalPurchasePolicy";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "";
   const value = new Date(iso);
   return Number.isNaN(value.getTime())
     ? ""
-    : value.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    : value.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
 }
 
 function statusLabel(status: string): string {
@@ -116,21 +122,33 @@ const PLAN_STYLE: Record<string, PlanStyle> = {
   },
 };
 
-export default function SoftwareSubscriptionSection({ storeId }: { storeId: string }) {
+export default function SoftwareSubscriptionSection({
+  storeId,
+}: {
+  storeId: string;
+}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [cycle, setCycle] = useState<SoftwareBillingCycle>("monthly");
-  const [checkoutPlan, setCheckoutPlan] = useState<SoftwarePricingCatalogPlan | null>(null);
+  const [checkoutPlan, setCheckoutPlan] =
+    useState<SoftwarePricingCatalogPlan | null>(null);
   const [portalBusy, setPortalBusy] = useState(false);
   const [portalError, setPortalError] = useState<string | null>(null);
+  const nativeDigitalPurchasesDisabled = isNativeDigitalPurchaseRestricted();
   const portalKey = useRef(newSoftwareBillingIdempotencyKey("portal"));
   const annual = cycle === "annual";
-  const { data: currentSub, isLoading: subscriptionLoading } = useSoftwareSubscription(storeId);
-  const { data: plans, isLoading: plansLoading, isError: plansFailed } = useSoftwarePricingCatalog();
+  const { data: currentSub, isLoading: subscriptionLoading } =
+    useSoftwareSubscription(storeId);
+  const {
+    data: plans,
+    isLoading: plansLoading,
+    isError: plansFailed,
+  } = useSoftwarePricingCatalog();
 
   useEffect(() => {
     const requestedPlanId = searchParams.get("plan_id");
     if (!plans?.length || !requestedPlanId || subscriptionLoading) return;
-    const requestedCycle = searchParams.get("cycle") === "annual" ? "annual" : "monthly";
+    const requestedCycle =
+      searchParams.get("cycle") === "annual" ? "annual" : "monthly";
     const selectedPlan = plans.find((plan) =>
       requestedCycle === "annual"
         ? plan.annualPlanId === requestedPlanId
@@ -142,6 +160,10 @@ export default function SoftwareSubscriptionSection({ storeId }: { storeId: stri
     nextParams.delete("plan_id");
     nextParams.delete("cycle");
     setSearchParams(nextParams, { replace: true });
+    if (nativeDigitalPurchasesDisabled) {
+      setCheckoutPlan(null);
+      return;
+    }
     if (currentSub) {
       setCheckoutPlan(null);
       setPortalError(
@@ -154,9 +176,17 @@ export default function SoftwareSubscriptionSection({ storeId }: { storeId: stri
 
     setCycle(requestedCycle);
     setCheckoutPlan(selectedPlan);
-  }, [currentSub, plans, searchParams, setSearchParams, subscriptionLoading]);
+  }, [
+    currentSub,
+    nativeDigitalPurchasesDisabled,
+    plans,
+    searchParams,
+    setSearchParams,
+    subscriptionLoading,
+  ]);
 
   const openBillingPortal = async () => {
+    if (nativeDigitalPurchasesDisabled) return;
     setPortalBusy(true);
     setPortalError(null);
     try {
@@ -176,7 +206,9 @@ export default function SoftwareSubscriptionSection({ storeId }: { storeId: stri
     }
   };
 
-  const currentPlanKey = String(currentSub?.plan || "").trim().toLowerCase();
+  const currentPlanKey = String(currentSub?.plan || "")
+    .trim()
+    .toLowerCase();
 
   return (
     <div className="space-y-5">
@@ -186,18 +218,41 @@ export default function SoftwareSubscriptionSection({ storeId }: { storeId: stri
             <CreditCard className="h-5 w-5 text-primary" /> Subscriptions
           </h2>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Prices, billing intervals, and trial terms below come from the active server billing catalog.
+            Prices, billing intervals, and trial terms below come from the
+            active server billing catalog.
           </p>
         </div>
-        {currentSub?.billing_portal_available && (
-          <Button variant="outline" size="sm" className="min-h-11 shrink-0 gap-1.5" onClick={openBillingPortal} disabled={portalBusy}>
-            {portalBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-            Manage billing
-          </Button>
-        )}
+        {currentSub?.billing_portal_available &&
+          !nativeDigitalPurchasesDisabled && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="min-h-11 shrink-0 gap-1.5"
+              onClick={openBillingPortal}
+              disabled={portalBusy}
+            >
+              {portalBusy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CreditCard className="h-4 w-4" />
+              )}
+              Manage billing
+            </Button>
+          )}
       </div>
 
-      {portalError && <p className="text-sm text-destructive" role="alert">{portalError}</p>}
+      {nativeDigitalPurchasesDisabled && (
+        <NativeDigitalPurchaseNotice
+          title="Software subscriptions are read-only in this app"
+          description="Existing business access and plan status remain available. New purchases, plan changes, and billing-portal links are not offered in the installed app."
+        />
+      )}
+
+      {portalError && (
+        <p className="text-sm text-destructive" role="alert">
+          {portalError}
+        </p>
+      )}
 
       {currentSub && (
         <Card className="border-primary/30 bg-primary/5">
@@ -208,10 +263,16 @@ export default function SoftwareSubscriptionSection({ storeId }: { storeId: stri
               </div>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-semibold capitalize">ZIVO {currentSub.plan ?? "plan"}</p>
-                  <Badge variant="secondary" className="text-[10px]">{statusLabel(currentSub.status)}</Badge>
+                  <p className="font-semibold capitalize">
+                    ZIVO {currentSub.plan ?? "plan"}
+                  </p>
+                  <Badge variant="secondary" className="text-[10px]">
+                    {statusLabel(currentSub.status)}
+                  </Badge>
                   {currentSub.reconciliation_required && (
-                    <Badge variant="outline" className="text-[10px]">Billing review required</Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      Billing review required
+                    </Badge>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -234,7 +295,12 @@ export default function SoftwareSubscriptionSection({ storeId }: { storeId: stri
         <button
           type="button"
           onClick={() => setCycle("monthly")}
-          className={cn("min-h-11 rounded-full px-4 font-medium transition-colors", !annual ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+          className={cn(
+            "min-h-11 rounded-full px-4 font-medium transition-colors",
+            !annual
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
           aria-pressed={!annual}
         >
           Monthly
@@ -242,7 +308,12 @@ export default function SoftwareSubscriptionSection({ storeId }: { storeId: stri
         <button
           type="button"
           onClick={() => setCycle("annual")}
-          className={cn("min-h-11 rounded-full px-4 font-medium transition-colors", annual ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+          className={cn(
+            "min-h-11 rounded-full px-4 font-medium transition-colors",
+            annual
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
           aria-pressed={annual}
         >
           Annual
@@ -256,8 +327,12 @@ export default function SoftwareSubscriptionSection({ storeId }: { storeId: stri
       )}
 
       {plansFailed && (
-        <div className="rounded-2xl border border-amber-300/60 bg-amber-50 p-5 text-sm text-amber-950" role="status">
-          Current plan pricing is unavailable. Checkout is disabled until the server catalog is available and valid.
+        <div
+          className="rounded-2xl border border-amber-300/60 bg-amber-50 p-5 text-sm text-amber-950"
+          role="status"
+        >
+          Current plan pricing is unavailable. Checkout is disabled until the
+          server catalog is available and valid.
         </div>
       )}
 
@@ -266,12 +341,21 @@ export default function SoftwareSubscriptionSection({ storeId }: { storeId: stri
           {plans.map((plan) => {
             const style = PLAN_STYLE[plan.id] ?? PLAN_STYLE.base;
             const Icon = style.Icon;
-            const isCurrent = currentPlanKey === plan.id || currentPlanKey === plan.displayName.toLowerCase();
+            const isCurrent =
+              currentPlanKey === plan.id ||
+              currentPlanKey === plan.displayName.toLowerCase();
             const monthlyAmount = catalogMonthlyAmountCents(plan, cycle);
             const billingAmount = catalogBillingAmountCents(plan, cycle);
             const savings = catalogAnnualSavingsPercent(plan);
             return (
-              <Card key={plan.id} className={cn("group relative flex flex-col rounded-2xl bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg", style.ring, style.glow)}>
+              <Card
+                key={plan.id}
+                className={cn(
+                  "group relative flex flex-col rounded-2xl bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg",
+                  style.ring,
+                  style.glow,
+                )}
+              >
                 {plan.featured && (
                   <div className="absolute -top-2.5 left-1/2 z-10 -translate-x-1/2">
                     <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-gradient-to-r from-amber-400 via-orange-500 to-pink-500 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md">
@@ -281,29 +365,62 @@ export default function SoftwareSubscriptionSection({ storeId }: { storeId: stri
                 )}
                 <CardContent className="flex flex-1 flex-col p-5">
                   <div className="flex items-center gap-3">
-                    <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl text-white shadow-sm", style.medallion)}>
+                    <div
+                      className={cn(
+                        "flex h-11 w-11 items-center justify-center rounded-xl text-white shadow-sm",
+                        style.medallion,
+                      )}
+                    >
                       <Icon className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className={cn("text-[10px] font-bold uppercase tracking-wider", style.accent)}>{style.eyebrow}</p>
-                      <h3 className="text-lg font-bold leading-tight">{plan.displayName}</h3>
+                      <p
+                        className={cn(
+                          "text-[10px] font-bold uppercase tracking-wider",
+                          style.accent,
+                        )}
+                      >
+                        {style.eyebrow}
+                      </p>
+                      <h3 className="text-lg font-bold leading-tight">
+                        {plan.displayName}
+                      </h3>
                     </div>
                   </div>
 
-                  <p className="mt-3 min-h-12 text-xs text-muted-foreground">{plan.tagline}</p>
+                  <p className="mt-3 min-h-12 text-xs text-muted-foreground">
+                    {plan.tagline}
+                  </p>
                   <div className="mt-3 flex items-baseline gap-1">
-                    <span className="text-3xl font-extrabold tracking-tight tabular-nums">{formatUSDCents(monthlyAmount)}</span>
+                    <span className="text-3xl font-extrabold tracking-tight tabular-nums">
+                      {formatUSDCents(monthlyAmount)}
+                    </span>
                     <span className="text-xs text-muted-foreground">/mo</span>
                   </div>
                   <p className="mt-1 min-h-8 text-[11px] text-muted-foreground">
-                    {annual ? `${formatUSDCents(billingAmount)} billed yearly${savings ? ` · save ${savings}%` : ""}` : `${formatUSDCents(billingAmount)} billed monthly`}
+                    {annual
+                      ? `${formatUSDCents(billingAmount)} billed yearly${savings ? ` · save ${savings}%` : ""}`
+                      : `${formatUSDCents(billingAmount)} billed monthly`}
                   </p>
-                  {plan.trialDays > 0 && <p className="text-[11px] font-medium text-emerald-700">{formatTrialLabel(plan.trialDays)}</p>}
+                  {plan.trialDays > 0 && (
+                    <p className="text-[11px] font-medium text-emerald-700">
+                      {formatTrialLabel(plan.trialDays)}
+                    </p>
+                  )}
 
                   <Button
-                    className={cn("mt-4 min-h-11 w-full gap-1.5 font-semibold", style.cta)}
+                    className={cn(
+                      "mt-4 min-h-11 w-full gap-1.5 font-semibold",
+                      style.cta,
+                    )}
                     variant={isCurrent ? "secondary" : style.ctaVariant}
-                    disabled={isCurrent || Boolean(currentSub && !currentSub.billing_portal_available)}
+                    disabled={
+                      nativeDigitalPurchasesDisabled ||
+                      isCurrent ||
+                      Boolean(
+                        currentSub && !currentSub.billing_portal_available,
+                      )
+                    }
                     onClick={() => {
                       if (currentSub?.billing_portal_available) {
                         void openBillingPortal();
@@ -312,28 +429,44 @@ export default function SoftwareSubscriptionSection({ storeId }: { storeId: stri
                       }
                     }}
                   >
-                    {isCurrent
-                      ? "Current plan"
-                      : currentSub?.billing_portal_available
-                        ? "Manage plan"
-                        : currentSub
-                          ? "Billing review required"
-                          : "Review checkout"}
+                    {nativeDigitalPurchasesDisabled && !isCurrent
+                      ? "Unavailable in this app"
+                      : isCurrent
+                        ? "Current plan"
+                        : currentSub?.billing_portal_available
+                          ? "Manage plan"
+                          : currentSub
+                            ? "Billing review required"
+                            : "Review checkout"}
                   </Button>
 
                   <div className="my-4 h-px bg-border/60" />
                   <ul className="space-y-2">
                     {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2 text-xs">
-                        <span className={cn("mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full", style.checkBg)}>
-                          <Check className={cn("h-2.5 w-2.5", style.checkText)} />
+                      <li
+                        key={feature}
+                        className="flex items-start gap-2 text-xs"
+                      >
+                        <span
+                          className={cn(
+                            "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full",
+                            style.checkBg,
+                          )}
+                        >
+                          <Check
+                            className={cn("h-2.5 w-2.5", style.checkText)}
+                          />
                         </span>
                         <span className="text-foreground/80">{feature}</span>
                       </li>
                     ))}
                   </ul>
-                  <p className="mt-4 text-[11px] text-muted-foreground">{plan.support}</p>
-                  <p className="mt-2 text-[11px] text-muted-foreground">{plan.cancellationTerms}</p>
+                  <p className="mt-4 text-[11px] text-muted-foreground">
+                    {plan.support}
+                  </p>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    {plan.cancellationTerms}
+                  </p>
                 </CardContent>
               </Card>
             );
@@ -342,12 +475,15 @@ export default function SoftwareSubscriptionSection({ storeId }: { storeId: stri
       )}
 
       <p className="text-xs text-muted-foreground">
-        Prices are USD. Exact renewal date, trial terms, taxes, amount due, and cancellation terms are shown before you subscribe.
+        Prices are USD. Exact renewal date, trial terms, taxes, amount due, and
+        cancellation terms are shown before you subscribe.
       </p>
 
       <SoftwareSubscriptionCheckoutDialog
         open={Boolean(checkoutPlan)}
-        onOpenChange={(nextOpen) => { if (!nextOpen) setCheckoutPlan(null); }}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setCheckoutPlan(null);
+        }}
         plan={checkoutPlan}
         cycle={cycle}
         storeId={storeId}

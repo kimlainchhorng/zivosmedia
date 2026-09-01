@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export type ContactRequest = {
   id: string;
@@ -90,18 +91,30 @@ export function useContactRequests() {
     await refresh();
   }, [user, refresh]);
 
-  const decline = useCallback(async (id: string) => {
-    await supabase.functions.invoke("contact-request-manage", {
+  const decline = useCallback(async (id: string): Promise<SendResult> => {
+    const { data, error } = await supabase.functions.invoke("contact-request-manage", {
       body: { action: "decline", request_id: id },
     });
+    if (error || (data as { error?: string } | null)?.error) {
+      console.error("[useContactRequests] decline failed", error ?? data);
+      toast.error("Couldn't decline that request. Please try again.");
+      return { ok: false, error: error?.message ?? "Could not decline request" };
+    }
     await refresh();
+    return { ok: true };
   }, [refresh]);
 
-  const cancel = useCallback(async (id: string) => {
-    await supabase.functions.invoke("contact-request-manage", {
+  const cancel = useCallback(async (id: string): Promise<SendResult> => {
+    const { data, error } = await supabase.functions.invoke("contact-request-manage", {
       body: { action: "cancel", request_id: id },
     });
+    if (error || (data as { error?: string } | null)?.error) {
+      console.error("[useContactRequests] cancel failed", error ?? data);
+      toast.error("Couldn't cancel that request. Please try again.");
+      return { ok: false, error: error?.message ?? "Could not cancel request" };
+    }
     await refresh();
+    return { ok: true };
   }, [refresh]);
 
   const resend = useCallback(async (id: string): Promise<SendResult> => {

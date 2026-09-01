@@ -13,12 +13,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  ArrowLeft, Eye, MousePointerClick, ShoppingCart, TrendingUp,
-  Rocket, DollarSign, BarChart3, Loader2, ChevronRight, Zap
+  ArrowLeft,
+  Eye,
+  MousePointerClick,
+  ShoppingCart,
+  TrendingUp,
+  Rocket,
+  DollarSign,
+  BarChart3,
+  Loader2,
+  ChevronRight,
+  Zap,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
 import { useGoBack } from "@/hooks/useGoBack";
+import NativeDigitalPurchaseNotice from "@/components/payments/NativeDigitalPurchaseNotice";
+import {
+  isNativeDigitalPurchaseRestricted,
+  NATIVE_DIGITAL_PURCHASE_MESSAGE,
+} from "@/lib/nativeDigitalPurchasePolicy";
 
 interface FunnelData {
   reelViews: number;
@@ -43,10 +57,16 @@ export default function SalesAttributionPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [storeId, setStoreId] = useState<string | null>(null);
-  const [funnel, setFunnel] = useState<FunnelData>({ reelViews: 0, mapClicks: 0, purchases: 0, revenue: 0 });
+  const [funnel, setFunnel] = useState<FunnelData>({
+    reelViews: 0,
+    mapClicks: 0,
+    purchases: 0,
+    revenue: 0,
+  });
   const [reels, setReels] = useState<ReelPerformance[]>([]);
   const [boosting, setBoosting] = useState(false);
   const [period, setPeriod] = useState<"7d" | "30d" | "all">("30d");
+  const nativeDigitalPurchasesDisabled = isNativeDigitalPurchaseRestricted();
 
   useEffect(() => {
     if (!user) return;
@@ -59,7 +79,10 @@ export default function SalesAttributionPage() {
           .eq("owner_id", user.id)
           .maybeSingle();
 
-        if (!store) { setLoading(false); return; }
+        if (!store) {
+          setLoading(false);
+          return;
+        }
         setStoreId(store.id);
 
         // Get store posts with view/engagement data
@@ -83,7 +106,11 @@ export default function SalesAttributionPage() {
           .select("amount_cents, created_at")
           .eq("store_id", store.id);
 
-        const totalAdSpend = (adSpend || []).reduce((s: number, a: any) => s + (a.amount_cents || 0), 0) / 100;
+        const totalAdSpend =
+          (adSpend || []).reduce(
+            (s: number, a: any) => s + (a.amount_cents || 0),
+            0,
+          ) / 100;
 
         // Get orders/sales
         const { data: orders } = await (supabase as any)
@@ -93,10 +120,17 @@ export default function SalesAttributionPage() {
           .eq("status", "completed")
           .limit(500);
 
-        const totalViews = (posts || []).reduce((s: number, p: any) => s + (p.view_count || 0), 0);
+        const totalViews = (posts || []).reduce(
+          (s: number, p: any) => s + (p.view_count || 0),
+          0,
+        );
         const totalClicks = (clicks || []).length;
         const totalPurchases = (orders || []).length;
-        const totalRevenue = (orders || []).reduce((s: number, o: any) => s + (Number(o.total_cents) || 0), 0) / 100;
+        const totalRevenue =
+          (orders || []).reduce(
+            (s: number, o: any) => s + (Number(o.total_cents) || 0),
+            0,
+          ) / 100;
 
         setFunnel({
           reelViews: totalViews,
@@ -117,7 +151,9 @@ export default function SalesAttributionPage() {
               currency: "USD",
               source: "boost",
             });
-            toast.success("🚀 Boost activated! Your reel will reach 5,000 more people.");
+            toast.success(
+              "🚀 Boost activated! Your reel will reach 5,000 more people.",
+            );
           } catch {
             // silent
           }
@@ -134,7 +170,7 @@ export default function SalesAttributionPage() {
             purchases: Math.floor((p.view_count || 0) * 0.01),
             revenue: Math.floor((p.view_count || 0) * 0.01) * 12,
             created_at: p.created_at,
-          }))
+          })),
         );
       } catch {
         toast.error("Failed to load attribution data");
@@ -143,18 +179,28 @@ export default function SalesAttributionPage() {
     })();
   }, [user, period]);
 
-  const conversionRate = funnel.reelViews > 0
-    ? ((funnel.purchases / funnel.reelViews) * 100).toFixed(1)
-    : "0";
+  const conversionRate =
+    funnel.reelViews > 0
+      ? ((funnel.purchases / funnel.reelViews) * 100).toFixed(1)
+      : "0";
 
   const handleBoost = async (reelId?: string) => {
+    if (nativeDigitalPurchasesDisabled) {
+      toast.info(NATIVE_DIGITAL_PURCHASE_MESSAGE);
+      return;
+    }
     setBoosting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-reel-boost", {
-        body: { reel_id: reelId || "", store_id: storeId || "" },
-      });
-      if (error || !data?.url) throw new Error(error?.message || "Failed to create boost checkout");
-      if (!isAllowedCheckoutUrl(data.url)) throw new Error("Invalid boost checkout URL");
+      const { data, error } = await supabase.functions.invoke(
+        "create-reel-boost",
+        {
+          body: { reel_id: reelId || "", store_id: storeId || "" },
+        },
+      );
+      if (error || !data?.url)
+        throw new Error(error?.message || "Failed to create boost checkout");
+      if (!isAllowedCheckoutUrl(data.url))
+        throw new Error("Invalid boost checkout URL");
       window.open(data.url, "_blank", "noopener,noreferrer");
     } catch (err: any) {
       toast.error(err.message || "Boost failed");
@@ -163,9 +209,27 @@ export default function SalesAttributionPage() {
   };
 
   const funnelSteps = [
-    { icon: Eye, label: "Reel Views", value: funnel.reelViews, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { icon: MousePointerClick, label: "Map Clicks", value: funnel.mapClicks, color: "text-amber-500", bg: "bg-amber-500/10" },
-    { icon: ShoppingCart, label: "Purchases", value: funnel.purchases, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+    {
+      icon: Eye,
+      label: "Reel Views",
+      value: funnel.reelViews,
+      color: "text-blue-500",
+      bg: "bg-blue-500/10",
+    },
+    {
+      icon: MousePointerClick,
+      label: "Map Clicks",
+      value: funnel.mapClicks,
+      color: "text-amber-500",
+      bg: "bg-amber-500/10",
+    },
+    {
+      icon: ShoppingCart,
+      label: "Purchases",
+      value: funnel.purchases,
+      color: "text-emerald-500",
+      bg: "bg-emerald-500/10",
+    },
   ];
 
   return (
@@ -174,12 +238,19 @@ export default function SalesAttributionPage() {
         {/* Header */}
         <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border/30 px-4 py-3 pt-safe">
           <div className="flex items-center gap-3">
-            <button type="button" aria-label="Go back" onClick={goBack} className="rounded-full transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <button
+              type="button"
+              aria-label="Go back"
+              onClick={goBack}
+              className="rounded-full transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
               <ArrowLeft className="h-5 w-5" />
             </button>
             <BarChart3 className="h-5 w-5 text-primary" />
             <h1 className="text-lg font-bold flex-1">Sales Attribution</h1>
-            <Badge variant="secondary" className="text-[10px]">BETA</Badge>
+            <Badge variant="secondary" className="text-[10px]">
+              BETA
+            </Badge>
           </div>
         </div>
 
@@ -193,8 +264,12 @@ export default function SalesAttributionPage() {
             <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">
               <CardContent className="p-4 text-center">
                 <DollarSign className="h-6 w-6 mx-auto mb-1 text-primary" />
-                <p className="text-3xl font-black text-primary">${funnel.revenue.toFixed(2)}</p>
-                <p className="text-xs text-muted-foreground mt-1">Total Attributed Revenue</p>
+                <p className="text-3xl font-black text-primary">
+                  ${funnel.revenue.toFixed(2)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Total Attributed Revenue
+                </p>
                 <Badge variant="outline" className="mt-2 text-[10px]">
                   {conversionRate}% conversion rate
                 </Badge>
@@ -209,7 +284,10 @@ export default function SalesAttributionPage() {
               </p>
               <div className="space-y-2">
                 {funnelSteps.map((step, idx) => {
-                  const maxVal = Math.max(...funnelSteps.map((s) => s.value), 1);
+                  const maxVal = Math.max(
+                    ...funnelSteps.map((s) => s.value),
+                    1,
+                  );
                   const width = Math.max((step.value / maxVal) * 100, 8);
                   return (
                     <motion.div
@@ -222,18 +300,29 @@ export default function SalesAttributionPage() {
                         <CardContent className="p-3">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
-                              <div className={`h-8 w-8 rounded-xl ${step.bg} flex items-center justify-center`}>
-                                <step.icon className={`h-4 w-4 ${step.color}`} />
+                              <div
+                                className={`h-8 w-8 rounded-xl ${step.bg} flex items-center justify-center`}
+                              >
+                                <step.icon
+                                  className={`h-4 w-4 ${step.color}`}
+                                />
                               </div>
-                              <span className="text-sm font-semibold">{step.label}</span>
+                              <span className="text-sm font-semibold">
+                                {step.label}
+                              </span>
                             </div>
-                            <span className="text-lg font-black">{step.value.toLocaleString()}</span>
+                            <span className="text-lg font-black">
+                              {step.value.toLocaleString()}
+                            </span>
                           </div>
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${width}%` }}
-                              transition={{ delay: idx * 0.15 + 0.3, duration: 0.6 }}
+                              transition={{
+                                delay: idx * 0.15 + 0.3,
+                                duration: 0.6,
+                              }}
                               className={`h-full rounded-full ${step.color.replace("text-", "bg-")}`}
                             />
                           </div>
@@ -260,22 +349,31 @@ export default function SalesAttributionPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold">Boost Your Reels</p>
                     <p className="text-[11px] text-muted-foreground">
-                      Show your best Reel to 5,000 more people in your neighborhood
+                      Show your best Reel to 5,000 more people in your
+                      neighborhood
                     </p>
                   </div>
                 </div>
-                <Button
-                  onClick={() => handleBoost()}
-                  disabled={boosting}
-                  className="w-full mt-3 rounded-xl font-bold bg-amber-500 hover:bg-amber-600 text-white"
-                >
-                  {boosting ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Zap className="h-4 w-4 mr-2" />
-                  )}
-                  Boost for $5.00
-                </Button>
+                {nativeDigitalPurchasesDisabled ? (
+                  <NativeDigitalPurchaseNotice
+                    className="mt-3"
+                    title="Promotion purchases are unavailable in this app"
+                    description="Existing campaign results remain visible. The installed app does not offer payment for same-app Reel promotion."
+                  />
+                ) : (
+                  <Button
+                    onClick={() => handleBoost()}
+                    disabled={boosting}
+                    className="w-full mt-3 rounded-xl font-bold bg-amber-500 hover:bg-amber-600 text-white"
+                  >
+                    {boosting ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Zap className="h-4 w-4 mr-2" />
+                    )}
+                    Boost for $5.00
+                  </Button>
+                )}
               </CardContent>
             </Card>
 
@@ -286,23 +384,37 @@ export default function SalesAttributionPage() {
                 {reels.map((reel) => (
                   <Card key={reel.id} className="border-border/30">
                     <CardContent className="p-3">
-                      <p className="text-sm font-semibold truncate mb-2">{reel.caption}</p>
+                      <p className="text-sm font-semibold truncate mb-2">
+                        {reel.caption}
+                      </p>
                       <div className="grid grid-cols-4 gap-2 text-center">
                         <div>
-                          <p className="text-xs font-bold">{reel.views.toLocaleString()}</p>
-                          <p className="text-[9px] text-muted-foreground">Views</p>
+                          <p className="text-xs font-bold">
+                            {reel.views.toLocaleString()}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground">
+                            Views
+                          </p>
                         </div>
                         <div>
                           <p className="text-xs font-bold">{reel.clicks}</p>
-                          <p className="text-[9px] text-muted-foreground">Clicks</p>
+                          <p className="text-[9px] text-muted-foreground">
+                            Clicks
+                          </p>
                         </div>
                         <div>
                           <p className="text-xs font-bold">{reel.purchases}</p>
-                          <p className="text-[9px] text-muted-foreground">Buys</p>
+                          <p className="text-[9px] text-muted-foreground">
+                            Buys
+                          </p>
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-emerald-500">${reel.revenue}</p>
-                          <p className="text-[9px] text-muted-foreground">Revenue</p>
+                          <p className="text-xs font-bold text-emerald-500">
+                            ${reel.revenue}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground">
+                            Revenue
+                          </p>
                         </div>
                       </div>
                       <Button
@@ -310,8 +422,12 @@ export default function SalesAttributionPage() {
                         size="sm"
                         className="w-full mt-2 text-xs rounded-xl"
                         onClick={() => handleBoost(reel.id)}
+                        disabled={nativeDigitalPurchasesDisabled || boosting}
                       >
-                        <Rocket className="h-3 w-3 mr-1" /> Boost This Reel
+                        <Rocket className="h-3 w-3 mr-1" />
+                        {nativeDigitalPurchasesDisabled
+                          ? "Unavailable in this app"
+                          : "Boost This Reel"}
                       </Button>
                     </CardContent>
                   </Card>

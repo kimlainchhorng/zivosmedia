@@ -76,11 +76,15 @@ export function useSecretChat(partnerId: string | null) {
         if (cancelled) return;
         setMyKey(self.publicKeyJwk);
 
-        await supabase.functions.invoke("device-key-manage", { body: {
+        const { data: pubData, error: pubErr } = await supabase.functions.invoke("device-key-manage", { body: {
           action: "upsert",
           device_fingerprint: getDeviceFingerprint(),
           public_key_jwk: self.publicKeyJwk,
         } });
+        if (pubErr || (pubData as { error?: string } | null)?.error) {
+          console.error("[useSecretChat] device-key-manage upsert failed", pubErr ?? pubData);
+          throw new Error("Could not publish your encryption key. Check your connection and try again.");
+        }
 
         // 2. Look up partner's most recent device key.
         const { data: keyRows, error: keyErr } = await supabase
@@ -269,10 +273,15 @@ export function useSecretChat(partnerId: string | null) {
   const resetKeys = useCallback(async () => {
     await resetIdentity();
     if (user) {
-      await supabase.functions.invoke("device-key-manage", { body: {
+      const { data: delData, error: delErr } = await supabase.functions.invoke("device-key-manage", { body: {
         action: "delete",
         device_fingerprint: getDeviceFingerprint(),
       } });
+      if (delErr || (delData as { error?: string } | null)?.error) {
+        console.error("[useSecretChat] device-key-manage delete failed", delErr ?? delData);
+        toast.error("Keys reset on this device, but the old key is still on the server. Reload to publish your new key.");
+        return;
+      }
     }
     toast.success("Encryption keys reset. Reload to start fresh.");
   }, [user]);

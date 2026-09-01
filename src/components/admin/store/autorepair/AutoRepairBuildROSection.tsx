@@ -1715,7 +1715,10 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
         reader.onerror = () => reject(new Error("Could not read PDF"));
         reader.readAsDataURL(blob);
       });
-      await supabase.functions.invoke("ar-ro-archive", {
+      // invoke resolves with { error } instead of throwing on a non-2xx, so the
+      // catch below never saw a failed archive — log it here so a missing copy
+      // leaves a trace. Still best-effort: the print already happened.
+      const { data: archiveData, error: archiveError } = await supabase.functions.invoke("ar-ro-archive", {
         body: {
           store_id: storeId,
           ro_number: header.number || null,
@@ -1726,6 +1729,9 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
           pdf_base64,
         },
       });
+      if (archiveError || (archiveData as { error?: string } | null)?.error) {
+        console.warn("RO archive failed", archiveError ?? archiveData);
+      }
     } catch (e) {
       console.warn("RO archive failed", e);
     }

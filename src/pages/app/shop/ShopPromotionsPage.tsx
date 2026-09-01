@@ -115,17 +115,27 @@ export default function ShopPromotionsPage() {
 
   const toggleActive = async (id: string, current: boolean) => {
     if (!storeId) return;
-    await supabase.functions.invoke("promotion-manage", {
+    const { data, error } = await supabase.functions.invoke("promotion-manage", {
       body: { action: "set_active", promotion_id: id, is_active: !current },
     });
+    if (error || data?.error) {
+      console.error("[ShopPromotionsPage] promotion-manage set_active failed", error ?? data);
+      toast.error(current ? "Failed to pause promotion" : "Failed to activate promotion");
+      return;
+    }
     setPromos(prev => prev.map(p => p.id === id ? { ...p, isActive: !current } : p));
   };
 
   const deletePromo = async (id: string) => {
     if (!storeId) return;
-    await supabase.functions.invoke("promotion-manage", {
+    const { data, error } = await supabase.functions.invoke("promotion-manage", {
       body: { action: "delete", promotion_id: id },
     });
+    if (error || data?.error) {
+      console.error("[ShopPromotionsPage] promotion-manage delete failed", error ?? data);
+      toast.error("Failed to delete promotion");
+      return;
+    }
     setPromos(prev => prev.filter(p => p.id !== id));
     toast.success("Promotion deleted");
   };

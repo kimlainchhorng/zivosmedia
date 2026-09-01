@@ -47,16 +47,23 @@ export function AIConciergeTrigger() {
     setMessages((prev) => [...prev, { id: Date.now(), type: "user", text }]);
     setInput("");
 
+    let submitError = false;
     if (user) {
-      await supabase.functions.invoke("concierge-message-submit", { body: {
+      const { data, error } = await supabase.functions.invoke("concierge-message-submit", { body: {
         message: text,
         has_upcoming_trips: !!hasUpcomingTrips,
         user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
       } });
+      if (error || (data as { error?: string } | null)?.error) {
+        console.error("[AIConciergeTrigger] concierge-message-submit failed", error ?? data);
+        submitError = true;
+      }
     }
 
     setTimeout(() => {
-      const response = hasUpcomingTrips
+      const response = submitError
+        ? "Sorry, I couldn't send that message to our support team. Please try again, or reach us through the Help Center."
+        : hasUpcomingTrips
         ? "Thanks for your message! A support agent will assist you shortly. Average wait time: 2 mins."
         : "Thanks for reaching out! Our team will get back to you soon. For faster help, check our Help Center.";
       setMessages((prev) => [...prev, { id: Date.now() + 1, type: "bot", text: response }]);

@@ -61,13 +61,22 @@ function CardForm({
       }
 
       const paymentMethodId = result.setupIntent?.payment_method;
+      let defaultFailed = false;
       if (makeDefault && typeof paymentMethodId === "string") {
-        await supabase.functions.invoke("manage-payment-methods", {
+        const { data: defaultData, error: defaultError } = await supabase.functions.invoke("manage-payment-methods", {
           body: { action: "set_default", payment_method_id: paymentMethodId },
         });
+        if (defaultError || defaultData?.error) {
+          console.error("[AddCardForm] set_default failed", defaultError ?? defaultData);
+          defaultFailed = true;
+        }
       }
 
-      toast.success("Card added successfully");
+      if (defaultFailed) {
+        toast.error("Card added, but it could not be made your default. Set it from your payment methods.");
+      } else {
+        toast.success("Card added successfully");
+      }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["stripe-payment-methods"] }),
         queryClient.invalidateQueries({ queryKey: ["zivo-payment-methods"] }),

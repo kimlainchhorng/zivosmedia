@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export type Contact = {
   contact_user_id: string;
@@ -126,27 +127,47 @@ export function useContacts() {
   }, [user, refresh]);
 
   const remove = useCallback(async (contactUserId: string) => {
-    if (!user) return;
-    await supabase.functions.invoke("contact-manage", {
+    if (!user) return { ok: false, error: "Not signed in" };
+    const { data, error } = await supabase.functions.invoke("contact-manage", {
       body: { action: "remove", contact_user_id: contactUserId },
     });
+    if (error || (data as { error?: string } | null)?.error) {
+      console.error("[useContacts] contact-manage remove failed", error ?? data);
+      toast.error("Couldn't remove contact. Please try again.");
+      // Callers announce "Contact removed" as soon as this resolves, so a failed
+      // delete has to reject rather than return quietly.
+      throw new Error(error?.message ?? "Could not remove contact");
+    }
     await refresh();
+    return { ok: true };
   }, [user, refresh]);
 
   const toggleFavorite = useCallback(async (contactUserId: string, favorite: boolean) => {
-    if (!user) return;
-    await supabase.functions.invoke("contact-manage", {
+    if (!user) return { ok: false, error: "Not signed in" };
+    const { data, error } = await supabase.functions.invoke("contact-manage", {
       body: { action: "favorite", contact_user_id: contactUserId, favorite },
     });
+    if (error || (data as { error?: string } | null)?.error) {
+      console.error("[useContacts] contact-manage favorite failed", error ?? data);
+      toast.error(favorite ? "Couldn't add to favorites." : "Couldn't remove from favorites.");
+      return { ok: false, error: error?.message ?? "Could not update favorite" };
+    }
     await refresh();
+    return { ok: true };
   }, [user, refresh]);
 
   const rename = useCallback(async (contactUserId: string, customName: string | null) => {
-    if (!user) return;
-    await supabase.functions.invoke("contact-manage", {
+    if (!user) return { ok: false, error: "Not signed in" };
+    const { data, error } = await supabase.functions.invoke("contact-manage", {
       body: { action: "rename", contact_user_id: contactUserId, custom_name: customName },
     });
+    if (error || (data as { error?: string } | null)?.error) {
+      console.error("[useContacts] contact-manage rename failed", error ?? data);
+      toast.error("Couldn't rename contact. Please try again.");
+      return { ok: false, error: error?.message ?? "Could not rename contact" };
+    }
     await refresh();
+    return { ok: true };
   }, [user, refresh]);
 
   return { contacts, loading, refresh, findByUsername, add, remove, toggleFavorite, rename };

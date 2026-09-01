@@ -31,14 +31,18 @@ function requireContains(id, text, value, relativePath) {
 function requireNotContains(id, text, value, relativePath) {
   checks += 1;
   if (text.includes(value)) {
-    failures.push(`${id}: ${relativePath} must not contain ${JSON.stringify(value)}`);
+    failures.push(
+      `${id}: ${relativePath} must not contain ${JSON.stringify(value)}`,
+    );
   }
 }
 
 function requireMissingFile(id, relativePath) {
   checks += 1;
   if (existsSync(path.join(root, relativePath))) {
-    failures.push(`${id}: ${relativePath} must be retired; use CanonicalRidePage and the shared ZIVO Ride app instead`);
+    failures.push(
+      `${id}: ${relativePath} must be retired; use CanonicalRidePage and the shared ZIVO Ride app instead`,
+    );
   }
 }
 
@@ -55,7 +59,9 @@ function requireOnlyAllowedFiles(id, relativeDir, allowedFiles) {
     .filter((file) => !/\.(test|spec)\.(ts|tsx)$/.test(file))
     .filter((file) => !allowed.has(file));
   if (extras.length > 0) {
-    failures.push(`${id}: ${relativeDir} contains retired local customer Ride components: ${extras.join(", ")}`);
+    failures.push(
+      `${id}: ${relativeDir} contains retired local customer Ride components: ${extras.join(", ")}`,
+    );
   }
 }
 
@@ -73,7 +79,9 @@ function requireOrdered(id, text, values, relativePath) {
   for (const value of values) {
     const next = text.indexOf(value, cursor + 1);
     if (next === -1) {
-      failures.push(`${id}: ${relativePath} must contain ${JSON.stringify(value)} after the preceding gate`);
+      failures.push(
+        `${id}: ${relativePath} must contain ${JSON.stringify(value)} after the preceding gate`,
+      );
       return;
     }
     cursor = next;
@@ -94,10 +102,30 @@ for (const relativePath of headerPaths) {
     "frame-src 'self' https://ride.zivosmedia.com",
     relativePath,
   );
-  requireNotContains("ride-frame-src-no-wildcard", text, "https://*.zivosmedia.com", relativePath);
-  requireNotContains("ride-frame-src-no-localhost", text, "http://localhost:*", relativePath);
-  requireNotContains("ride-policy-no-localhost", text, "http://localhost:5177", relativePath);
-  requireNotContains("ride-policy-no-loopback", text, "http://127.0.0.1:5177", relativePath);
+  requireNotContains(
+    "ride-frame-src-no-wildcard",
+    text,
+    "https://*.zivosmedia.com",
+    relativePath,
+  );
+  requireNotContains(
+    "ride-frame-src-no-localhost",
+    text,
+    "http://localhost:*",
+    relativePath,
+  );
+  requireNotContains(
+    "ride-policy-no-localhost",
+    text,
+    "http://localhost:5177",
+    relativePath,
+  );
+  requireNotContains(
+    "ride-policy-no-loopback",
+    text,
+    "http://127.0.0.1:5177",
+    relativePath,
+  );
   requireMatch(
     "ride-geolocation-delegation",
     text,
@@ -114,25 +142,55 @@ for (const relativePath of headerPaths) {
 
 const ridePagePath = "src/pages/app/CanonicalRidePage.tsx";
 const ridePage = source(ridePagePath);
-requireContains("iframe-permission-opt-in", ridePage, 'allow="geolocation; payment"', ridePagePath);
+requireContains(
+  "iframe-permission-opt-in",
+  ridePage,
+  'allow="geolocation; payment"',
+  ridePagePath,
+);
 requireContains(
   "iframe-referrer-policy",
   ridePage,
   'referrerPolicy="strict-origin-when-cross-origin"',
   ridePagePath,
 );
-requireContains("iframe-runtime-url-gate", ridePage, "resolveRideAppBaseUrl", ridePagePath);
-requireContains("iframe-runtime-authorize-gate", ridePage, "getRideAuthorizeUrl", ridePagePath);
-requireContains("iframe-account-generation-gate", ridePage, "isRideManageAccountRequest", ridePagePath);
-requireContains("iframe-account-parent-route", ridePage, 'navigate("/account/settings")', ridePagePath);
-requireContains("iframe-replaced-on-account-switch", ridePage, "key={rideUrl}", ridePagePath);
+requireContains(
+  "iframe-runtime-url-gate",
+  ridePage,
+  "resolveRideAppBaseUrl",
+  ridePagePath,
+);
+requireContains(
+  "iframe-runtime-authorize-gate",
+  ridePage,
+  "getRideAuthorizeUrl",
+  ridePagePath,
+);
+requireContains(
+  "iframe-account-generation-gate",
+  ridePage,
+  "isRideManageAccountRequest",
+  ridePagePath,
+);
+requireContains(
+  "iframe-account-parent-route",
+  ridePage,
+  'navigate("/account/settings")',
+  ridePagePath,
+);
+requireContains(
+  "iframe-replaced-on-account-switch",
+  ridePage,
+  "key={rideUrl}",
+  ridePagePath,
+);
 
 const appPath = "src/App.tsx";
 const app = source(appPath);
-requireContains(
+requireMatch(
   "rides-hub-route-canonical-frame",
   app,
-  '<Route path="/rides/hub" element={<ProtectedRoute><PhoneRequiredGate><CambodiaOnlyGate><CanonicalRidePage /></CambodiaOnlyGate></PhoneRequiredGate></ProtectedRoute>} />',
+  /<Route\s+path="\/rides\/hub"\s+element=\{\s*<ProtectedRoute>\s*<PhoneRequiredGate>\s*<CambodiaOnlyGate>\s*<CanonicalRidePage\s*\/>\s*<\/CambodiaOnlyGate>\s*<\/PhoneRequiredGate>\s*<\/ProtectedRoute>\s*\}\s*\/>/,
   appPath,
 );
 requireNotContains(
@@ -141,10 +199,10 @@ requireNotContains(
   'import("./pages/app/RideHubPage")',
   appPath,
 );
-requireContains(
+requireMatch(
   "request-ride-route-canonical-frame",
   app,
-  '<Route path="/app/request-ride" element={<ProtectedRoute><CambodiaOnlyGate><CanonicalRidePage /></CambodiaOnlyGate></ProtectedRoute>} />',
+  /<Route\s+path="\/app\/request-ride"\s+element=\{\s*<ProtectedRoute>\s*<CambodiaOnlyGate>\s*<CanonicalRidePage\s*\/>\s*<\/CambodiaOnlyGate>\s*<\/ProtectedRoute>\s*\}\s*\/>/,
   appPath,
 );
 requireNotContains(
@@ -153,10 +211,10 @@ requireNotContains(
   'import("./pages/app/RequestRidePage")',
   appPath,
 );
-requireContains(
+requireMatch(
   "multi-stop-route-canonical-frame",
   app,
-  '<Route path="/rides/multi-stop" element={<ProtectedRoute><PhoneRequiredGate><CambodiaOnlyGate><CanonicalRidePage /></CambodiaOnlyGate></PhoneRequiredGate></ProtectedRoute>} />',
+  /<Route\s+path="\/rides\/multi-stop"\s+element=\{\s*<ProtectedRoute>\s*<PhoneRequiredGate>\s*<CambodiaOnlyGate>\s*<CanonicalRidePage\s*\/>\s*<\/CambodiaOnlyGate>\s*<\/PhoneRequiredGate>\s*<\/ProtectedRoute>\s*\}\s*\/>/,
   appPath,
 );
 requireNotContains(
@@ -165,10 +223,10 @@ requireNotContains(
   'import("./pages/MultiStopRideBuilder")',
   appPath,
 );
-requireContains(
+requireMatch(
   "legacy-tracking-route-canonical-frame",
   app,
-  '<Route path="/rides/track/:tripId" element={<ProtectedRoute><PhoneRequiredGate><CambodiaOnlyGate><CanonicalRidePage /></CambodiaOnlyGate></PhoneRequiredGate></ProtectedRoute>} />',
+  /<Route\s+path="\/rides\/track\/:tripId"\s+element=\{\s*<ProtectedRoute>\s*<PhoneRequiredGate>\s*<CambodiaOnlyGate>\s*<CanonicalRidePage\s*\/>\s*<\/CambodiaOnlyGate>\s*<\/PhoneRequiredGate>\s*<\/ProtectedRoute>\s*\}\s*\/>/,
   appPath,
 );
 requireNotContains(
@@ -177,10 +235,10 @@ requireNotContains(
   'import("./pages/app/RideTrackingPage")',
   appPath,
 );
-requireContains(
+requireMatch(
   "legacy-quotes-route-canonical-frame",
   app,
-  '<Route path="/ride-quotes" element={<ProtectedRoute><CanonicalRidePage /></ProtectedRoute>} />',
+  /<Route\s+path="\/ride-quotes"\s+element=\{\s*<ProtectedRoute>\s*<CanonicalRidePage\s*\/>\s*<\/ProtectedRoute>\s*\}\s*\/>/,
   appPath,
 );
 requireNotContains(
@@ -198,14 +256,21 @@ for (const relativePath of [
   "src/pages/RideQuotesPage.tsx",
   "src/hooks/useMultiLegQueue.ts",
 ]) {
-  requireMissingFile(`retired-local-customer-ride:${relativePath}`, relativePath);
+  requireMissingFile(
+    `retired-local-customer-ride:${relativePath}`,
+    relativePath,
+  );
 }
-requireOnlyAllowedFiles("ride-components-no-local-customer-ui", "src/components/rides", [
-  "DriverEnRouteTracker.tsx",
-  "InTripCallButton.tsx",
-  "TripChatFab.tsx",
-  "TripChatSheet.tsx",
-]);
+requireOnlyAllowedFiles(
+  "ride-components-no-local-customer-ui",
+  "src/components/rides",
+  [
+    "DriverEnRouteTracker.tsx",
+    "InTripCallButton.tsx",
+    "TripChatFab.tsx",
+    "TripChatSheet.tsx",
+  ],
+);
 
 const routePrefetcherPath = "src/components/shared/RoutePrefetcher.tsx";
 const routePrefetcher = source(routePrefetcherPath);
@@ -218,7 +283,12 @@ for (const required of [
   '"/ride-quotes": "@/pages/app/CanonicalRidePage"',
   'if (path.startsWith("/rides/track/")) return "/rides/track/:tripId"',
 ]) {
-  requireContains(`ride-prefetch:${required}`, routePrefetcher, required, routePrefetcherPath);
+  requireContains(
+    `ride-prefetch:${required}`,
+    routePrefetcher,
+    required,
+    routePrefetcherPath,
+  );
 }
 
 const serviceWorkerPath = "src/sw.js";
@@ -235,28 +305,93 @@ requireContains(
   "urlToOpen = '/rides/hub?ride_path=%2Fhistory'",
   serviceWorkerPath,
 );
-requireContains("ride-sw-wallet-real-route", serviceWorker, "urlToOpen = '/wallet'", serviceWorkerPath);
-requireContains("ride-sw-rewards-real-route", serviceWorker, "urlToOpen = '/rewards'", serviceWorkerPath);
-requireNotContains("ride-sw-no-legacy-tracking-tab", serviceWorker, "/rides/hub?tab=tracking", serviceWorkerPath);
-requireNotContains("ride-sw-no-legacy-history-tab", serviceWorker, "/rides/hub?tab=history", serviceWorkerPath);
-requireNotContains("ride-sw-no-legacy-wallet-tab", serviceWorker, "/rides/hub?tab=wallet", serviceWorkerPath);
-requireNotContains("ride-sw-no-legacy-loyalty-tab", serviceWorker, "/rides/hub?tab=loyalty", serviceWorkerPath);
+requireContains(
+  "ride-sw-wallet-real-route",
+  serviceWorker,
+  "urlToOpen = '/wallet'",
+  serviceWorkerPath,
+);
+requireContains(
+  "ride-sw-rewards-real-route",
+  serviceWorker,
+  "urlToOpen = '/rewards'",
+  serviceWorkerPath,
+);
+requireNotContains(
+  "ride-sw-no-legacy-tracking-tab",
+  serviceWorker,
+  "/rides/hub?tab=tracking",
+  serviceWorkerPath,
+);
+requireNotContains(
+  "ride-sw-no-legacy-history-tab",
+  serviceWorker,
+  "/rides/hub?tab=history",
+  serviceWorkerPath,
+);
+requireNotContains(
+  "ride-sw-no-legacy-wallet-tab",
+  serviceWorker,
+  "/rides/hub?tab=wallet",
+  serviceWorkerPath,
+);
+requireNotContains(
+  "ride-sw-no-legacy-loyalty-tab",
+  serviceWorker,
+  "/rides/hub?tab=loyalty",
+  serviceWorkerPath,
+);
 
 const servicesPagePath = "src/pages/app/ServicesPage.tsx";
 const servicesPage = source(servicesPagePath);
-requireContains("ride-reserve-marked-coming-soon", servicesPage, 'id: "ride-reserve"', servicesPagePath);
-requireContains("ride-reserve-no-fake-schedule", servicesPage, "comingSoon: true", servicesPagePath);
-requireNotContains("ride-services-no-dead-reserve-tab", servicesPage, "/rides/hub?tab=reserve", servicesPagePath);
+requireContains(
+  "ride-reserve-marked-coming-soon",
+  servicesPage,
+  'id: "ride-reserve"',
+  servicesPagePath,
+);
+requireContains(
+  "ride-reserve-no-fake-schedule",
+  servicesPage,
+  "comingSoon: true",
+  servicesPagePath,
+);
+requireNotContains(
+  "ride-services-no-dead-reserve-tab",
+  servicesPage,
+  "/rides/hub?tab=reserve",
+  servicesPagePath,
+);
 
 const hotelResortDetailPath = "src/pages/lodging/HotelResortDetailPage.tsx";
 const hotelResortDetail = source(hotelResortDetailPath);
-requireContains("ride-lodging-direct-booking-destination", hotelResortDetail, "/rides/hub?destination=", hotelResortDetailPath);
-requireNotContains("ride-lodging-no-legacy-book-tab", hotelResortDetail, "/rides/hub?tab=book", hotelResortDetailPath);
+requireContains(
+  "ride-lodging-direct-booking-destination",
+  hotelResortDetail,
+  "/rides/hub?destination=",
+  hotelResortDetailPath,
+);
+requireNotContains(
+  "ride-lodging-no-legacy-book-tab",
+  hotelResortDetail,
+  "/rides/hub?tab=book",
+  hotelResortDetailPath,
+);
 
 const zivoMapHelperPath = "src/lib/maps/openInZivoMap.ts";
 const zivoMapHelper = source(zivoMapHelperPath);
-requireContains("ride-map-helper-direct-booking-destination", zivoMapHelper, "return `/rides/hub${search ? `?${search}` : \"\"}`;", zivoMapHelperPath);
-requireNotContains("ride-map-helper-no-legacy-book-tab", zivoMapHelper, "tab=book", zivoMapHelperPath);
+requireContains(
+  "ride-map-helper-direct-booking-destination",
+  zivoMapHelper,
+  'return `/rides/hub${search ? `?${search}` : ""}`;',
+  zivoMapHelperPath,
+);
+requireNotContains(
+  "ride-map-helper-no-legacy-book-tab",
+  zivoMapHelper,
+  "tab=book",
+  zivoMapHelperPath,
+);
 
 const runtimeBoundaryPath = "src/lib/zivoRideProductionBoundary.ts";
 const runtimeBoundary = source(runtimeBoundaryPath);
@@ -266,13 +401,48 @@ requireContains(
   'ZIVO_RIDE_PRODUCTION_ORIGIN = "https://ride.zivosmedia.com"',
   runtimeBoundaryPath,
 );
-requireContains("runtime-no-url-credentials", runtimeBoundary, "url.username || url.password", runtimeBoundaryPath);
-requireContains("runtime-no-ambient-state", runtimeBoundary, "url.search || url.hash", runtimeBoundaryPath);
-requireContains("runtime-exact-authority", runtimeBoundary, '"https://zivosmedia.com"', runtimeBoundaryPath);
-requireContains("runtime-exact-app-key", runtimeBoundary, 'appKey !== "zivo_ride"', runtimeBoundaryPath);
-requireContains("runtime-pkce-s256", runtimeBoundary, 'challengeMethod !== "S256"', runtimeBoundaryPath);
-requireContains("runtime-exact-callback", runtimeBoundary, 'redirect.pathname !== "/auth/callback"', runtimeBoundaryPath);
-requireNotContains("runtime-no-subdomain-suffix-trust", runtimeBoundary, 'endsWith(".zivosmedia.com")', runtimeBoundaryPath);
+requireContains(
+  "runtime-no-url-credentials",
+  runtimeBoundary,
+  "url.username || url.password",
+  runtimeBoundaryPath,
+);
+requireContains(
+  "runtime-no-ambient-state",
+  runtimeBoundary,
+  "url.search || url.hash",
+  runtimeBoundaryPath,
+);
+requireContains(
+  "runtime-exact-authority",
+  runtimeBoundary,
+  '"https://zivosmedia.com"',
+  runtimeBoundaryPath,
+);
+requireContains(
+  "runtime-exact-app-key",
+  runtimeBoundary,
+  'appKey !== "zivo_ride"',
+  runtimeBoundaryPath,
+);
+requireContains(
+  "runtime-pkce-s256",
+  runtimeBoundary,
+  'challengeMethod !== "S256"',
+  runtimeBoundaryPath,
+);
+requireContains(
+  "runtime-exact-callback",
+  runtimeBoundary,
+  'redirect.pathname !== "/auth/callback"',
+  runtimeBoundaryPath,
+);
+requireNotContains(
+  "runtime-no-subdomain-suffix-trust",
+  runtimeBoundary,
+  'endsWith(".zivosmedia.com")',
+  runtimeBoundaryPath,
+);
 
 const preflightPath = "scripts/deploy/env-preflight.mjs";
 const preflight = source(preflightPath);
@@ -303,14 +473,24 @@ for (const forbidden of [
   'pattern = "www.zivodriver.com/*"',
   'zone_name = "zivodriver.com"',
 ]) {
-  requireNotContains(`zivodriver-dedicated-deploy:${forbidden}`, wrangler, forbidden, wranglerPath);
+  requireNotContains(
+    `zivodriver-dedicated-deploy:${forbidden}`,
+    wrangler,
+    forbidden,
+    wranglerPath,
+  );
 }
 for (const forbidden of [
   'pattern = "admin.zivosmedia.com/*"',
   'pattern = "zivoadmin.com/*"',
   'pattern = "www.zivoadmin.com/*"',
 ]) {
-  requireNotContains(`zivo-admin-dedicated-deploy:${forbidden}`, wrangler, forbidden, wranglerPath);
+  requireNotContains(
+    `zivo-admin-dedicated-deploy:${forbidden}`,
+    wrangler,
+    forbidden,
+    wranglerPath,
+  );
 }
 requireContains(
   "zivodriver-dedicated-deploy-note",
@@ -328,10 +508,29 @@ const workerSourcePath = "cloudflare/worker.ts";
 const workerSource = source(workerSourcePath);
 const devVarsPath = "cloudflare/.dev.vars.example";
 const devVars = source(devVarsPath);
-for (const required of ["https://admin.zivosmedia.com", "https://zivoadmin.com", "https://www.zivoadmin.com"]) {
-  requireContains(`zivo-admin-allowed-origin-wrangler:${required}`, wrangler, required, wranglerPath);
-  requireContains(`zivo-admin-allowed-origin-worker:${required}`, workerSource, required, workerSourcePath);
-  requireContains(`zivo-admin-allowed-origin-dev-vars:${required}`, devVars, required, devVarsPath);
+for (const required of [
+  "https://admin.zivosmedia.com",
+  "https://zivoadmin.com",
+  "https://www.zivoadmin.com",
+]) {
+  requireContains(
+    `zivo-admin-allowed-origin-wrangler:${required}`,
+    wrangler,
+    required,
+    wranglerPath,
+  );
+  requireContains(
+    `zivo-admin-allowed-origin-worker:${required}`,
+    workerSource,
+    required,
+    workerSourcePath,
+  );
+  requireContains(
+    `zivo-admin-allowed-origin-dev-vars:${required}`,
+    devVars,
+    required,
+    devVarsPath,
+  );
 }
 requireContains(
   "zivo-admin-dedicated-deploy-note",
@@ -340,7 +539,8 @@ requireContains(
   wranglerPath,
 );
 
-const migrationPath = "supabase/migrations/20260722192749_zivo_ride_sso_integration.sql";
+const migrationPath =
+  "supabase/migrations/20260722192749_zivo_ride_sso_integration.sql";
 const migration = source(migrationPath);
 for (const required of [
   "'zivo_ride'",
@@ -352,7 +552,12 @@ for (const required of [
   "client_secret_hash is not null",
   "client_secret_hash ~ '^[0-9a-f]{64}$'",
 ]) {
-  requireContains(`sso-migration:${required}`, migration, required, migrationPath);
+  requireContains(
+    `sso-migration:${required}`,
+    migration,
+    required,
+    migrationPath,
+  );
 }
 requireMatch(
   "sso-migration-seeds-disabled",
@@ -366,12 +571,20 @@ requireMatch(
   /insert into public\.app_integrations\s*\(([^)]*)\)/s,
   migrationPath,
 );
-const insertColumns = migration.match(/insert into public\.app_integrations\s*\(([^)]*)\)/s)?.[1] ?? "";
-requireNotContains("sso-migration-no-secret-column", insertColumns, "client_secret_hash", migrationPath);
+const insertColumns =
+  migration.match(/insert into public\.app_integrations\s*\(([^)]*)\)/s)?.[1] ??
+  "";
+requireNotContains(
+  "sso-migration-no-secret-column",
+  insertColumns,
+  "client_secret_hash",
+  migrationPath,
+);
 
 const issuePath = "supabase/functions/zivosmedia-auth-issue-code/index.ts";
 const issueFunction = source(issuePath);
-const validatePath = "supabase/functions/zivosmedia-auth-validate-code/index.ts";
+const validatePath =
+  "supabase/functions/zivosmedia-auth-validate-code/index.ts";
 const validateFunction = source(validatePath);
 const sharedAuthPath = "supabase/functions/_shared/zivosmediaAuth.ts";
 const sharedAuth = source(sharedAuthPath);
@@ -379,14 +592,49 @@ for (const [relativePath, text] of [
   [issuePath, issueFunction],
   [validatePath, validateFunction],
 ]) {
-  requireContains("sso-enabled-boolean-gate", text, 'app.enabled !== true', relativePath);
-  requireContains("sso-enabled-status-gate", text, 'app.status !== "enabled"', relativePath);
+  requireContains(
+    "sso-enabled-boolean-gate",
+    text,
+    "app.enabled !== true",
+    relativePath,
+  );
+  requireContains(
+    "sso-enabled-status-gate",
+    text,
+    'app.status !== "enabled"',
+    relativePath,
+  );
 }
-requireContains("sso-validates-client-secret", validateFunction, "verifyClientSecret", validatePath);
-requireContains("sso-consumes-code-atomically", validateFunction, '.is("used_at", null)', validatePath);
-requireContains("sso-rejects-consume-race", validateFunction, "!consumedCode", validatePath);
-requireContains("sso-secret-sha256", sharedAuth, "return sha256Hex(secret)", sharedAuthPath);
-requireContains("sso-secret-timing-safe", sharedAuth, "timingSafeEqual", sharedAuthPath);
+requireContains(
+  "sso-validates-client-secret",
+  validateFunction,
+  "verifyClientSecret",
+  validatePath,
+);
+requireContains(
+  "sso-consumes-code-atomically",
+  validateFunction,
+  '.is("used_at", null)',
+  validatePath,
+);
+requireContains(
+  "sso-rejects-consume-race",
+  validateFunction,
+  "!consumedCode",
+  validatePath,
+);
+requireContains(
+  "sso-secret-sha256",
+  sharedAuth,
+  "return sha256Hex(secret)",
+  sharedAuthPath,
+);
+requireContains(
+  "sso-secret-timing-safe",
+  sharedAuth,
+  "timingSafeEqual",
+  sharedAuthPath,
+);
 
 const configPath = "supabase/config.toml";
 const config = source(configPath);
@@ -405,13 +653,19 @@ requireMatch(
 
 const productionWorkflowPath = ".github/workflows/deploy-production.yml";
 const productionWorkflow = source(productionWorkflowPath);
-const cloudflareWorkflowPath = ".github/workflows/deploy-cloudflare-production.yml";
+const cloudflareWorkflowPath =
+  ".github/workflows/deploy-cloudflare-production.yml";
 const cloudflareWorkflow = source(cloudflareWorkflowPath);
 for (const [relativePath, text] of [
   [productionWorkflowPath, productionWorkflow],
   [cloudflareWorkflowPath, cloudflareWorkflow],
 ]) {
-  requireContains("workflow-ride-secret", text, "secrets.VITE_ZIVO_RIDE_APP_URL", relativePath);
+  requireContains(
+    "workflow-ride-secret",
+    text,
+    "secrets.VITE_ZIVO_RIDE_APP_URL",
+    relativePath,
+  );
   requireContains(
     "workflow-boundary-contract",
     text,
@@ -430,7 +684,12 @@ for (const [relativePath, text] of [
     "npm run release:production-gate",
     relativePath,
   );
-  requireNotContains("workflow-no-soft-fail", text, "continue-on-error: true", relativePath);
+  requireNotContains(
+    "workflow-no-soft-fail",
+    text,
+    "continue-on-error: true",
+    relativePath,
+  );
   requireOrdered(
     "workflow-production-gate-order",
     text,
@@ -505,8 +764,18 @@ requireNotContains(
 
 const packagePath = "package.json";
 const packageJson = source(packagePath);
-requireContains("package-boundary-command", packageJson, '"qa:zivo-ride-production-boundary"', packagePath);
-requireContains("package-update-gate", packageJson, "npm run qa:zivo-ride-production-boundary", packagePath);
+requireContains(
+  "package-boundary-command",
+  packageJson,
+  '"qa:zivo-ride-production-boundary"',
+  packagePath,
+);
+requireContains(
+  "package-update-gate",
+  packageJson,
+  "npm run qa:zivo-ride-production-boundary",
+  packagePath,
+);
 const packageScripts = JSON.parse(packageJson).scripts ?? {};
 requireContains(
   "package-cloudflare-publish-command",
@@ -529,14 +798,39 @@ requireOrdered(
 
 const deployInventoryPath = "scripts/qa/edge-function-deploy-contracts.mjs";
 const deployInventory = source(deployInventoryPath);
-requireContains("deploy-inventory-issue-code", deployInventory, 'slug: "zivosmedia-auth-issue-code"', deployInventoryPath);
-requireContains("deploy-inventory-validate-code", deployInventory, 'slug: "zivosmedia-auth-validate-code"', deployInventoryPath);
+requireContains(
+  "deploy-inventory-issue-code",
+  deployInventory,
+  'slug: "zivosmedia-auth-issue-code"',
+  deployInventoryPath,
+);
+requireContains(
+  "deploy-inventory-validate-code",
+  deployInventory,
+  'slug: "zivosmedia-auth-validate-code"',
+  deployInventoryPath,
+);
 
 const runbookPath = "docs/zivo-sso-provisioning-runbook.md";
 const runbook = source(runbookPath);
-requireContains("runbook-ride-secret", runbook, "ZIVO_RIDE_AUTH_CLIENT_SECRET", runbookPath);
-requireContains("runbook-hash-only", runbook, "encode(digest('<same-fresh-random-secret>', 'sha256'), 'hex')", runbookPath);
-requireContains("runbook-ride-enable", runbook, "where app_key = 'zivo_ride'", runbookPath);
+requireContains(
+  "runbook-ride-secret",
+  runbook,
+  "ZIVO_RIDE_AUTH_CLIENT_SECRET",
+  runbookPath,
+);
+requireContains(
+  "runbook-hash-only",
+  runbook,
+  "encode(digest('<same-fresh-random-secret>', 'sha256'), 'hex')",
+  runbookPath,
+);
+requireContains(
+  "runbook-ride-enable",
+  runbook,
+  "where app_key = 'zivo_ride'",
+  runbookPath,
+);
 
 const report = {
   generated: new Date().toISOString(),

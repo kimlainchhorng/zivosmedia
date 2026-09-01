@@ -371,6 +371,34 @@ const SearchHero = ({
 
 // ─── Main component ──────────────────────────────────────────────
 
+const BusSearchButton = ({
+  searching,
+  label,
+  onSearch,
+}: {
+  searching: boolean;
+  label: string;
+  onSearch: () => void;
+}) => (
+  <Button
+    onClick={onSearch}
+    disabled={searching}
+    className="h-13 w-full rounded-2xl text-base font-black tracking-tight shadow-[0_4px_20px_hsl(var(--primary)/0.35)] sm:h-14"
+  >
+    {searching ? (
+      <span className="flex items-center gap-2">
+        <motion.span
+          animate={{ rotate: 360 }}
+          transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+          className="block h-4 w-4 rounded-full border-2 border-primary-foreground/40 border-t-primary-foreground"
+          aria-hidden
+        />
+        Searching…
+      </span>
+    ) : label}
+  </Button>
+);
+
 export default function BusBookingPage() {
   const navigate = useNavigate();
   const { t, locale } = useI18n();
@@ -880,24 +908,15 @@ export default function BusBookingPage() {
                     </div>
 
                     {/* Search CTA */}
-                    <div>
-                      <Button
-                        onClick={runSearch}
-                        disabled={searching}
-                        className="h-13 w-full rounded-2xl text-base font-black tracking-tight shadow-[0_4px_20px_hsl(var(--primary)/0.35)] sm:h-14"
-                      >
-                        {searching ? (
-                          <span className="flex items-center gap-2">
-                            <motion.span
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-                              className="block h-4 w-4 rounded-full border-2 border-primary-foreground/40 border-t-primary-foreground"
-                              aria-hidden
-                            />
-                            Searching…
-                          </span>
-                        ) : t("bus.search")}
-                      </Button>
+                    <div
+                      data-testid="bus-search-cta-desktop"
+                      className="hidden lg:block"
+                    >
+                      <BusSearchButton
+                        searching={searching}
+                        label={t("bus.search")}
+                        onSearch={runSearch}
+                      />
                     </div>
 
                     {/* Popular routes */}
@@ -1582,6 +1601,19 @@ export default function BusBookingPage() {
             </motion.div>
           </AnimatePresence>
         </PageTransition>
+
+        {step === "search" && (
+          <div
+            data-testid="bus-search-cta"
+            className="fixed inset-x-3 bottom-[calc(var(--zivo-mobile-nav-h,68px)+var(--zivo-safe-bottom,0px)+1.75rem)] z-[1390] mx-auto max-w-lg rounded-2xl bg-background/95 p-1 shadow-[0_8px_28px_rgba(15,23,42,0.16)] backdrop-blur-xl lg:hidden"
+          >
+            <BusSearchButton
+              searching={searching}
+              label={t("bus.search")}
+              onSearch={runSearch}
+            />
+          </div>
+        )}
 
         {/* KHQR / ABA PayWay QR payment */}
         <KHQRPaymentModal

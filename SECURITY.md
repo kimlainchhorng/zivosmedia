@@ -5,7 +5,7 @@
 - **Monthly review**: All npm and Deno dependencies are reviewed monthly for security patches.
 - **CI supply chain**: All remote GitHub Actions are pinned to immutable commits, checkout credentials are not persisted, and `npm run security:check-workflow-actions` blocks mutable refs across every workflow.
 - **CORS boundaries**: `npm run security:check-cors-boundaries` blocks Edge Functions from importing legacy origin-reflecting CORS helpers, using wildcard origins, or bypassing the validated headers supplied by `withSecurity()`.
-- **Supplier portal boundary**: third-party supplier HTML is not executed inside the Admin origin; the UI uses an allowlisted HTTPS external-tab flow with explicit credential copy. The dormant proxy is JWT-protected and its message contract remains origin-pinned for any future isolated embed work.
+- **Supplier portal boundary**: third-party supplier HTML is not fetched through ZIVO or executed inside the Admin origin. The UI opens validated HTTPS supplier pages in their own tab with explicit credential copy. The legacy `supplier-proxy` slug is an authenticated, non-forwarding `410 Gone` compatibility tombstone while unknown-call monitoring completes.
 - **Campaign email HTML**: salon campaign bodies are reduced to an allowlisted formatting set; links are limited to HTTP(S)/mailto protocols, with arbitrary attributes and unsafe unsubscribe URLs removed before rendering.
 - **Edge function pinning**: All edge functions import from `supabase/functions/_shared/deps.ts` with pinned versions.
 - **Stripe API version**: Standardized to `2025-08-27.basil` across all functions.
@@ -65,6 +65,7 @@ Two-layer defense against phishing/scam links posted in user-generated content (
 - **88 unit tests** across 5 files cover URL-safety rules, content scan, lodging count aggregation, bot UA detection, and IP-helper hashing/header parsing.
 
 Each of the 11 protected endpoints layers all 4 server-side gates in this order: `bot-UA → ip-abuse → user-abuse → content-scan`. The first check that fails returns immediately; clean requests fall through to normal processing.
+
 - **Tests**: 47 unit tests in `src/lib/urlSafety.test.ts` + `src/lib/security/contentLinkValidation.test.ts` cover every rule. Visible demo at `/security-test`.
 
 ## Photo upload privacy (2026-04-30)
@@ -90,6 +91,7 @@ Sensitive endpoints now require an AAL2 session (TOTP-completed). Enforcement po
     await invokeSensitive("process-withdrawal", { body }, ensureAal2);
   }
   ```
+
 - **Auto-retry**: `invokeSensitive(fn, opts, ensureAal2)` in `src/lib/security/sensitiveInvoke.ts` detects `mfa_required` 403s, prompts for the code, and retries on success.
 
 ## GDPR Compliance (2026-04-29)
@@ -108,10 +110,10 @@ Sensitive endpoints now require an AAL2 session (TOTP-completed). Enforcement po
 
 The mobile pins shipped in this release are real, computed against the live hosts:
 
-| Host                                | Primary (leaf SPKI)                              | Backup (intermediate SPKI)                       |
-|-------------------------------------|--------------------------------------------------|--------------------------------------------------|
-| `slirphzzwcogdbkeicff.supabase.co`  | `GU2W4j1P24T3sqlI+o6YTnidzz0PI8fB/Gvd2ITfSZE=`   | `kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=`   |
-| `api.stripe.com`                    | `xUUBOliw6Rgb7It2YbiSOg0ifTHlP3Lv6MXMkw//uLM=`   | `Ld64SpoeXjpLjc+/7Wahk6p5+KVyzVSUptciuWsyxeY=`   |
+| Host                               | Primary (leaf SPKI)                            | Backup (intermediate SPKI)                     |
+| ---------------------------------- | ---------------------------------------------- | ---------------------------------------------- |
+| `slirphzzwcogdbkeicff.supabase.co` | `GU2W4j1P24T3sqlI+o6YTnidzz0PI8fB/Gvd2ITfSZE=` | `kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=` |
+| `api.stripe.com`                   | `xUUBOliw6Rgb7It2YbiSOg0ifTHlP3Lv6MXMkw//uLM=` | `Ld64SpoeXjpLjc+/7Wahk6p5+KVyzVSUptciuWsyxeY=` |
 
 Refresh with `scripts/security/compute-spki-pin.sh` before each mobile release. Pins expire `2027-04-29` per the `pin-set` declaration.
 
@@ -149,6 +151,7 @@ the social graph and group membership.
 ## Mobile TLS Pinning (2026-04-29)
 
 ### Android
+
 - `android/app/src/main/AndroidManifest.xml`:
   - `android:usesCleartextTraffic="false"`
   - `android:allowBackup="false"` + `android:fullBackupContent="false"`
@@ -162,6 +165,7 @@ the social graph and group membership.
   - Pins expire `2027-04-29` — rotate before that date.
 
 ### iOS
+
 - `ios/App/App/Info.plist` (`NSAppTransportSecurity`):
   - `NSAllowsArbitraryLoads = false`
   - `NSAllowsArbitraryLoadsForMedia = false`
@@ -169,6 +173,7 @@ the social graph and group membership.
   - `NSPinnedDomains` for `supabase.co` and `stripe.com` with the same SPKI hashes
 
 ### Pin maintenance
+
 Use `scripts/security/compute-spki-pin.sh <hostname>` to compute or refresh
 pins. Always ship with primary + backup pins; the backup is what keeps the app
 working when the leaf certificate rotates.

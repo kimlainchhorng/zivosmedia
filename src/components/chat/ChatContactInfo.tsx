@@ -280,6 +280,28 @@ export default function ChatContactInfo({
     navigate(`/user/${recipientId}`);
   };
 
+  const saveThreadSetting = async (
+    persist: () => Promise<void>,
+    updateLocal: (() => void) | undefined,
+    successMessage: string,
+  ) => {
+    if (!user?.id) {
+      toast.error("Sign in to change chat settings.");
+      return false;
+    }
+
+    try {
+      await persist();
+      updateLocal?.();
+      toast.success(successMessage);
+      return true;
+    } catch {
+      // useThreadSettings already restores its optimistic state and shows the
+      // actionable error. Do not announce success or leave local prefs changed.
+      return false;
+    }
+  };
+
   const handleBlock = () => {
     toast.info(`Block ${recipientName}?`, {
       description: "Conversation will also be archived and muted.",
@@ -296,9 +318,9 @@ export default function ChatContactInfo({
           }
           // Defensive UX: hide the conversation and silence pings on block.
           try {
+            await Promise.all([archive(threadId), mute(threadId, 0)]);
             if (!localPrefs.isArchived(recipientId)) localPrefs.toggleArchive(recipientId);
             if (!localPrefs.isMuted(recipientId)) localPrefs.toggleMute(recipientId);
-            await Promise.all([archive(threadId), mute(threadId, 0)]);
           } catch { /* non-fatal; block already succeeded */ }
           toast.success(`${recipientName} blocked`);
         },
@@ -663,15 +685,23 @@ export default function ChatContactInfo({
             <SectionButton
               icon={Pin}
               label={pinned ? "Unpin Conversation" : "Pin Conversation"}
-              onClick={async () => {
+              onClick={() => {
                 if (pinned) {
-                  if (localPrefs.isPinned(recipientId)) localPrefs.togglePin(recipientId);
-                  await unpin(threadId);
-                  toast.success("Conversation unpinned");
+                  void saveThreadSetting(
+                    () => unpin(threadId),
+                    localPrefs.isPinned(recipientId)
+                      ? () => localPrefs.togglePin(recipientId)
+                      : undefined,
+                    "Conversation unpinned",
+                  );
                 } else {
-                  if (!localPrefs.isPinned(recipientId)) localPrefs.togglePin(recipientId);
-                  await pin(threadId);
-                  toast.success("Pinned to top");
+                  void saveThreadSetting(
+                    () => pin(threadId),
+                    !localPrefs.isPinned(recipientId)
+                      ? () => localPrefs.togglePin(recipientId)
+                      : undefined,
+                    "Pinned to top",
+                  );
                 }
               }}
             />
@@ -687,15 +717,23 @@ export default function ChatContactInfo({
             <SectionButton
               icon={Archive}
               label={archived ? "Unarchive Conversation" : "Archive Conversation"}
-              onClick={async () => {
+              onClick={() => {
                 if (archived) {
-                  if (localPrefs.isArchived(recipientId)) localPrefs.toggleArchive(recipientId);
-                  await unarchive(threadId);
-                  toast.success("Restored from archive");
+                  void saveThreadSetting(
+                    () => unarchive(threadId),
+                    localPrefs.isArchived(recipientId)
+                      ? () => localPrefs.toggleArchive(recipientId)
+                      : undefined,
+                    "Restored from archive",
+                  );
                 } else {
-                  if (!localPrefs.isArchived(recipientId)) localPrefs.toggleArchive(recipientId);
-                  await archive(threadId);
-                  toast.success("Conversation archived");
+                  void saveThreadSetting(
+                    () => archive(threadId),
+                    !localPrefs.isArchived(recipientId)
+                      ? () => localPrefs.toggleArchive(recipientId)
+                      : undefined,
+                    "Conversation archived",
+                  );
                 }
               }}
             />
@@ -742,15 +780,26 @@ export default function ChatContactInfo({
               onClose={() => setShowMuteSheet(false)}
               isMuted={muted}
               threadName={recipientName}
-              onPick={async (hours) => {
+              onPick={(hours) => {
                 if (hours < 0) {
-                  if (localPrefs.isMuted(recipientId)) localPrefs.toggleMute(recipientId);
-                  await mute(threadId, -1);
-                  toast.success("Unmuted");
+                  void saveThreadSetting(
+                    () => mute(threadId, -1),
+                    localPrefs.isMuted(recipientId)
+                      ? () => localPrefs.toggleMute(recipientId)
+                      : undefined,
+                    "Unmuted",
+                  );
                 } else {
-                  if (!localPrefs.isMuted(recipientId)) localPrefs.toggleMute(recipientId);
-                  await mute(threadId, hours);
-                  toast.success(hours === 0 ? "Muted forever" : `Muted for ${hours < 24 ? `${hours}h` : hours === 24 ? "1 day" : `${hours / 24} days`}`);
+                  const successMessage = hours === 0
+                    ? "Muted forever"
+                    : `Muted for ${hours < 24 ? `${hours}h` : hours === 24 ? "1 day" : `${hours / 24} days`}`;
+                  void saveThreadSetting(
+                    () => mute(threadId, hours),
+                    !localPrefs.isMuted(recipientId)
+                      ? () => localPrefs.toggleMute(recipientId)
+                      : undefined,
+                    successMessage,
+                  );
                 }
               }}
             />
@@ -762,9 +811,12 @@ export default function ChatContactInfo({
                 {(["all", "mentions", "none"] as const).map((m) => (
                   <button type="button"
                     key={m}
-                    onClick={async () => {
-                      await setMode(threadId, m);
-                      toast.success(m === "all" ? "All messages" : m === "mentions" ? "Mentions only" : "Silenced");
+                    onClick={() => {
+                      void saveThreadSetting(
+                        () => setMode(threadId, m),
+                        undefined,
+                        m === "all" ? "All messages" : m === "mentions" ? "Mentions only" : "Silenced",
+                      );
                     }}
                     className={`px-2.5 py-1 rounded-full text-[10.5px] font-black transition-all ${
                       notifMode === m

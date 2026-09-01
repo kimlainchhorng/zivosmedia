@@ -20,6 +20,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import SEOHead from "@/components/SEOHead";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
+import { useAuth } from "@/contexts/AuthContext";
 
 /* ─── Wellness Store (localStorage) ─── */
 interface WellnessDay {
@@ -37,11 +38,13 @@ function todayKey() {
   return new Date().toISOString().split("T")[0];
 }
 
-function loadDay(): WellnessDay {
-  try {
-    const raw = localStorage.getItem(`wellness_day_${todayKey()}`);
-    if (raw) return JSON.parse(raw);
-  } catch {}
+const WELLNESS_STORAGE_PREFIX = "zivo:wellness:v1";
+
+function wellnessStorageKey(userId: string, suffix: string) {
+  return `${WELLNESS_STORAGE_PREFIX}:${userId}:${suffix}`;
+}
+
+function emptyWellnessDay(): WellnessDay {
   return {
     date: todayKey(),
     steps: 0,
@@ -54,20 +57,42 @@ function loadDay(): WellnessDay {
   };
 }
 
-function saveDay(day: WellnessDay) {
-  localStorage.setItem(`wellness_day_${day.date}`, JSON.stringify(day));
+function loadDay(userId: string): WellnessDay {
+  try {
+    const raw = localStorage.getItem(
+      wellnessStorageKey(userId, `day:${todayKey()}`),
+    );
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return emptyWellnessDay();
+}
+
+function saveDay(userId: string, day: WellnessDay) {
+  localStorage.setItem(
+    wellnessStorageKey(userId, `day:${day.date}`),
+    JSON.stringify(day),
+  );
 }
 
 function useWellnessDay() {
-  const [day, setDay] = useState<WellnessDay>(loadDay);
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+  const [day, setDay] = useState<WellnessDay>(() =>
+    userId ? loadDay(userId) : emptyWellnessDay(),
+  );
+
+  useEffect(() => {
+    setDay(userId ? loadDay(userId) : emptyWellnessDay());
+  }, [userId]);
 
   const update = useCallback((patch: Partial<WellnessDay>) => {
+    if (!userId) return;
     setDay((prev) => {
       const next = { ...prev, ...patch };
-      saveDay(next);
+      saveDay(userId, next);
       return next;
     });
-  }, []);
+  }, [userId]);
 
   return { day, update };
 }
@@ -116,6 +141,7 @@ function resolveSection(slug?: string): SectionKey {
 export default function WellnessPage() {
   const navigate = useNavigate();
   const { section } = useParams<{ section?: string }>();
+  const { user, isLoading: authLoading } = useAuth();
   const active = useMemo(() => resolveSection(section), [section]);
 
   const title = SECTION_TITLES[active];
@@ -137,16 +163,27 @@ export default function WellnessPage() {
         <h1 className="font-bold text-[17px] flex-1 truncate">{title}</h1>
       </header>
 
-      <main className="flex-1 px-4 pt-4 lg:max-w-3xl lg:mx-auto w-full">
-        {active === "hub" && <HubView />}
-        {active === "activity" && <ActivityView />}
-        {active === "workouts" && <WorkoutsView />}
-        {active === "vitals" && <VitalsView />}
-        {active === "mindfulness" && <MindfulnessView />}
-        {active === "telehealth" && <TelehealthView />}
-        {active === "meds" && <MedsView />}
-        {active === "nutrition" && <NutritionView />}
-        {active === "goals" && <GoalsView />}
+      <main
+        key={user?.id ?? "auth-pending"}
+        className="flex-1 px-4 pt-4 lg:max-w-3xl lg:mx-auto w-full"
+      >
+        {authLoading || !user ? (
+          <Card className="p-5 text-center text-sm text-muted-foreground">
+            Loading your wellness data…
+          </Card>
+        ) : (
+          <>
+            {active === "hub" && <HubView />}
+            {active === "activity" && <ActivityView />}
+            {active === "workouts" && <WorkoutsView />}
+            {active === "vitals" && <VitalsView />}
+            {active === "mindfulness" && <MindfulnessView />}
+            {active === "telehealth" && <TelehealthView />}
+            {active === "meds" && <MedsView />}
+            {active === "nutrition" && <NutritionView />}
+            {active === "goals" && <GoalsView />}
+          </>
+        )}
       </main>
 
       <ZivoMobileNav />
@@ -560,6 +597,8 @@ const BREATHING_PHASES = [
 ];
 
 function MindfulnessView() {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [activeSession, setActiveSession] = useState<string | null>(null);
   const [timerActive, setTimerActive] = useState(false);
   const [phaseIdx, setPhaseIdx] = useState(0);
@@ -567,10 +606,38 @@ function MindfulnessView() {
   const [cycleCount, setCycleCount] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const streakKey = `wellness_mindfulness_streak`;
-  const [streak] = useState(() => {
-    try { return parseInt(localStorage.getItem(streakKey) || "0") || 0; } catch { return 0; }
+  const [streak, setStreak] = useState(() => {
+    if (!userId) return 0;
+    try {
+      return (
+        parseInt(
+          localStorage.getItem(
+            wellnessStorageKey(userId, "mindfulness:streak"),
+          ) || "0",
+        ) || 0
+      );
+    } catch {
+      return 0;
+    }
   });
+
+  useEffect(() => {
+    if (!userId) {
+      setStreak(0);
+      return;
+    }
+    try {
+      setStreak(
+        parseInt(
+          localStorage.getItem(
+            wellnessStorageKey(userId, "mindfulness:streak"),
+          ) || "0",
+        ) || 0,
+      );
+    } catch {
+      setStreak(0);
+    }
+  }, [userId]);
 
   const sessions = [
     { name: "Morning calm", duration: "5 min", category: "Breathing", cycles: 5 },
@@ -591,11 +658,18 @@ function MindfulnessView() {
     if (timerRef.current) clearInterval(timerRef.current);
     setTimerActive(false);
     setActiveSession(null);
-    if (cycleCount > 0) {
+    if (cycleCount > 0 && userId) {
       const today = new Date().toISOString().slice(0, 10);
-      localStorage.setItem(`wellness_mindfulness_${today}`, "1");
+      localStorage.setItem(
+        wellnessStorageKey(userId, `mindfulness:completed:${today}`),
+        "1",
+      );
       const newStreak = streak + 1;
-      localStorage.setItem(streakKey, String(newStreak));
+      localStorage.setItem(
+        wellnessStorageKey(userId, "mindfulness:streak"),
+        String(newStreak),
+      );
+      setStreak(newStreak);
       toast.success(`Session complete! ${cycleCount} cycle${cycleCount !== 1 ? "s" : ""} done.`);
     }
   };
@@ -746,37 +820,71 @@ function TelehealthView() {
 /* ─────────────────────────  Medications  ───────────────────────── */
 interface Med { name: string; dose: string; schedule: string }
 
-function loadMeds(): Med[] {
-  try { return JSON.parse(localStorage.getItem("wellness_meds") || "[]"); } catch { return []; }
+const DEFAULT_MEDS: Med[] = [
+  { name: "Vitamin D3", dose: "1000 IU", schedule: "Daily • 8:00 AM" },
+  { name: "Omega-3", dose: "1 capsule", schedule: "Daily • with breakfast" },
+  { name: "Magnesium", dose: "400 mg", schedule: "Daily • bedtime" },
+];
+
+function loadMeds(userId: string): Med[] {
+  try {
+    const raw = localStorage.getItem(wellnessStorageKey(userId, "medications"));
+    if (!raw) return DEFAULT_MEDS;
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as Med[]) : DEFAULT_MEDS;
+  } catch {
+    return DEFAULT_MEDS;
+  }
+}
+
+function loadTakenMeds(userId: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(
+      wellnessStorageKey(userId, `medications:taken:${todayKey()}`),
+    );
+    const parsed: unknown = JSON.parse(raw || "[]");
+    return new Set(Array.isArray(parsed) ? (parsed as string[]) : []);
+  } catch {
+    return new Set();
+  }
 }
 
 function MedsView() {
-  const [meds, setMeds] = useState<Med[]>(() => {
-    const saved = loadMeds();
-    if (saved.length > 0) return saved;
-    return [
-      { name: "Vitamin D3", dose: "1000 IU", schedule: "Daily • 8:00 AM" },
-      { name: "Omega-3", dose: "1 capsule", schedule: "Daily • with breakfast" },
-      { name: "Magnesium", dose: "400 mg", schedule: "Daily • bedtime" },
-    ];
-  });
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+  const [meds, setMeds] = useState<Med[]>(() =>
+    userId ? loadMeds(userId) : [],
+  );
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", dose: "", schedule: "" });
-  const [takenToday, setTakenToday] = useState<Set<string>>(() => {
-    try { return new Set(JSON.parse(localStorage.getItem(`wellness_meds_taken_${todayKey()}`) || "[]")); } catch { return new Set(); }
-  });
+  const [takenToday, setTakenToday] = useState<Set<string>>(() =>
+    userId ? loadTakenMeds(userId) : new Set(),
+  );
+
+  useEffect(() => {
+    setMeds(userId ? loadMeds(userId) : []);
+    setTakenToday(userId ? loadTakenMeds(userId) : new Set());
+  }, [userId]);
 
   const saveMeds = (updated: Med[]) => {
+    if (!userId) return;
     setMeds(updated);
-    localStorage.setItem("wellness_meds", JSON.stringify(updated));
+    localStorage.setItem(
+      wellnessStorageKey(userId, "medications"),
+      JSON.stringify(updated),
+    );
   };
 
   const toggleTaken = (name: string) => {
+    if (!userId) return;
     setTakenToday((prev) => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
       else next.add(name);
-      localStorage.setItem(`wellness_meds_taken_${todayKey()}`, JSON.stringify([...next]));
+      localStorage.setItem(
+        wellnessStorageKey(userId, `medications:taken:${todayKey()}`),
+        JSON.stringify([...next]),
+      );
       return next;
     });
   };
@@ -1010,18 +1118,37 @@ const DEFAULT_GOALS: WellnessGoal[] = [
   { label: "Meditate daily", target: "1 session/day", progress: 33, streak: "3 days" },
 ];
 
-function loadGoals(): WellnessGoal[] {
-  try { return JSON.parse(localStorage.getItem("wellness_goals") || "null") ?? DEFAULT_GOALS; } catch { return DEFAULT_GOALS; }
+function loadGoals(userId: string): WellnessGoal[] {
+  try {
+    const raw = localStorage.getItem(wellnessStorageKey(userId, "goals"));
+    if (!raw) return DEFAULT_GOALS;
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as WellnessGoal[]) : DEFAULT_GOALS;
+  } catch {
+    return DEFAULT_GOALS;
+  }
 }
 
 function GoalsView() {
-  const [goals, setGoals] = useState<WellnessGoal[]>(loadGoals);
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+  const [goals, setGoals] = useState<WellnessGoal[]>(() =>
+    userId ? loadGoals(userId) : [],
+  );
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ label: "", target: "" });
 
+  useEffect(() => {
+    setGoals(userId ? loadGoals(userId) : []);
+  }, [userId]);
+
   const saveGoals = (updated: WellnessGoal[]) => {
+    if (!userId) return;
     setGoals(updated);
-    localStorage.setItem("wellness_goals", JSON.stringify(updated));
+    localStorage.setItem(
+      wellnessStorageKey(userId, "goals"),
+      JSON.stringify(updated),
+    );
   };
 
   const addGoal = () => {

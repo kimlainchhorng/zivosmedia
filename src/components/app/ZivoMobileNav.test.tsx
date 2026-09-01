@@ -185,6 +185,25 @@ describe("ZivoMobileNav", () => {
     );
   });
 
+  it.each(["/bus", "/flights", "/hotels", "/cars", "/store-map"])(
+    "keeps Home actionable from the service route %s",
+    (initialPath) => {
+      renderMobileNav(initialPath);
+
+      const home = screen.getByRole("button", { name: "Home" });
+      expect(home).not.toHaveAttribute("aria-current");
+
+      fireEvent.click(home);
+
+      expect(screen.getByLabelText("current path")).toHaveTextContent(/^\/$/);
+      expect(screen.getByRole("button", { name: "Home" })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      expect(impactSpy).toHaveBeenCalledTimes(1);
+    },
+  );
+
   // Matters for the frame before the handoff, and for the tab never being
   // mis-attributed to Home as it was before the /chat branch existed.
   it("marks the Chat tab as current while on a chat route", () => {

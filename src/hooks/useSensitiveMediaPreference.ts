@@ -10,6 +10,12 @@ export type SensitiveMediaPreference = {
   setBlurSensitiveMedia: (next: boolean) => Promise<void>;
 };
 
+const isConfirmedFunctionResult = (value: unknown): boolean =>
+  typeof value === "object" &&
+  value !== null &&
+  "ok" in value &&
+  (value as { ok?: unknown }).ok === true;
+
 const readStoredPreference = (userId?: string | null): boolean => {
   if (typeof window === "undefined") return true;
   try {
@@ -80,19 +86,32 @@ export function useSensitiveMediaPreference(userId?: string | null): SensitiveMe
   }, [userId]);
 
   const setBlurSensitiveMedia = useCallback(async (next: boolean) => {
+    const previous = blurSensitiveMedia;
     setBlurSensitiveMediaState(next);
     writeStoredPreference(userId, next);
 
     if (!userId) return;
+
     try {
-      await supabase.functions.invoke("privacy-settings-update", { body: {
+      const { data, error } = await supabase.functions.invoke("privacy-settings-update", { body: {
         key: "blur_sensitive_media",
         value: next,
       } });
-    } catch {
-      // The migration may not be deployed yet. Local preference still works.
+      if (error) throw error;
+      if (!isConfirmedFunctionResult(data)) {
+        throw new Error("Privacy update was not confirmed");
+      }
+    } catch (failure) {
+      // The server row is read back on the next load, so a failed write would
+      // silently revert. Roll the optimistic state back and surface the failure.
+      console.error("[useSensitiveMediaPreference] privacy-settings-update failed", failure);
+      setBlurSensitiveMediaState(previous);
+      writeStoredPreference(userId, previous);
+      throw failure instanceof Error
+        ? failure
+        : new Error("Privacy update failed");
     }
-  }, [userId]);
+  }, [blurSensitiveMedia, userId]);
 
   return { blurSensitiveMedia, setBlurSensitiveMedia };
 }

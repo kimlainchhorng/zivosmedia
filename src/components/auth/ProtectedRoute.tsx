@@ -29,7 +29,18 @@ const isLodgingCategory = (category?: string | null) => {
     .replace(/[/_-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return ["hotel", "hotels", "resort", "resorts", "guesthouse", "guest house", "guesthouse b and b", "guesthouse bed and breakfast", "bed and breakfast", "b and b"].includes(normalized);
+  return [
+    "hotel",
+    "hotels",
+    "resort",
+    "resorts",
+    "guesthouse",
+    "guest house",
+    "guesthouse b and b",
+    "guesthouse bed and breakfast",
+    "bed and breakfast",
+    "b and b",
+  ].includes(normalized);
 };
 
 const isAutoRepairCategory = (category?: string | null) =>
@@ -39,7 +50,14 @@ const isAutoRepairCategory = (category?: string | null) =>
     .replace(/\s+/g, " ")
     .trim() === "auto repair";
 
-const getPublicStorePath = (store?: { id: string; slug: string | null; category: string | null; is_active: boolean | null } | null) => {
+const getPublicStorePath = (
+  store?: {
+    id: string;
+    slug: string | null;
+    category: string | null;
+    is_active: boolean | null;
+  } | null,
+) => {
   if (!store?.is_active) return null;
   if (isLodgingCategory(store.category)) return `/hotel/${store.id}`;
   return store.slug ? `/store/${store.slug}` : null;
@@ -47,11 +65,23 @@ const getPublicStorePath = (store?: { id: string; slug: string | null; category:
 
 const adminAnchorForPath = (pathname: string) => {
   if (pathname.includes("/driver")) return "#driver-ops";
-  if (pathname.includes("/flight") || pathname.includes("/lodging") || pathname.includes("/travel")) return "#travel-ops";
+  if (
+    pathname.includes("/flight") ||
+    pathname.includes("/lodging") ||
+    pathname.includes("/travel")
+  )
+    return "#travel-ops";
   if (pathname.includes("/employees")) return "#employees";
-  if (pathname.includes("/support") || pathname.includes("/feedback")) return "#live-support";
-  if (pathname.includes("/security") || pathname.includes("/moderation")) return "#audit-security";
-  if (pathname.includes("/system") || pathname.includes("/remote-config") || pathname.includes("/app-store") || pathname.includes("/android")) {
+  if (pathname.includes("/support") || pathname.includes("/feedback"))
+    return "#live-support";
+  if (pathname.includes("/security") || pathname.includes("/moderation"))
+    return "#audit-security";
+  if (
+    pathname.includes("/system") ||
+    pathname.includes("/remote-config") ||
+    pathname.includes("/app-store") ||
+    pathname.includes("/android")
+  ) {
     return "#deployments";
   }
   return "#platform-metrics";
@@ -62,9 +92,16 @@ type ProtectedRouteProps = {
   requireAdmin?: boolean;
   allowStoreOwner?: boolean;
   allowSupport?: boolean;
+  allowFinance?: boolean;
 };
 
-const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = false, allowSupport = false }: ProtectedRouteProps) => {
+const ProtectedRoute = ({
+  children,
+  requireAdmin = false,
+  allowStoreOwner = false,
+  allowSupport = false,
+  allowFinance = false,
+}: ProtectedRouteProps) => {
   const {
     user,
     isLoading,
@@ -77,9 +114,12 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
   const location = useLocation();
   const { storeId } = useParams<{ storeId?: string }>();
   const isAutoRepairSoftwareDomain =
-    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+    typeof window !== "undefined" &&
+    isAutoRepairSoftwareHost(window.location.hostname);
   const isZivoSoftwareWorkspaceRoute =
-    isAutoRepairSoftwareDomain && !!storeId && isZivoSoftwareWorkspacePath(location.pathname);
+    isAutoRepairSoftwareDomain &&
+    !!storeId &&
+    isZivoSoftwareWorkspacePath(location.pathname);
   const isSoftwareSubscriptionRoute =
     isZivoSoftwareWorkspaceRoute &&
     isZivoSoftwareStoreDashboardPath(location.pathname) &&
@@ -87,10 +127,14 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
   const isAutoRepairSoftwareRoute =
     !!storeId &&
     (isZivoSoftwareWorkspaceRoute ||
-      (storeId === AUTO_REPAIR_STORE_ID && location.pathname === `/desktop/auto-repair/${AUTO_REPAIR_STORE_ID}`));
+      (storeId === AUTO_REPAIR_STORE_ID &&
+        location.pathname === `/desktop/auto-repair/${AUTO_REPAIR_STORE_ID}`));
   const isZivoBusinessSetupRoute =
-    location.pathname === "/business/new" || location.pathname.startsWith("/business/software/");
-  const isZivoSoftwareDashboardRoute = isZivoSoftwareDashboardPath(location.pathname);
+    location.pathname === "/business/new" ||
+    location.pathname.startsWith("/business/software/");
+  const isZivoSoftwareDashboardRoute = isZivoSoftwareDashboardPath(
+    location.pathname,
+  );
   const shouldRedirectMediaBusinessSetup =
     typeof window !== "undefined" &&
     isZivoMediaHost(window.location.hostname) &&
@@ -100,14 +144,22 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
     location.search,
     location.hash,
   );
-  const shouldCheckStoreOwner = requireAdmin && allowStoreOwner && !!storeId && !!user?.id && !isAdmin;
+  const shouldCheckStoreOwner =
+    requireAdmin && allowStoreOwner && !!storeId && !!user?.id && !isAdmin;
 
   // Support-role accounts may enter admin-gated routes that opt in via
   // allowSupport (the Support console). Reuses the cached access query.
   const accessQuery = useUserAccess(user?.id);
   const needsSupportCheck = requireAdmin && allowSupport && !!user && !isAdmin;
   const supportAccessResolved = accessQuery.isSuccess || accessQuery.isError;
-  const supportAccessAllowed = needsSupportCheck && accessQuery.data?.isSupport === true;
+  const supportAccessAllowed =
+    needsSupportCheck && accessQuery.data?.isSupport === true;
+  const needsFinanceCheck = requireAdmin && allowFinance && !!user && !isAdmin;
+  const financeAccessResolved = accessQuery.isSuccess || accessQuery.isError;
+  const financeAccessAllowed =
+    needsFinanceCheck &&
+    (accessQuery.data?.isAdmin === true ||
+      accessQuery.data?.roles.includes("finance") === true);
 
   const publicStoreQuery = useQuery({
     queryKey: ["protected-route-public-store", storeId],
@@ -141,9 +193,11 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
   });
   const ownerAccessResolved = ownerQuery.isSuccess || ownerQuery.isError;
   const ownerAccessAllowed = ownerQuery.data === true;
-  const alternateRoleAccessAllowed = supportAccessAllowed || ownerAccessAllowed;
+  const alternateRoleAccessAllowed =
+    supportAccessAllowed || financeAccessAllowed || ownerAccessAllowed;
   const alternateRoleAccessPending =
     (needsSupportCheck && !supportAccessResolved) ||
+    (needsFinanceCheck && !financeAccessResolved) ||
     (shouldCheckStoreOwner && !ownerAccessResolved);
   const softwareStoreScopeQuery = useQuery({
     queryKey: ["protected-route-software-store-scope", user?.id, storeId],
@@ -161,8 +215,9 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
   });
   const softwareStoreScopeResolved =
     softwareStoreScopeQuery.isSuccess || softwareStoreScopeQuery.isError;
-  const softwareStoreScopeAllowed =
-    isAutoRepairCategory(softwareStoreScopeQuery.data?.category);
+  const softwareStoreScopeAllowed = isAutoRepairCategory(
+    softwareStoreScopeQuery.data?.category,
+  );
   const softwareAccessQuery = useSoftwareSubscription(
     isZivoSoftwareWorkspaceRoute &&
       !isSoftwareSubscriptionRoute &&
@@ -172,12 +227,19 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
       ? storeId
       : undefined,
   );
-  const softwareAccessResolved = softwareAccessQuery.isSuccess || softwareAccessQuery.isError;
-  const softwareAccessAllowed = softwareAccessQuery.data?.access_granted === true;
-  const publicStoreResolved = publicStoreQuery.isSuccess || publicStoreQuery.isError;
+  const softwareAccessResolved =
+    softwareAccessQuery.isSuccess || softwareAccessQuery.isError;
+  const softwareAccessAllowed =
+    softwareAccessQuery.data?.access_granted === true;
+  const publicStoreResolved =
+    publicStoreQuery.isSuccess || publicStoreQuery.isError;
   const publicStorePath = getPublicStorePath(publicStoreQuery.data);
   const shouldRedirectStaffAdminToZivoAdmin =
-    requireAdmin && (isAdmin || supportAccessAllowed) && location.pathname.startsWith("/admin") && !allowStoreOwner;
+    requireAdmin &&
+    (isAdmin || supportAccessAllowed) &&
+    location.pathname.startsWith("/admin") &&
+    location.pathname !== "/admin/finance/eats-payouts" &&
+    !allowStoreOwner;
   const zivoAdminUrl = shouldRedirectStaffAdminToZivoAdmin
     ? buildAdminQueueHref(adminAnchorForPath(location.pathname))
     : "";
@@ -198,8 +260,13 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
     return (
       <div className="min-h-screen bg-background px-6 py-12 text-center">
         <div className="mx-auto flex max-w-sm flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 shadow-sm">
-          <p className="text-sm font-semibold text-foreground">Opening ZIVO Software...</p>
-          <a className="text-sm font-medium text-primary underline" href={softwareBusinessSetupUrl}>
+          <p className="text-sm font-semibold text-foreground">
+            Opening ZIVO Software...
+          </p>
+          <a
+            className="text-sm font-medium text-primary underline"
+            href={softwareBusinessSetupUrl}
+          >
             Continue to zivosoftware.com
           </a>
         </div>
@@ -231,8 +298,12 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-6">
         <div className="flex max-w-sm flex-col items-center gap-4 rounded-2xl border border-border bg-card p-6 text-center shadow-sm">
-          <h1 className="text-lg font-semibold text-foreground">Session unavailable</h1>
-          <p className="text-sm text-muted-foreground">{authInitializationError}</p>
+          <h1 className="text-lg font-semibold text-foreground">
+            Session unavailable
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {authInitializationError}
+          </p>
           <button
             type="button"
             onClick={retryAuthInitialization}
@@ -278,7 +349,9 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-6">
         <div className="flex max-w-sm flex-col items-center gap-4 rounded-2xl border border-border bg-card p-6 text-center shadow-sm">
-          <h1 className="text-lg font-semibold text-foreground">Access check unavailable</h1>
+          <h1 className="text-lg font-semibold text-foreground">
+            Access check unavailable
+          </h1>
           <p className="text-sm text-muted-foreground">{adminRoleError}</p>
           <button
             type="button"
@@ -309,7 +382,9 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
         <div className="min-h-screen flex items-center justify-center bg-background">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Checking Software workspace...</p>
+            <p className="text-muted-foreground">
+              Checking Software workspace...
+            </p>
           </div>
         </div>
       );
@@ -325,8 +400,13 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
     return (
       <div className="min-h-screen bg-background px-6 py-12 text-center">
         <div className="mx-auto flex max-w-sm flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 shadow-sm">
-          <p className="text-sm font-semibold text-foreground">Opening Zivo Admin...</p>
-          <a className="text-sm font-medium text-primary underline" href={zivoAdminUrl}>
+          <p className="text-sm font-semibold text-foreground">
+            Opening Zivo Admin...
+          </p>
+          <a
+            className="text-sm font-medium text-primary underline"
+            href={zivoAdminUrl}
+          >
             Continue to Zivo Admin
           </a>
         </div>
@@ -335,6 +415,18 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
   }
 
   if (requireAdmin && !isAdmin) {
+    if (needsFinanceCheck && !financeAccessResolved) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Checking finance access...</p>
+          </div>
+        </div>
+      );
+    }
+    if (financeAccessAllowed) return <>{children}</>;
+
     if (needsSupportCheck && !supportAccessResolved) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-background">
@@ -366,7 +458,9 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
               <div className="min-h-screen flex items-center justify-center bg-background">
                 <div className="flex flex-col items-center gap-4">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <p className="text-muted-foreground">Checking Software access...</p>
+                  <p className="text-muted-foreground">
+                    Checking Software access...
+                  </p>
                 </div>
               </div>
             );
@@ -379,7 +473,11 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
           if (!softwareAccessAllowed) {
             return (
               <Navigate
-                to={getZivoSoftwareSubscriptionPath(storeId, location.search, location.hash)}
+                to={getZivoSoftwareSubscriptionPath(
+                  storeId,
+                  location.search,
+                  location.hash,
+                )}
                 replace
               />
             );
@@ -389,9 +487,7 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
       }
       if (isAutoRepairSoftwareRoute) {
         return (
-          <AccessDenied
-            message="You don't have permission to access this auto repair workspace. Contact the business owner or ZIVO Software support to request access."
-          />
+          <AccessDenied message="You don't have permission to access this auto repair workspace. Contact the business owner or ZIVO Software support to request access." />
         );
       }
       if (!publicStoreResolved) {
@@ -408,9 +504,7 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
     }
 
     return (
-      <AccessDenied
-        message="You don't have permission to access this page. Contact an administrator to request access."
-      />
+      <AccessDenied message="You don't have permission to access this page. Contact an administrator to request access." />
     );
   }
 

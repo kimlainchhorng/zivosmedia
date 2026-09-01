@@ -815,9 +815,16 @@ export default function GoLivePage() {
  try {
  // Paired-device flow: end via edge function
  if (isPaired && pairToken && !options?.keepalive) {
- await supabase.functions.invoke("pair-go-live", {
+ const { data, error } = await supabase.functions.invoke("pair-go-live", {
  body: { pair_token: pairToken, action: "end", stream_id: streamId },
  });
+ // "end" is idempotent server-side (an already-ended stream just matches no
+ // rows), so an error here means the row is still `live` for every viewer.
+ if (error || (data as any)?.error) {
+ console.error("[GoLivePage] pair-go-live end failed", error ?? data);
+ toast.error("Couldn't end the stream", { description: "You're still live — check your connection and tap End again." });
+ return false;
+ }
  return;
  }
 
@@ -851,7 +858,9 @@ export default function GoLivePage() {
  }, [streamId, isPaired, pairToken]);
 
  const endStream = useCallback(async () =>{
- await endActiveStream();
+ const ended = await endActiveStream();
+ // Still live server-side — keep the live UI (and the camera) so the host can retry.
+ if (ended === false) return;
  streamRef.current?.getTracks().forEach((t) =>t.stop());
  setStreamId(null);
  setPhase("ended");

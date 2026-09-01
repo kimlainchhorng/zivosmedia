@@ -180,12 +180,18 @@ export default function AdminGoogleAdsPage() {
         toast.success("Conversion sent via gtag! Check Google Ads → Diagnostics.");
       } else {
         // gtag not loaded — record in Supabase as fallback
-        await supabase.functions.invoke("admin-feedback-queue-write", { body: {
+        const { data: logData, error: logError } = await supabase.functions.invoke("admin-feedback-queue-write", { body: {
           action: "insert",
           category: "google_ads_conversion_test",
           message: JSON.stringify({ conversion_id: config.conversionId, order_id: orderId, value_usd: value, ts: new Date().toISOString() }),
           status: "pending",
         } });
+        if (logError || (logData as { error?: string } | null)?.error) {
+          console.error("[AdminGoogleAds] admin-feedback-queue-write failed", logError ?? logData);
+          setConvResult({ ok: false, method: "log-failed", message: "gtag not found on page, and the fallback log to Supabase failed — nothing was recorded. Add the Google tag to your site to enable live tracking." });
+          toast.error("gtag not detected and the fallback log failed — nothing was recorded");
+          return;
+        }
         setConvResult({ ok: false, method: "supabase", message: "gtag not found on page — conversion logged to Supabase. Add the Google tag to your site to enable live tracking." });
         toast.warning("gtag not detected — conversion saved to Supabase log");
       }
@@ -555,7 +561,7 @@ export default function AdminGoogleAdsPage() {
                           </Button>
                         </a>
                       )}
-                      {!convResult.ok && convResult.method === "supabase" && (
+                      {!convResult.ok && (convResult.method === "supabase" || convResult.method === "log-failed") && (
                         <div className="mt-2 p-2 rounded bg-muted text-xs space-y-1">
                           <p className="font-semibold">To enable live conversion tracking:</p>
                           <p>1. Add the Google tag (<code>gtag.js</code>) to your site's <code>&lt;head&gt;</code></p>

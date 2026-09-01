@@ -13,14 +13,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Loader2, Wallet } from "@/lib/lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation } from "@tanstack/react-query";
 import {
-  Facebook, Instagram, Twitter as X,
-  Plus, Megaphone, AlertCircle, Plug, Search as SearchIcon,
+  Facebook,
+  Instagram,
+  Twitter as X,
+  Plus,
+  Megaphone,
+  AlertCircle,
+  Plug,
+  Search as SearchIcon,
 } from "@/lib/lucide-react";
 import GoogleAds from "@/lib/icons/google-ads";
 import TikTok from "@/lib/icons/tiktok";
@@ -37,7 +49,9 @@ import AdsPlatformTile from "@/components/admin/ads/AdsPlatformTile";
 import AdsOnboardingChecklist from "@/components/admin/ads/AdsOnboardingChecklist";
 import AdsCampaignRow from "@/components/admin/ads/AdsCampaignRow";
 import AdsConnectDialog from "@/components/admin/ads/AdsConnectDialog";
-import CreateCampaignWizard, { type CampaignFormState } from "@/components/admin/ads/CreateCampaignWizard";
+import CreateCampaignWizard, {
+  type CampaignFormState,
+} from "@/components/admin/ads/CreateCampaignWizard";
 import AdsWalletCard from "@/components/admin/ads/AdsWalletCard";
 import AdsInsightsPanel from "@/components/admin/ads/AdsInsightsPanel";
 import AdsCampaignDetailDrawer from "@/components/admin/ads/AdsCampaignDetailDrawer";
@@ -48,39 +62,89 @@ import {
 } from "@/hooks/useStoreAdsOverview";
 import { cn } from "@/lib/utils";
 import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
+import NativeDigitalPurchaseNotice from "@/components/payments/NativeDigitalPurchaseNotice";
+import {
+  isNativeDigitalPurchaseRestricted,
+  NATIVE_DIGITAL_PURCHASE_MESSAGE,
+} from "@/lib/nativeDigitalPurchasePolicy";
 
 interface Props {
   storeId: string;
 }
 
 const PLATFORMS = [
-  { id: "meta" as AdPlatform, label: "Facebook", icon: Facebook, color: "text-[#1877F2]", oauth: true, brand: "bg-[#1877F2] hover:bg-[#1459bf]", help: "https://www.facebook.com/business/help/1492627900875762" },
-  { id: "instagram" as AdPlatform, label: "Instagram", icon: Instagram, color: "text-[#E4405F]", oauth: true, brand: "bg-[#E4405F] hover:bg-[#c1304a]", help: "https://www.facebook.com/business/help/898752960195806" },
-  { id: "google" as AdPlatform, label: "Google Ads", icon: GoogleAds, color: "", oauth: true, brand: "bg-[#4285F4] hover:bg-[#3367d6]", help: "https://support.google.com/google-ads/answer/1704344" },
-  { id: "tiktok" as AdPlatform, label: "TikTok Ads", icon: TikTok, color: "", oauth: false, brand: "", help: "https://ads.tiktok.com/help/article/find-your-ad-account-id" },
-  { id: "x" as AdPlatform, label: "X (Twitter)", icon: X, color: "text-foreground", oauth: false, brand: "", help: "https://business.x.com/en/help/account-setup/finding-your-ads-account-id.html" },
+  {
+    id: "meta" as AdPlatform,
+    label: "Facebook",
+    icon: Facebook,
+    color: "text-[#1877F2]",
+    oauth: true,
+    brand: "bg-[#1877F2] hover:bg-[#1459bf]",
+    help: "https://www.facebook.com/business/help/1492627900875762",
+  },
+  {
+    id: "instagram" as AdPlatform,
+    label: "Instagram",
+    icon: Instagram,
+    color: "text-[#E4405F]",
+    oauth: true,
+    brand: "bg-[#E4405F] hover:bg-[#c1304a]",
+    help: "https://www.facebook.com/business/help/898752960195806",
+  },
+  {
+    id: "google" as AdPlatform,
+    label: "Google Ads",
+    icon: GoogleAds,
+    color: "",
+    oauth: true,
+    brand: "bg-[#4285F4] hover:bg-[#3367d6]",
+    help: "https://support.google.com/google-ads/answer/1704344",
+  },
+  {
+    id: "tiktok" as AdPlatform,
+    label: "TikTok Ads",
+    icon: TikTok,
+    color: "",
+    oauth: false,
+    brand: "",
+    help: "https://ads.tiktok.com/help/article/find-your-ad-account-id",
+  },
+  {
+    id: "x" as AdPlatform,
+    label: "X (Twitter)",
+    icon: X,
+    color: "text-foreground",
+    oauth: false,
+    brand: "",
+    help: "https://business.x.com/en/help/account-setup/finding-your-ads-account-id.html",
+  },
 ];
 
 const META_BUSINESS_LOGIN_CONFIG_ID =
-  (import.meta.env.VITE_META_LOGIN_CONFIG_ID as string | undefined) || "1023966323302415";
-const GOOGLE_ADS_OAUTH_READY = import.meta.env.VITE_GOOGLE_ADS_OAUTH_READY === "true";
+  (import.meta.env.VITE_META_LOGIN_CONFIG_ID as string | undefined) ||
+  "1023966323302415";
+const GOOGLE_ADS_OAUTH_READY =
+  import.meta.env.VITE_GOOGLE_ADS_OAUTH_READY === "true";
 
-const visiblePlatforms = PLATFORMS.map((platform) => (
+const visiblePlatforms = PLATFORMS.map((platform) =>
   platform.id === "google"
     ? { ...platform, oauth: GOOGLE_ADS_OAUTH_READY }
-    : platform
-));
+    : platform,
+);
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
-  pending_review: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  pending_review:
+    "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  active:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
   paused: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
   ended: "bg-muted text-muted-foreground",
   rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
 
-type FilterStatus = "all" | "draft" | "pending_review" | "active" | "paused" | "ended";
+type FilterStatus =
+  "all" | "draft" | "pending_review" | "active" | "paused" | "ended";
 type SortKey = "newest" | "spend" | "performance";
 
 const STATUS_FILTERS: { id: FilterStatus; label: string }[] = [
@@ -109,19 +173,31 @@ const EMPTY_FORM: CampaignFormState = {
 
 export default function StoreAdsManager({ storeId }: Props) {
   const navigate = useNavigate();
-  const { accounts, pages, campaigns, stats, checklist, wallet, ledger, isLoading, invalidate } =
-    useStoreAdsOverview(storeId);
+  const {
+    accounts,
+    pages,
+    campaigns,
+    stats,
+    checklist,
+    wallet,
+    ledger,
+    isLoading,
+    invalidate,
+  } = useStoreAdsOverview(storeId);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<AdCampaign | null>(null);
   const [detailCampaign, setDetailCampaign] = useState<AdCampaign | null>(null);
-  const [connectPlatform, setConnectPlatform] = useState<AdPlatform | null>(null);
+  const [connectPlatform, setConnectPlatform] = useState<AdPlatform | null>(
+    null,
+  );
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("newest");
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
-  const accountByPlatform = (p: AdPlatform) => accounts.find((a) => a.platform === p);
+  const accountByPlatform = (p: AdPlatform) =>
+    accounts.find((a) => a.platform === p);
 
   // ── Ads wallet top-up (inline) ──
   // Pick an amount here, then Stripe Checkout handles payment; on return the
@@ -129,20 +205,37 @@ export default function StoreAdsManager({ storeId }: Props) {
   const [topUpOpen, setTopUpOpen] = useState(false);
   const [topUpDollars, setTopUpDollars] = useState("50");
   const [topUpSubmitting, setTopUpSubmitting] = useState(false);
+  const nativeDigitalPurchasesDisabled = isNativeDigitalPurchaseRestricted();
   const TOP_UP_PRESETS = [25, 50, 100, 250];
 
   const startTopUp = async () => {
+    if (nativeDigitalPurchasesDisabled) {
+      toast.info(NATIVE_DIGITAL_PURCHASE_MESSAGE);
+      return;
+    }
     const cents = Math.round(parseFloat(topUpDollars || "0") * 100);
-    if (!cents || cents < 500) { toast.error("Minimum top-up is $5"); return; }
+    if (!cents || cents < 500) {
+      toast.error("Minimum top-up is $5");
+      return;
+    }
     setTopUpSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-ads-wallet-topup", {
-        body: { store_id: storeId, amount_cents: cents, return_url: `/admin/stores/${storeId}` },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "create-ads-wallet-topup",
+        {
+          body: {
+            store_id: storeId,
+            amount_cents: cents,
+            return_url: `/admin/stores/${storeId}`,
+          },
+        },
+      );
       if (error) throw error;
       const url = (data as any)?.url as string | undefined;
-      if (!url) throw new Error((data as any)?.error || "Could not start checkout");
-      if (!isAllowedCheckoutUrl(url)) throw new Error("Invalid Stripe checkout URL");
+      if (!url)
+        throw new Error((data as any)?.error || "Could not start checkout");
+      if (!isAllowedCheckoutUrl(url))
+        throw new Error("Invalid Stripe checkout URL");
       window.location.href = url; // Stripe Checkout
     } catch (e: any) {
       toast.error(e.message || "Could not start top-up");
@@ -150,10 +243,26 @@ export default function StoreAdsManager({ storeId }: Props) {
     }
   };
 
+  const openTopUp = () => {
+    if (nativeDigitalPurchasesDisabled) {
+      toast.info(NATIVE_DIGITAL_PURCHASE_MESSAGE);
+      return;
+    }
+    setTopUpOpen(true);
+  };
+
   // ===== Mutations =====
 
   const connectMutation = useMutation({
-    mutationFn: async ({ platform, externalId, displayName }: { platform: AdPlatform; externalId: string; displayName: string }) => {
+    mutationFn: async ({
+      platform,
+      externalId,
+      displayName,
+    }: {
+      platform: AdPlatform;
+      externalId: string;
+      displayName: string;
+    }) => {
       const existing = accountByPlatform(platform);
       const payload: any = {
         store_id: storeId,
@@ -165,10 +274,15 @@ export default function StoreAdsManager({ storeId }: Props) {
         connected_by: (await supabase.auth.getUser()).data.user?.id,
       };
       if (existing) {
-        const { error } = await supabase.from("store_ad_accounts" as any).update(payload).eq("id", existing.id);
+        const { error } = await supabase
+          .from("store_ad_accounts" as any)
+          .update(payload)
+          .eq("id", existing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("store_ad_accounts" as any).insert(payload);
+        const { error } = await supabase
+          .from("store_ad_accounts" as any)
+          .insert(payload);
         if (error) throw error;
       }
     },
@@ -184,9 +298,13 @@ export default function StoreAdsManager({ storeId }: Props) {
     mutationFn: async (platform: AdPlatform) => {
       const returnUrl = `${window.location.origin}/connect/callback`;
       let fnName: string;
-      if (platform === "meta" || platform === "instagram") fnName = "meta-oauth-start";
+      if (platform === "meta" || platform === "instagram")
+        fnName = "meta-oauth-start";
       else if (platform === "google") fnName = "google-ads-oauth-start";
-      else throw new Error(`${platform} OAuth not yet enabled. Use manual entry below.`);
+      else
+        throw new Error(
+          `${platform} OAuth not yet enabled. Use manual entry below.`,
+        );
 
       const { data, error } = await supabase.functions.invoke(fnName, {
         body: { store_id: storeId, platform, return_url: returnUrl },
@@ -194,7 +312,10 @@ export default function StoreAdsManager({ storeId }: Props) {
       if (error) throw error;
       if (!data?.authorize_url) throw new Error("No authorize URL returned");
       let authorizeUrl = data.authorize_url as string;
-      if ((platform === "meta" || platform === "instagram") && META_BUSINESS_LOGIN_CONFIG_ID) {
+      if (
+        (platform === "meta" || platform === "instagram") &&
+        META_BUSINESS_LOGIN_CONFIG_ID
+      ) {
         const url = new URL(authorizeUrl);
         url.searchParams.set("config_id", META_BUSINESS_LOGIN_CONFIG_ID);
         authorizeUrl = url.toString();
@@ -204,7 +325,7 @@ export default function StoreAdsManager({ storeId }: Props) {
       const popup = window.open(
         authorizeUrl,
         "ads-oauth",
-        "width=600,height=700,menubar=no,toolbar=no"
+        "width=600,height=700,menubar=no,toolbar=no",
       );
       if (!popup) {
         // Popup blocked — fallback to redirect
@@ -213,7 +334,8 @@ export default function StoreAdsManager({ storeId }: Props) {
       }
 
       const start = Date.now();
-      const platformsToMatch = platform === "instagram" ? ["meta", "instagram"] : [platform];
+      const platformsToMatch =
+        platform === "instagram" ? ["meta", "instagram"] : [platform];
       return new Promise<void>((resolve, reject) => {
         const timer = setInterval(async () => {
           if (popup.closed) {
@@ -224,7 +346,11 @@ export default function StoreAdsManager({ storeId }: Props) {
           }
           if (Date.now() - start > 120_000) {
             clearInterval(timer);
-            try { popup.close(); } catch { /* noop */ }
+            try {
+              popup.close();
+            } catch {
+              /* noop */
+            }
             reject(new Error("OAuth timeout — try again"));
             return;
           }
@@ -238,7 +364,11 @@ export default function StoreAdsManager({ storeId }: Props) {
             .limit(1);
           if (rows && rows.length) {
             clearInterval(timer);
-            try { popup.close(); } catch { /* noop */ }
+            try {
+              popup.close();
+            } catch {
+              /* noop */
+            }
             const acc: any = rows[0];
             toast.success(`Connected as ${acc.display_name || acc.platform}`);
             invalidate();
@@ -259,20 +389,36 @@ export default function StoreAdsManager({ storeId }: Props) {
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { invalidate(); toast.success("Campaign archived"); },
+    onSuccess: () => {
+      invalidate();
+      toast.success("Campaign archived");
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
   const disconnectMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("store_ad_accounts" as any).delete().eq("id", id);
+      const { error } = await supabase
+        .from("store_ad_accounts" as any)
+        .delete()
+        .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { invalidate(); toast.success("Disconnected"); setConnectPlatform(null); },
+    onSuccess: () => {
+      invalidate();
+      toast.success("Disconnected");
+      setConnectPlatform(null);
+    },
   });
 
   const saveCampaign = useMutation({
-    mutationFn: async ({ form, asDraft }: { form: CampaignFormState; asDraft: boolean }) => {
+    mutationFn: async ({
+      form,
+      asDraft,
+    }: {
+      form: CampaignFormState;
+      asDraft: boolean;
+    }) => {
       const payload: any = {
         store_id: storeId,
         name: form.name,
@@ -290,17 +436,28 @@ export default function StoreAdsManager({ storeId }: Props) {
         status: asDraft ? "draft" : "pending_review",
       };
       if (editing) {
-        const { error } = await supabase.from("store_ad_campaigns" as any).update(payload).eq("id", editing.id);
+        const { error } = await supabase
+          .from("store_ad_campaigns" as any)
+          .update(payload)
+          .eq("id", editing.id);
         if (error) throw error;
       } else {
         payload.created_by = (await supabase.auth.getUser()).data.user?.id;
-        const { error } = await supabase.from("store_ad_campaigns" as any).insert(payload);
+        const { error } = await supabase
+          .from("store_ad_campaigns" as any)
+          .insert(payload);
         if (error) throw error;
       }
     },
     onSuccess: (_, vars) => {
       invalidate();
-      toast.success(editing ? "Campaign updated" : vars.asDraft ? "Saved as draft" : "Submitted for review");
+      toast.success(
+        editing
+          ? "Campaign updated"
+          : vars.asDraft
+            ? "Saved as draft"
+            : "Submitted for review",
+      );
       setCreateOpen(false);
       setEditing(null);
     },
@@ -309,28 +466,46 @@ export default function StoreAdsManager({ storeId }: Props) {
 
   const deleteCampaign = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("store_ad_campaigns" as any).delete().eq("id", id);
+      const { error } = await supabase
+        .from("store_ad_campaigns" as any)
+        .delete()
+        .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { invalidate(); toast.success("Campaign deleted"); },
+    onSuccess: () => {
+      invalidate();
+      toast.success("Campaign deleted");
+    },
   });
 
   const launchCampaign = useMutation({
     mutationFn: async (c: AdCampaign) => {
-      const missing = c.platforms.filter((p) => !accountByPlatform(p) || accountByPlatform(p)?.status === "disconnected");
-      if (missing.length) throw new Error(`Connect these platforms first: ${missing.join(", ")}`);
-      const { error } = await supabase.from("store_ad_campaigns" as any)
+      const missing = c.platforms.filter(
+        (p) =>
+          !accountByPlatform(p) ||
+          accountByPlatform(p)?.status === "disconnected",
+      );
+      if (missing.length)
+        throw new Error(`Connect these platforms first: ${missing.join(", ")}`);
+      const { error } = await supabase
+        .from("store_ad_campaigns" as any)
         .update({ status: "pending_review" })
         .eq("id", c.id);
       if (error) throw error;
     },
-    onSuccess: () => { invalidate(); toast.success("Campaign queued for review."); },
+    onSuccess: () => {
+      invalidate();
+      toast.success("Campaign queued for review.");
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
   const toggleStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from("store_ad_campaigns" as any).update({ status }).eq("id", id);
+      const { error } = await supabase
+        .from("store_ad_campaigns" as any)
+        .update({ status })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => invalidate(),
@@ -353,10 +528,15 @@ export default function StoreAdsManager({ storeId }: Props) {
         status: "draft",
         created_by: (await supabase.auth.getUser()).data.user?.id,
       };
-      const { error } = await supabase.from("store_ad_campaigns" as any).insert(payload);
+      const { error } = await supabase
+        .from("store_ad_campaigns" as any)
+        .insert(payload);
       if (error) throw error;
     },
-    onSuccess: () => { invalidate(); toast.success("Campaign duplicated"); },
+    onSuccess: () => {
+      invalidate();
+      toast.success("Campaign duplicated");
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -368,8 +548,10 @@ export default function StoreAdsManager({ storeId }: Props) {
       const prev = map[c.id];
       if (prev && prev !== c.status) {
         if (c.status === "active") toast.success(`"${c.name}" is now live`);
-        else if (c.status === "rejected") toast.error(`"${c.name}" was rejected`);
-        else if (c.status === "paused" && prev === "active") toast.info(`"${c.name}" paused`);
+        else if (c.status === "rejected")
+          toast.error(`"${c.name}" was rejected`);
+        else if (c.status === "paused" && prev === "active")
+          toast.info(`"${c.name}" paused`);
         else if (c.status === "ended") toast.info(`"${c.name}" ended`);
       }
       map[c.id] = c.status;
@@ -378,8 +560,14 @@ export default function StoreAdsManager({ storeId }: Props) {
 
   // ===== Handlers =====
 
-  const openCreate = () => { setEditing(null); setCreateOpen(true); };
-  const openEdit = (c: AdCampaign) => { setEditing(c); setCreateOpen(true); };
+  const openCreate = () => {
+    setEditing(null);
+    setCreateOpen(true);
+  };
+  const openEdit = (c: AdCampaign) => {
+    setEditing(c);
+    setCreateOpen(true);
+  };
 
   const initialForm: CampaignFormState = useMemo(() => {
     if (!editing) return EMPTY_FORM;
@@ -411,7 +599,9 @@ export default function StoreAdsManager({ storeId }: Props) {
     list = [...list].sort((a, b) => {
       if (sort === "spend") return b.spend_cents - a.spend_cents;
       if (sort === "performance") return b.clicks - a.clicks;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      return (
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
     });
     return list;
   }, [campaigns, filter, search, sort]);
@@ -422,23 +612,42 @@ export default function StoreAdsManager({ storeId }: Props) {
     return acc;
   }, [campaigns]);
 
-  const connectDef = connectPlatform ? visiblePlatforms.find((p) => p.id === connectPlatform)! : null;
-  const connectAcc = connectPlatform ? accountByPlatform(connectPlatform) : undefined;
+  const connectDef = connectPlatform
+    ? visiblePlatforms.find((p) => p.id === connectPlatform)!
+    : null;
+  const connectAcc = connectPlatform
+    ? accountByPlatform(connectPlatform)
+    : undefined;
   const connectedMetaAccounts = accounts.filter(
-    (a) => (a.platform === "meta" || a.platform === "instagram") && (a.status === "connected" || a.status === "active")
+    (a) =>
+      (a.platform === "meta" || a.platform === "instagram") &&
+      (a.status === "connected" || a.status === "active"),
   );
-  const hasMetaAssets = pages.some((p) => p.platform === "meta" || p.platform === "instagram");
-  const needsMetaAssetSelection = connectedMetaAccounts.length > 0 && !hasMetaAssets;
+  const hasMetaAssets = pages.some(
+    (p) => p.platform === "meta" || p.platform === "instagram",
+  );
+  const needsMetaAssetSelection =
+    connectedMetaAccounts.length > 0 && !hasMetaAssets;
 
   const scrollToPlatforms = () => {
-    document.getElementById("ads-platforms")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document
+      .getElementById("ads-platforms")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const scrollToCampaigns = () => {
-    document.getElementById("ads-campaigns")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document
+      .getElementById("ads-campaigns")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
     <div className="space-y-3 sm:space-y-4 pb-20 sm:pb-4">
+      {nativeDigitalPurchasesDisabled && (
+        <NativeDigitalPurchaseNotice
+          title="Advertising purchases are unavailable in this app"
+          description="Existing campaign analytics remain visible. The installed app does not offer ad-wallet top-ups or external payment links for advertising shown inside ZIVO."
+        />
+      )}
       {/* Stat strip */}
       {isLoading ? <AdsStatStripSkeleton /> : <AdsStatStrip stats={stats} />}
 
@@ -450,7 +659,7 @@ export default function StoreAdsManager({ storeId }: Props) {
           stats={stats}
           wallet={wallet}
           onCreateCampaign={openCreate}
-          onAddFunds={() => setTopUpOpen(true)}
+          onAddFunds={openTopUp}
           onConnectPlatform={scrollToPlatforms}
           onOpenCampaign={(c) => setDetailCampaign(c)}
         />
@@ -461,9 +670,12 @@ export default function StoreAdsManager({ storeId }: Props) {
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[11px] sm:text-xs">
           <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
           <p className="flex-1 text-amber-900 dark:text-amber-300/90 leading-tight">
-            <span className="font-semibold">API approvals pending</span> — drafts allowed; live launches activate once each platform is approved.
+            <span className="font-semibold">API approvals pending</span> —
+            drafts allowed; live launches activate once each platform is
+            approved.
           </p>
-          <button type="button"
+          <button
+            type="button"
             onClick={() => setBannerDismissed(true)}
             className="text-amber-700 dark:text-amber-300/70 hover:text-amber-900 text-[10px] uppercase tracking-wider shrink-0"
             aria-label="Dismiss banner"
@@ -480,7 +692,7 @@ export default function StoreAdsManager({ storeId }: Props) {
             wallet={wallet}
             ledger={ledger}
             stats={stats}
-            onAddFunds={() => setTopUpOpen(true)}
+            onAddFunds={openTopUp}
             onViewAll={() => navigate("/shop-dashboard/wallet")}
             onToggleAutoReload={() => navigate("/shop-dashboard/wallet")}
           />
@@ -494,7 +706,7 @@ export default function StoreAdsManager({ storeId }: Props) {
         <AdsOnboardingChecklist
           state={checklist}
           onConnectPlatform={scrollToPlatforms}
-          onAddBilling={() => setTopUpOpen(true)}
+          onAddBilling={openTopUp}
           onCreateCampaign={openCreate}
           onSubmitForReview={scrollToCampaigns}
         />
@@ -539,10 +751,13 @@ export default function StoreAdsManager({ storeId }: Props) {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-amber-900 dark:text-amber-200">
-                    Facebook login is connected, but no Page or ad account is linked yet.
+                    Facebook login is connected, but no Page or ad account is
+                    linked yet.
                   </p>
                   <p className="mt-1 text-[11px] leading-snug text-amber-900/75 dark:text-amber-200/75">
-                    Open Facebook again and choose the business Page/ad account. Campaign drafts can be saved now; posting and boosting need that asset.
+                    Open Facebook again and choose the business Page/ad account.
+                    Campaign drafts can be saved now; posting and boosting need
+                    that asset.
                   </p>
                 </div>
                 <Button
@@ -564,7 +779,11 @@ export default function StoreAdsManager({ storeId }: Props) {
       <Card id="ads-campaigns">
         <CardHeader className="px-3 pt-3 pb-2.5 flex-row items-center justify-between gap-2">
           <CardTitle className="text-sm">Campaigns</CardTitle>
-          <Button size="sm" className="h-8 hidden sm:inline-flex" onClick={openCreate}>
+          <Button
+            size="sm"
+            className="h-8 hidden sm:inline-flex"
+            onClick={openCreate}
+          >
             <Plus className="w-3.5 h-3.5 mr-1" /> New Campaign
           </Button>
         </CardHeader>
@@ -576,7 +795,8 @@ export default function StoreAdsManager({ storeId }: Props) {
                 const count = statusCounts[f.id] ?? 0;
                 const active = filter === f.id;
                 return (
-                  <button type="button"
+                  <button
+                    type="button"
                     key={f.id}
                     onClick={() => setFilter(f.id)}
                     aria-pressed={active}
@@ -584,7 +804,7 @@ export default function StoreAdsManager({ storeId }: Props) {
                       "flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border whitespace-nowrap transition shrink-0",
                       active
                         ? "bg-ig-gradient text-white border-primary"
-                        : "bg-card text-muted-foreground border-border hover:border-primary/40"
+                        : "bg-card text-muted-foreground border-border hover:border-primary/40",
                     )}
                   >
                     {f.label}
@@ -592,7 +812,8 @@ export default function StoreAdsManager({ storeId }: Props) {
                       variant="secondary"
                       className={cn(
                         "h-4 px-1 text-[9px]",
-                        active && "bg-primary-foreground/20 text-primary-foreground"
+                        active &&
+                          "bg-primary-foreground/20 text-primary-foreground",
                       )}
                     >
                       {count}
@@ -646,7 +867,14 @@ export default function StoreAdsManager({ storeId }: Props) {
               <MarketingEmptyState
                 variant="campaigns"
                 action={
-                  <Button size="sm" variant="outline" onClick={() => { setFilter("all"); setSearch(""); }}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setFilter("all");
+                      setSearch("");
+                    }}
+                  >
                     Clear filters
                   </Button>
                 }
@@ -662,8 +890,12 @@ export default function StoreAdsManager({ storeId }: Props) {
                   statusColors={STATUS_COLORS}
                   onEdit={openEdit}
                   onDelete={(c) => deleteCampaign.mutate(c.id)}
-                  onPause={(c) => toggleStatus.mutate({ id: c.id, status: "paused" })}
-                  onResume={(c) => toggleStatus.mutate({ id: c.id, status: "active" })}
+                  onPause={(c) =>
+                    toggleStatus.mutate({ id: c.id, status: "paused" })
+                  }
+                  onResume={(c) =>
+                    toggleStatus.mutate({ id: c.id, status: "active" })
+                  }
                   onLaunch={(c) => launchCampaign.mutate(c)}
                   onDuplicate={(c) => duplicateCampaign.mutate(c)}
                   onArchive={(c) => archiveCampaign.mutate(c.id)}
@@ -688,8 +920,8 @@ export default function StoreAdsManager({ storeId }: Props) {
       </button>
 
       {/* Connect dialog */}
-      {connectDef && (
-        oauthMutation.isPending ? (
+      {connectDef &&
+        (oauthMutation.isPending ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80">
             <div className="w-full max-w-md p-4">
               <OAuthConnectSkeleton />
@@ -709,19 +941,25 @@ export default function StoreAdsManager({ storeId }: Props) {
             helpUrl={connectDef.help}
             onOAuth={() => oauthMutation.mutate(connectDef.id)}
             onSaveManual={(externalId, displayName) =>
-              connectMutation.mutate({ platform: connectDef.id, externalId, displayName })
+              connectMutation.mutate({
+                platform: connectDef.id,
+                externalId,
+                displayName,
+              })
             }
             onDisconnect={(id) => disconnectMutation.mutate(id)}
             oauthPending={oauthMutation.isPending}
             savePending={connectMutation.isPending}
           />
-        )
-      )}
+        ))}
 
       {/* Create / Edit campaign wizard */}
       <CreateCampaignWizard
         open={createOpen}
-        onClose={() => { setCreateOpen(false); setEditing(null); }}
+        onClose={() => {
+          setCreateOpen(false);
+          setEditing(null);
+        }}
         initial={initialForm}
         isEditing={!!editing}
         platforms={PLATFORMS}
@@ -729,8 +967,14 @@ export default function StoreAdsManager({ storeId }: Props) {
         onSave={(form, asDraft) => saveCampaign.mutate({ form, asDraft })}
         saving={saveCampaign.isPending}
         walletBalanceCents={wallet.balance_cents}
-        onConnectPlatform={(p) => { setCreateOpen(false); setConnectPlatform(p); }}
-        onAddFunds={() => { setCreateOpen(false); setTopUpOpen(true); }}
+        onConnectPlatform={(p) => {
+          setCreateOpen(false);
+          setConnectPlatform(p);
+        }}
+        onAddFunds={() => {
+          setCreateOpen(false);
+          openTopUp();
+        }}
       />
 
       {/* Campaign detail drawer */}
@@ -748,7 +992,12 @@ export default function StoreAdsManager({ storeId }: Props) {
       />
 
       {/* Add funds — pick an amount, then continue to secure Stripe checkout */}
-      <Dialog open={topUpOpen} onOpenChange={(o) => { if (!topUpSubmitting) setTopUpOpen(o); }}>
+      <Dialog
+        open={topUpOpen && !nativeDigitalPurchasesDisabled}
+        onOpenChange={(o) => {
+          if (!topUpSubmitting) setTopUpOpen(o);
+        }}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -764,7 +1013,9 @@ export default function StoreAdsManager({ storeId }: Props) {
                   onClick={() => setTopUpDollars(String(amt))}
                   className={cn(
                     "rounded-lg border py-2 text-sm font-semibold transition-all",
-                    topUpDollars === String(amt) ? "border-primary bg-primary/5 text-primary" : "border-border hover:border-primary/40",
+                    topUpDollars === String(amt)
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border hover:border-primary/40",
                   )}
                 >
                   ${amt}
@@ -772,9 +1023,13 @@ export default function StoreAdsManager({ storeId }: Props) {
               ))}
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">Custom amount (USD)</label>
+              <label className="text-xs text-muted-foreground">
+                Custom amount (USD)
+              </label>
               <div className="relative mt-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                  $
+                </span>
                 <Input
                   type="number"
                   min="5"
@@ -784,13 +1039,25 @@ export default function StoreAdsManager({ storeId }: Props) {
                   className="pl-6"
                 />
               </div>
-              <p className="text-[11px] text-muted-foreground mt-1">Minimum $5. Charged securely via Stripe.</p>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Minimum $5. Charged securely via Stripe.
+              </p>
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" onClick={() => setTopUpOpen(false)} disabled={topUpSubmitting}>Cancel</Button>
+            <Button
+              variant="outline"
+              onClick={() => setTopUpOpen(false)}
+              disabled={topUpSubmitting}
+            >
+              Cancel
+            </Button>
             <Button onClick={startTopUp} disabled={topUpSubmitting}>
-              {topUpSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Continue to payment</>}
+              {topUpSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>Continue to payment</>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -150,9 +150,18 @@ const VerifyNewDevice = () => {
     if (!email || countdown > 0) return;
     setIsResending(true);
     try {
-      await supabase.functions.invoke("send-otp-email", {
+      const { data, error } = await supabase.functions.invoke("send-otp-email", {
         body: { email, purpose: "new_device" },
       });
+      // invoke() resolves with { data, error } on a non-2xx instead of
+      // throwing, so without this check the toast below would claim a code was
+      // sent even when the server rejected the request (rate limit, mail
+      // provider failure, expired session).
+      if (error || !data?.success) {
+        console.error("[VerifyNewDevice] send-otp-email failed", error ?? data);
+        toast.error(data?.error || "Couldn't send a new code. Please try again.");
+        return;
+      }
       toast.success("New verification code sent!");
       setCountdown(60);
     } catch {

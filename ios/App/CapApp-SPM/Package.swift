@@ -32,8 +32,7 @@ let package = Package(
         .package(name: "CapacitorStatusBar", path: "../../../node_modules/@capacitor/status-bar"),
         .package(name: "CapacitorToast", path: "../../../node_modules/@capacitor/toast"),
         .package(name: "CapawesomeCapacitorAppleSignIn", path: "../../../node_modules/@capawesome/capacitor-apple-sign-in"),
-        .package(name: "CapgoCapacitorUpdater", path: "../../../node_modules/@capgo/capacitor-updater"),
-        .package(name: "CapacitorPluginAppTrackingTransparency", path: "../../../node_modules/capacitor-plugin-app-tracking-transparency")
+        .package(name: "CapgoCapacitorUpdater", path: "../../../node_modules/@capgo/capacitor-updater")
     ],
     targets: [
         .target(
@@ -61,8 +60,7 @@ let package = Package(
                 .product(name: "CapacitorStatusBar", package: "CapacitorStatusBar"),
                 .product(name: "CapacitorToast", package: "CapacitorToast"),
                 .product(name: "CapawesomeCapacitorAppleSignIn", package: "CapawesomeCapacitorAppleSignIn"),
-                .product(name: "CapgoCapacitorUpdater", package: "CapgoCapacitorUpdater"),
-                .product(name: "CapacitorPluginAppTrackingTransparency", package: "CapacitorPluginAppTrackingTransparency")
+                .product(name: "CapgoCapacitorUpdater", package: "CapgoCapacitorUpdater")
             ]
         )
     ]

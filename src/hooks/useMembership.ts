@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
+import { requireWebDigitalPurchase } from "@/lib/nativeDigitalPurchasePolicy";
 
 export interface MembershipPlan {
   id: string;
@@ -44,17 +45,24 @@ export interface Membership {
 export function useMembership() {
   const { user } = useAuth();
 
-  const { data: membership, isLoading, error, refetch } = useQuery({
+  const {
+    data: membership,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["membership", user?.id],
     queryFn: async (): Promise<Membership | null> => {
       if (!user?.id) return null;
 
       const { data, error } = await supabase
         .from("zivo_subscriptions")
-        .select(`
+        .select(
+          `
           *,
           plan:zivo_subscription_plans(*)
-        `)
+        `,
+        )
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -76,21 +84,28 @@ export function useMembership() {
         stripe_subscription_id: data.stripe_subscription_id,
         created_at: data.created_at,
         cancelled_at: data.cancelled_at,
-        plan: data.plan ? {
-          id: data.plan.id,
-          name: data.plan.name,
-          slug: data.plan.slug,
-          price_monthly: data.plan.price_monthly,
-          price_yearly: data.plan.price_yearly,
-          delivery_fee_discount_pct: data.plan.delivery_fee_discount_pct ?? 100,
-          service_fee_discount_pct: data.plan.service_fee_discount_pct ?? 50,
-          free_delivery_min_order: data.plan.free_delivery_min_order ?? 15,
-          priority_support: data.plan.priority_support ?? false,
-          benefits: (typeof data.plan.benefits === 'object' && data.plan.benefits !== null ? data.plan.benefits : {}) as Record<string, unknown>,
-          stripe_price_id_monthly: data.plan.stripe_price_id_monthly,
-          stripe_price_id_yearly: data.plan.stripe_price_id_yearly,
-          is_active: data.plan.is_active,
-        } : undefined,
+        plan: data.plan
+          ? {
+              id: data.plan.id,
+              name: data.plan.name,
+              slug: data.plan.slug,
+              price_monthly: data.plan.price_monthly,
+              price_yearly: data.plan.price_yearly,
+              delivery_fee_discount_pct:
+                data.plan.delivery_fee_discount_pct ?? 100,
+              service_fee_discount_pct:
+                data.plan.service_fee_discount_pct ?? 50,
+              free_delivery_min_order: data.plan.free_delivery_min_order ?? 15,
+              priority_support: data.plan.priority_support ?? false,
+              benefits: (typeof data.plan.benefits === "object" &&
+              data.plan.benefits !== null
+                ? data.plan.benefits
+                : {}) as Record<string, unknown>,
+              stripe_price_id_monthly: data.plan.stripe_price_id_monthly,
+              stripe_price_id_yearly: data.plan.stripe_price_id_yearly,
+              is_active: data.plan.is_active,
+            }
+          : undefined,
       };
     },
     enabled: !!user?.id,
@@ -98,7 +113,8 @@ export function useMembership() {
   });
 
   // Derived states
-  const isActive = membership?.status === "active" || membership?.status === "trialing";
+  const isActive =
+    membership?.status === "active" || membership?.status === "trialing";
   const isPastDue = membership?.status === "past_due";
   const isCancelled = membership?.status === "cancelled";
 
@@ -141,7 +157,9 @@ export function useMembershipPlans() {
         service_fee_discount_pct: plan.service_fee_discount_pct ?? 50,
         free_delivery_min_order: plan.free_delivery_min_order ?? 15,
         priority_support: plan.priority_support ?? false,
-        benefits: (typeof plan.benefits === 'object' && plan.benefits !== null ? plan.benefits : {}) as Record<string, unknown>,
+        benefits: (typeof plan.benefits === "object" && plan.benefits !== null
+          ? plan.benefits
+          : {}) as Record<string, unknown>,
         stripe_price_id_monthly: plan.stripe_price_id_monthly,
         stripe_price_id_yearly: plan.stripe_price_id_yearly,
         is_active: plan.is_active,
@@ -156,24 +174,30 @@ export function useMembershipPlans() {
  */
 export function useCreateMembershipCheckout() {
   return useMutation({
-    mutationFn: async ({ 
-      planId, 
-      billingCycle = "monthly" 
-    }: { 
-      planId: string; 
+    mutationFn: async ({
+      planId,
+      billingCycle = "monthly",
+    }: {
+      planId: string;
       billingCycle?: "monthly" | "yearly";
     }) => {
+      requireWebDigitalPurchase();
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.access_token) {
         throw new Error("You must be logged in to subscribe");
       }
 
       const plan = billingCycle === "yearly" ? "annual" : "monthly";
-      const { data, error } = await supabase.functions.invoke("create-zivo-plus-checkout", {
-        body: { plan, plan_id: planId },
-      });
-      if (error) throw new Error(error.message || "Failed to create checkout session");
-      if (!data?.url || !isAllowedCheckoutUrl(data.url)) throw new Error("Invalid membership checkout URL");
+      const { data, error } = await supabase.functions.invoke(
+        "create-zivo-plus-checkout",
+        {
+          body: { plan, plan_id: planId },
+        },
+      );
+      if (error)
+        throw new Error(error.message || "Failed to create checkout session");
+      if (!data?.url || !isAllowedCheckoutUrl(data.url))
+        throw new Error("Invalid membership checkout URL");
       return data as { url: string; session_id?: string };
     },
     onError: (error: Error) => {
@@ -190,18 +214,23 @@ export function useCancelMembership() {
 
   return useMutation({
     mutationFn: async () => {
+      requireWebDigitalPurchase();
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.access_token) {
         throw new Error("You must be logged in to cancel");
       }
 
-      const { data, error } = await supabase.functions.invoke("cancel-membership");
-      if (error) throw new Error(error.message || "Failed to cancel membership");
+      const { data, error } =
+        await supabase.functions.invoke("cancel-membership");
+      if (error)
+        throw new Error(error.message || "Failed to cancel membership");
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["membership"] });
-      toast.success("Membership cancelled. You'll retain access until the end of your billing period.");
+      toast.success(
+        "Membership cancelled. You'll retain access until the end of your billing period.",
+      );
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -220,13 +249,17 @@ export function useOpenCustomerPortal() {
         throw new Error("You must be logged in");
       }
 
-      const { data, error } = await supabase.functions.invoke("zivo-plus-portal");
+      const { data, error } =
+        await supabase.functions.invoke("zivo-plus-portal");
       if (error) throw new Error(error.message || "Failed to open portal");
-      if (!data?.url || !isAllowedCheckoutUrl(data.url)) throw new Error("Invalid billing portal URL");
+      if (!data?.url || !isAllowedCheckoutUrl(data.url))
+        throw new Error("Invalid billing portal URL");
       return data as { url: string };
     },
     onSuccess: (data) => {
-      import("@/lib/openExternalUrl").then(({ openExternalUrl: oe }) => oe(data.url));
+      import("@/lib/openExternalUrl").then(({ openExternalUrl: oe }) =>
+        oe(data.url),
+      );
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -241,7 +274,7 @@ export function calculateMembershipSavings(
   plan: MembershipPlan | undefined,
   subtotal: number,
   deliveryFee: number,
-  serviceFee: number
+  serviceFee: number,
 ): { deliverySavings: number; serviceSavings: number; total: number } {
   if (!plan) {
     return { deliverySavings: 0, serviceSavings: 0, total: 0 };
@@ -252,11 +285,14 @@ export function calculateMembershipSavings(
   if (subtotal >= plan.free_delivery_min_order) {
     deliverySavings = deliveryFee; // 100% off
   } else if (plan.delivery_fee_discount_pct > 0) {
-    deliverySavings = Math.round(deliveryFee * (plan.delivery_fee_discount_pct / 100) * 100) / 100;
+    deliverySavings =
+      Math.round(deliveryFee * (plan.delivery_fee_discount_pct / 100) * 100) /
+      100;
   }
 
   // Reduced service fee
-  const serviceSavings = Math.round(serviceFee * (plan.service_fee_discount_pct / 100) * 100) / 100;
+  const serviceSavings =
+    Math.round(serviceFee * (plan.service_fee_discount_pct / 100) * 100) / 100;
 
   return {
     deliverySavings,

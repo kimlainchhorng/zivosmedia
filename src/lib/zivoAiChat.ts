@@ -1,3 +1,5 @@
+import { authSupabase } from "@/integrations/supabase/client";
+
 export type ZivoAiProvider = "auto" | "deepseek" | "claude";
 export type ZivoAiChatRole = "user" | "assistant" | "system";
 
@@ -38,6 +40,20 @@ type CompleteZivoAiChatOptions = {
 const WORKER_API_ORIGIN = (import.meta.env.VITE_ZIVO_WORKER_API_ORIGIN || "").replace(/\/$/, "");
 const AI_CHAT_ENDPOINT = `${WORKER_API_ORIGIN}/api/ai/chat`;
 
+async function authenticatedAiHeaders() {
+  const { data, error } = await authSupabase.auth.getSession();
+  const accessToken = data.session?.access_token?.trim() || "";
+
+  if (error || !accessToken) {
+    throw new Error("Sign in to use ZIVO AI");
+  }
+
+  return {
+    "Authorization": `Bearer ${accessToken}`,
+    "Content-Type": "application/json",
+  };
+}
+
 export async function streamZivoAiChat({
   messages,
   mode = "travel",
@@ -46,9 +62,10 @@ export async function streamZivoAiChat({
   signal,
   onDelta,
 }: StreamZivoAiChatOptions) {
+  const headers = await authenticatedAiHeaders();
   const resp = await fetch(AI_CHAT_ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({
       mode,
       provider,
@@ -124,9 +141,10 @@ export async function completeZivoAiChat({
   temperature = 0.4,
   signal,
 }: CompleteZivoAiChatOptions) {
+  const headers = await authenticatedAiHeaders();
   const resp = await fetch(AI_CHAT_ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({
       mode,
       provider,
