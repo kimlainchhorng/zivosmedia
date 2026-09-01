@@ -9,9 +9,9 @@ const read = (relativePath: string) =>
 describe("PWA update coverage on authentication routes", () => {
   it("mounts one update controller directly inside the application router", () => {
     const app = read("src/App.tsx");
-    const mount = "<Suspense fallback={null}><PWAUpdatePrompt /></Suspense>";
+    const mount = /<Suspense fallback=\{null\}>\s*<PWAUpdatePrompt \/>\s*<\/Suspense>/;
     const routerStart = app.indexOf("<BrowserRouter");
-    const updateMount = app.indexOf(mount);
+    const updateMount = app.search(mount);
     const authProvider = app.indexOf("<AuthProvider>");
 
     expect(app.match(/<PWAUpdatePrompt \/>/g)).toHaveLength(1);

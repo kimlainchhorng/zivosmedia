@@ -3,7 +3,10 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const read = (relativePath: string) =>
-  readFileSync(resolve(process.cwd(), relativePath), "utf8").replace(/\r\n/g, "\n");
+  readFileSync(resolve(process.cwd(), relativePath), "utf8").replace(
+    /\r\n/g,
+    "\n",
+  );
 
 const source = read("src/pages/TravelConfirmationPage.tsx");
 const appSource = read("src/App.tsx");
@@ -15,7 +18,11 @@ describe("travel confirmation server boundary", () => {
     expect(source).not.toContain("session_id");
     expect(source).not.toContain("clearCart");
 
-    const route = appSource.match(/<Route path="\/confirmation\/:orderNumber"[^\n]+/u)?.[0] ?? "";
+    const route =
+      appSource.match(
+        /<Route\s+path="\/confirmation\/:orderNumber"\s+element=\{\s*<RouteErrorBoundary\b[^>]*>\s*<TravelConfirmationPage\s*\/>\s*<\/RouteErrorBoundary>\s*\}\s*\/>/u,
+      )?.[0] ?? "";
+    expect(route).not.toBe("");
     expect(route).toContain("<TravelConfirmationPage />");
     expect(route).not.toContain("TravelCartProvider");
   });
@@ -43,7 +50,9 @@ describe("travel confirmation server boundary", () => {
 
   it("states the uncertainty, preserves the cart, and offers safe recovery", () => {
     expect(source).toContain("Travel confirmation cannot be verified");
-    expect(source).toContain("We cannot verify a booking or payment from this link.");
+    expect(source).toContain(
+      "We cannot verify a booking or payment from this link.",
+    );
     expect(source).toContain("Your saved cart has not been changed.");
     expect(source).toContain("View My Trips");
     expect(source).toContain("Back to Zivo Travel");

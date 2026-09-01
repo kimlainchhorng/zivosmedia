@@ -1,19 +1,6 @@
 /**
- * dispatch-eats-order
- * --------------------
- * Idempotent helper that bridges zivosmedia (customer) → zivodriver (driver) for
- * a paid Eats order. Inserts a `jobs` row and triggers `dispatch-start` so
- * online drivers receive offers.
- *
- * The previous flow ran this from useEatsOrder.ts directly, but that path
- * fires for redirect-based payments (PayPal / Square) BEFORE payment confirms
- * AND races with `window.location.assign`. As a result drivers were getting
- * offers for unpaid or cancelled orders. This function is now the single
- * trusted dispatcher — called from the payment webhooks once payment_status
- * flips to 'paid'.
- *
- * Idempotency: looks up an existing job tagged with the order_id in notes.
- * If one exists, skips. Safe to call multiple times.
+ * Atomically creates/reuses the Eats fulfillment rows and starts driver
+ * dispatch. Only trusted payment/recovery workers may call this function.
  */
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
@@ -24,180 +11,187 @@ function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
   return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
 }
 
-Deno.serve(withSecurity("dispatch-eats-order", async (req, ctx) => {
-  const cors = ctx.corsHeaders;
-  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+function rpcObject(value: unknown): Record<string, unknown> | null {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  return candidate && typeof candidate === "object"
+    ? (candidate as Record<string, unknown>)
+    : null;
+}
 
-  try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    if (!isServiceRoleRequest(req, serviceKey)) {
-      return new Response(JSON.stringify({ error: "forbidden" }), {
-        status: 403,
-        headers: { ...cors, "Content-Type": "application/json" },
-      });
-    }
-    const admin = createClient(supabaseUrl, serviceKey);
+Deno.serve(
+  withSecurity(
+    "dispatch-eats-order",
+    async (req, ctx) => {
+      const cors = ctx.corsHeaders;
+      const json = (body: unknown, status = 200) =>
+        new Response(JSON.stringify(body), {
+          status,
+          headers: { ...cors, "Content-Type": "application/json" },
+        });
 
-    const body = await req.json().catch(() => ({}));
-    const orderId = String(body.order_id || "").trim();
-    const offerTtlSeconds = Number(body.offer_ttl_seconds ?? 30);
-    const radiusMeters = Number(body.radius_meters ?? 15000);
+      if (req.method === "OPTIONS")
+        return new Response(null, { headers: cors });
 
-    if (!orderId) {
-      return new Response(JSON.stringify({ error: "order_id required" }), {
-        status: 400, headers: { ...cors, "Content-Type": "application/json" },
-      });
-    }
-
-    // Idempotency: a job with this order_id in notes already exists.
-    const { data: existingJob } = await admin
-      .from("jobs")
-      .select("id, status")
-      .eq("job_type", "food_delivery")
-      .like("notes", `%Food order: ${orderId}%`)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (existingJob) {
-      return new Response(JSON.stringify({
-        ok: true,
-        already_dispatched: true,
-        job_id: (existingJob as any).id,
-        status: (existingJob as any).status,
-      }), { headers: { ...cors, "Content-Type": "application/json" } });
-    }
-
-    // Pull the order details we need to build the job row.
-    const { data: order } = await admin
-      .from("food_orders")
-      .select("id, customer_id, restaurant_id, delivery_address, delivery_lat, delivery_lng, total_amount, subtotal, delivery_fee, service_fee, tip_amount, items, payment_status, status, special_instructions")
-      .eq("id", orderId)
-      .maybeSingle();
-    if (!order) {
-      return new Response(JSON.stringify({ error: "Order not found" }), {
-        status: 404, headers: { ...cors, "Content-Type": "application/json" },
-      });
-    }
-    if ((order as any).payment_status !== "paid" && (order as any).payment_status !== "cash_on_delivery") {
-      return new Response(JSON.stringify({
-        error: "Order not yet paid — refusing to dispatch",
-        payment_status: (order as any).payment_status,
-      }), { status: 409, headers: { ...cors, "Content-Type": "application/json" } });
-    }
-
-    // Hydrate restaurant pickup info.
-    const { data: restaurant } = await admin
-      .from("restaurants")
-      .select("name, address, lat, lng, phone")
-      .eq("id", (order as any).restaurant_id)
-      .maybeSingle();
-
-    const { data: jobInsert, error: jobErr } = await admin
-      .from("jobs")
-      .insert({
-        customer_id: (order as any).customer_id,
-        job_type: "food_delivery" as any,
-        status: "requested" as any,
-        pickup_address: restaurant?.name || "Restaurant",
-        pickup_lat: (restaurant as any)?.lat || 0,
-        pickup_lng: (restaurant as any)?.lng || 0,
-        dropoff_address: (order as any).delivery_address,
-        dropoff_lat: (order as any).delivery_lat,
-        dropoff_lng: (order as any).delivery_lng,
-        notes: `Food order: ${orderId}`,
-        price_total: (order as any).total_amount,
-        requested_at: new Date().toISOString(),
-      } as any)
-      .select("id")
-      .single();
-    if (jobErr || !jobInsert) {
-      console.error("[dispatch-eats-order] job insert failed", jobErr);
-      return new Response(JSON.stringify({ error: jobErr?.message || "Could not create job" }), {
-        status: 500, headers: { ...cors, "Content-Type": "application/json" },
-      });
-    }
-
-    // Also create a service_orders row for the new unified pipeline
-    // (zivodriver Service Jobs page reads from service_orders, NOT jobs).
-    // Without this insert, drivers using the new UI never see the offer.
-    // Idempotency: if a service_orders row already exists for this order,
-    // skip — re-dispatch should not create duplicates.
-    const { data: existingService } = await admin
-      .from("service_orders")
-      .select("id")
-      .eq("external_order_id", orderId)
-      .eq("external_kind", "food_order")
-      .maybeSingle();
-    if (!existingService) {
-      const totalCents = Math.round(Number((order as any).total_amount || 0) * 100);
-      const subtotalCents = Math.round(Number((order as any).subtotal || 0) * 100);
-      const deliveryFeeCents = Math.round(Number((order as any).delivery_fee || 0) * 100);
-      const serviceFeeCents = Math.round(Number((order as any).service_fee || 0) * 100);
-      const tipCents = Math.round(Number((order as any).tip_amount || 0) * 100);
-      const { error: serviceErr } = await admin
-        .from("service_orders")
-        .insert({
-          kind: "delivery",
-          status: "searching",
-          customer_id: (order as any).customer_id,
-          shop_id: (order as any).restaurant_id,
-          pickup_address: restaurant?.name || "Restaurant",
-          pickup_lat: (restaurant as any)?.lat || null,
-          pickup_lng: (restaurant as any)?.lng || null,
-          dropoff_address: (order as any).delivery_address,
-          dropoff_lat: (order as any).delivery_lat,
-          dropoff_lng: (order as any).delivery_lng,
-          items: (order as any).items ?? null,
-          special_notes: (order as any).special_instructions ?? null,
-          subtotal_cents: subtotalCents,
-          delivery_fee_cents: deliveryFeeCents,
-          service_fee_cents: serviceFeeCents,
-          tip_cents: tipCents,
-          total_cents: totalCents,
-          currency: "USD",
-          external_order_id: orderId,
-          external_kind: "food_order",
-        } as any);
-      if (serviceErr) {
-        // Don't fail the dispatch — legacy jobs row still exists, drivers
-        // using the legacy UI will still see the offer. Log + continue.
-        console.warn("[dispatch-eats-order] service_orders insert failed", serviceErr);
-      } else {
-        console.log("[dispatch-eats-order] service_orders row created", { order_id: orderId });
+      const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+      if (!supabaseUrl || !serviceKey) {
+        return json({ error: "Supabase env is not configured" }, 500);
       }
-    }
+      if (!isServiceRoleRequest(req, serviceKey)) {
+        return json({ error: "forbidden" }, 403);
+      }
 
-    // Trigger dispatch-start (in zivodriver's edge functions, but same project).
-    try {
-      await fetch(`${supabaseUrl}/functions/v1/dispatch-start`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${serviceKey}`,
-        },
-        body: JSON.stringify({
-          job_id: (jobInsert as any).id,
-          offer_ttl_seconds: offerTtlSeconds,
-          radius_meters: radiusMeters,
-        }),
+      const body = await req.json().catch(() => ({}));
+      const orderId =
+        typeof body.order_id === "string" ? body.order_id.trim() : "";
+      const offerTtlSeconds = Number.isFinite(body.offer_ttl_seconds)
+        ? Math.max(10, Math.min(120, Number(body.offer_ttl_seconds)))
+        : 30;
+      const radiusMeters = Number.isFinite(body.radius_meters)
+        ? Math.max(200, Math.min(50_000, Number(body.radius_meters)))
+        : 15_000;
+      if (!orderId) return json({ error: "order_id required" }, 400);
+
+      const admin = createClient(supabaseUrl, serviceKey, {
+        auth: { persistSession: false },
       });
-    } catch (e) {
-      console.warn("[dispatch-eats-order] dispatch-start invocation failed", e);
-      // Don't fail — the job row exists; ops can retry dispatch from admin.
-    }
 
-    return new Response(JSON.stringify({
-      ok: true,
-      job_id: (jobInsert as any).id,
-      already_dispatched: false,
-    }), { headers: { ...cors, "Content-Type": "application/json" } });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    console.error("[dispatch-eats-order]", msg);
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 500, headers: { ...cors, "Content-Type": "application/json" },
-    });
-  }
-}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));
+      try {
+        const { data: claimData, error: claimError } = await admin.rpc(
+          "claim_eats_dispatch",
+          { p_order_id: orderId },
+        );
+        const claim = rpcObject(claimData);
+        if (claimError) {
+          console.error(
+            "[dispatch-eats-order] dispatch claim failed",
+            claimError.message,
+          );
+          return json(
+            { error: "delivery_dispatch_pending", retryable: true },
+            503,
+          );
+        }
+        if (!claim?.ok) {
+          const code = String(claim?.code ?? "delivery_dispatch_pending");
+          const status =
+            code === "not_found"
+              ? 404
+              : code === "restaurant_origin_unavailable"
+                ? 503
+                : 409;
+          return json({ error: code, retryable: status === 503 }, status);
+        }
+        if (claim.dispatch_required !== true) {
+          return json({
+            ok: true,
+            dispatch_required: false,
+            pickup_order: true,
+          });
+        }
+
+        const jobId = typeof claim.job_id === "string" ? claim.job_id : "";
+        if (!jobId) {
+          return json(
+            { error: "delivery_dispatch_pending", retryable: true },
+            503,
+          );
+        }
+
+        let dispatchSucceeded = false;
+        let dispatchError = "delivery_dispatch_pending";
+        let dispatchPayload: Record<string, unknown> | null = null;
+        try {
+          const dispatchResponse = await fetch(
+            `${supabaseUrl}/functions/v1/dispatch-start`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${serviceKey}`,
+                apikey: serviceKey,
+              },
+              body: JSON.stringify({
+                job_id: jobId,
+                offer_ttl_seconds: offerTtlSeconds,
+                radius_meters: radiusMeters,
+              }),
+            },
+          );
+          const parsed = await dispatchResponse.json().catch(() => null);
+          dispatchPayload = rpcObject(parsed);
+          dispatchSucceeded =
+            dispatchResponse.ok &&
+            dispatchPayload?.ok === true &&
+            (dispatchPayload.dispatched === true ||
+              dispatchPayload.already_assigned === true);
+          if (!dispatchSucceeded) {
+            dispatchError = String(
+              dispatchPayload?.error ?? "no_driver_offer_created",
+            );
+          }
+        } catch (error) {
+          dispatchError =
+            error instanceof Error
+              ? error.message
+              : "dispatch_start_unavailable";
+        }
+
+        const { data: finishData, error: finishError } = await admin.rpc(
+          "finish_eats_dispatch",
+          {
+            p_order_id: orderId,
+            p_job_id: jobId,
+            p_succeeded: dispatchSucceeded,
+            p_error: dispatchSucceeded ? null : dispatchError,
+          },
+        );
+        const finish = rpcObject(finishData);
+        if (finishError || !finish?.ok) {
+          console.error(
+            "[dispatch-eats-order] dispatch finalization failed",
+            finishError?.message ?? finish?.code ?? "unknown",
+          );
+          return json(
+            {
+              error: "delivery_dispatch_reconciliation_pending",
+              retryable: true,
+            },
+            503,
+          );
+        }
+        if (!dispatchSucceeded) {
+          return json(
+            {
+              error: "delivery_dispatch_pending",
+              retryable: true,
+              job_id: jobId,
+            },
+            503,
+          );
+        }
+
+        return json({
+          ok: true,
+          job_id: jobId,
+          already_dispatched: claim.already_dispatched === true,
+          offer: dispatchPayload?.offer ?? null,
+        });
+      } catch (error) {
+        console.error("[dispatch-eats-order]", error);
+        return json(
+          { error: "delivery_dispatch_pending", retryable: true },
+          503,
+        );
+      }
+    },
+    {
+      allowedMethods: ["POST"],
+      strictCors: true,
+      rateLimit: "api_general",
+      trackNetwork: "suspicious",
+      blockNetworkRiskAt: 80,
+      skipBotDetection: true,
+    },
+  ),
+);

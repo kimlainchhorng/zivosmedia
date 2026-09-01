@@ -11,6 +11,15 @@ project_id = "slirphzzwcogdbkeicff"
     verify_jwt = false
   [functions.notifications-weekly-digest]
     verify_jwt = false
+  # Internal scheduled jobs use the handler-owned one-use HMAC envelope. They
+  # do not carry a user Supabase JWT, so the gateway must pass the request to
+  # the stricter purpose/timestamp/nonce/body-signature boundary.
+  [functions.auto-cancel-stale-orders]
+    verify_jwt = false
+  [functions.close-trip-call-sessions]
+    verify_jwt = false
+  [functions.marketing-automations-tick]
+    verify_jwt = false
   [functions.supplier-proxy]
     verify_jwt = true
   [functions.scan-invoice]
@@ -79,6 +88,24 @@ project_id = "slirphzzwcogdbkeicff"
     verify_jwt = true
   [functions.resolve-driver-earning-payout]
     verify_jwt = true
+  [functions.payout-method-verification]
+    verify_jwt = true
+  [functions.eats-payout-admin]
+    verify_jwt = true
+  # Generic Wallet payout rails are release-disabled until a durable,
+  # atomic wallet reservation + provider settlement authority exists. Keep the
+  # gateway open so every legacy direct caller receives the same explicit 503
+  # tombstone rather than reaching an older deployed money-moving handler.
+  [functions.process-withdrawal]
+    verify_jwt = false
+  [functions.connect-instant-payout]
+    verify_jwt = false
+  [functions.paypal-payout]
+    verify_jwt = false
+  [functions.wallet-instant-payout]
+    verify_jwt = false
+  [functions.stripe-instant-payout]
+    verify_jwt = false
   [functions.generate-trip-receipt]
     verify_jwt = true
   [functions.account-summary]
@@ -160,7 +187,10 @@ project_id = "slirphzzwcogdbkeicff"
   [functions.send-push-notification]
     verify_jwt = false
   [functions.send-transactional-email]
-    verify_jwt = true
+    # Internal service-to-service callers authenticate with the exact current
+    # SUPABASE_SERVICE_ROLE_KEY in the handler. New Supabase secret keys are
+    # not JWTs, so the gateway must pass the request to that custom boundary.
+    verify_jwt = false
   # Public only for starting/completing a signup email proof. The handlers
   # enforce purpose-specific identity checks for every existing-account flow.
   [functions.public-signup]
@@ -174,6 +204,37 @@ project_id = "slirphzzwcogdbkeicff"
   [functions.target-search]
     verify_jwt = false
   [functions.wallet-summary]
+    verify_jwt = false
+  # Customer Eats wallet mutations require a valid user JWT at the gateway and
+  # repeat the ownership check inside the handler. Dispatch stays service-role
+  # only behind the confirmation function.
+  [functions.wallet-payment-deduct]
+    verify_jwt = true
+  [functions.eats-payment-status-update]
+    verify_jwt = true
+  [functions.cancel-eats-order]
+    # Preserve the current live gateway policy; the handler authenticates the
+    # bearer itself before reading or mutating an order.
+    verify_jwt = false
+  [functions.create-eats-order]
+    verify_jwt = true
+  [functions.create-eats-payment]
+    verify_jwt = true
+  [functions.create-eats-paypal-order]
+    verify_jwt = true
+  [functions.capture-eats-paypal-order]
+    verify_jwt = true
+  [functions.create-eats-square-checkout]
+    verify_jwt = true
+  # Trusted payment confirmation functions invoke the dispatcher with the
+  # exact service-role secret, which the handler verifies itself.
+  [functions.dispatch-eats-order]
+    verify_jwt = false
+  # PayPal and Square authenticate their callbacks with provider signatures in
+  # each handler; a Supabase JWT is neither expected nor available.
+  [functions.paypal-eats-webhook]
+    verify_jwt = false
+  [functions.square-eats-webhook]
     verify_jwt = false
   [functions.walmart-search]
     verify_jwt = false

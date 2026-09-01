@@ -1,198 +1,41 @@
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import Stripe from "../_shared/stripe.ts";
-import { createClient } from "../_shared/deps.ts";
-import { enforceAal2 } from "../_shared/aalCheck.ts";
-import { getIdempotencyKey, withIdempotency } from "../_shared/idempotency.ts";
+import { serve } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
-import {
-  creatorMonetizationBlockedResponse,
-  isCreatorMonetizationAccount,
-} from "../_shared/creatorMonetizationCompliance.ts";
-import {
-  adultCreatorPaymentBlockedResponse,
-  isAdultCreatorAccount,
-} from "../_shared/adultCreatorPaymentBoundary.ts";
 
-serve(withSecurity("connect-instant-payout", async (req, ctx) => {
-  const corsHeaders = ctx.corsHeaders;
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
-    });
-  }
+const unavailableBody = {
+  error: "Stripe wallet payouts are temporarily unavailable",
+  code: "wallet_cashout_authority_unavailable",
+  retryable: false,
+};
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
-
-  try {
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY not configured");
-
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Not authenticated");
-
-    // Step-up MFA — payouts must be initiated from an AAL2 session
-    const mfaErr = enforceAal2(authHeader, corsHeaders);
-    if (mfaErr) return mfaErr;
-
-    const { data: userData } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
-    const user = userData.user;
-    if (!user) throw new Error("Invalid auth");
-
-    if (await isCreatorMonetizationAccount(supabase, user.id)) {
-      return creatorMonetizationBlockedResponse(corsHeaders);
-    }
-
-    // Read from a clone: the idempotency wrapper hashes the request with
-    // `await req.clone().text()`, and cloning a Request whose body is already
-    // consumed is a spec-mandated TypeError ("unusable"). Reading `req`
-    // directly here threw before the payout was ever claimed, and the outer
-    // catch reported it as a flat failure.
-    const { amount_cents, method = "instant" } = await req.clone().json();
-    if (!amount_cents || typeof amount_cents !== "number" || amount_cents < 100) {
-      throw new Error("Minimum payout is $1.00");
-    }
-    if (amount_cents > 1_000_000_00) throw new Error("Amount exceeds maximum");
-
-    // Adult creators do not take payouts from this Stripe account — see
-    // _shared/adultCreatorPaymentBoundary.ts. Deliberately OUTSIDE the
-    // idempotency wrapper below: a refusal is not a result worth caching
-    // against the request key, and caching it would make the boundary look
-    // like a completed payout on a retry.
-    if (await isAdultCreatorAccount(supabase, user.id)) {
-      return adultCreatorPaymentBlockedResponse(corsHeaders);
-    }
-
-    const idempotencyKey = getIdempotencyKey(req);
-    const result = await withIdempotency(req, "connect-instant-payout", user.id, async () => {
-      // Connect account
-      const { data: connect } = await supabase
-        .from("stripe_connect_accounts")
-        .select("*")
-        .eq("payee_id", user.id)
-        .eq("payee_type", "customer")
-        .maybeSingle();
-      if (!connect?.stripe_account_id) throw new Error("Stripe account not connected");
-      if (!connect.payouts_enabled) throw new Error("Payouts not enabled. Complete onboarding first.");
-
-      // Wallet balance check
-      const { data: wallet } = await supabase
-        .from("customer_wallets")
-        .select("id, balance_cents")
-        .eq("user_id", user.id)
-        .single();
-      const currentBalance = wallet?.balance_cents ?? 0;
-      if (amount_cents > currentBalance) {
-        throw new Error(`Insufficient balance. Available: $${(currentBalance / 100).toFixed(2)}`);
-      }
-
-      const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-
-      // 1) Transfer funds from platform to creator's connect account
-      const transfer = await stripe.transfers.create({
-        amount: amount_cents,
-        currency: "usd",
-        destination: connect.stripe_account_id,
-        description: `ZIVO wallet payout for user ${user.id}`,
-        metadata: { user_id: user.id, type: "wallet_cashout" },
-      }, idempotencyKey ? { idempotencyKey: `${idempotencyKey}:transfer` } : undefined);
-
-      // 2) Trigger payout on the connected account (instant if requested)
-      let payout: any = null;
-      try {
-        payout = await stripe.payouts.create(
-          {
-            amount: amount_cents,
-            currency: "usd",
-            method: method === "instant" ? "instant" : "standard",
-            metadata: { user_id: user.id, transfer_id: transfer.id },
-          },
-          {
-            stripeAccount: connect.stripe_account_id,
-            ...(idempotencyKey ? { idempotencyKey: `${idempotencyKey}:payout:${method}` } : {}),
-          }
-        );
-      } catch (payoutErr) {
-        // If instant fails, fallback to standard
-        if (method === "instant") {
-          try {
-            payout = await stripe.payouts.create(
-              {
-                amount: amount_cents,
-                currency: "usd",
-                method: "standard",
-                metadata: { user_id: user.id, transfer_id: transfer.id, instant_failed: "true" },
-              },
-              {
-                stripeAccount: connect.stripe_account_id,
-                ...(idempotencyKey ? { idempotencyKey: `${idempotencyKey}:payout:standard-fallback` } : {}),
-              }
-            );
-          } catch (e2) {
-            throw payoutErr;
-          }
-        } else {
-          throw payoutErr;
-        }
-      }
-
-      // 3) Deduct wallet balance + record transaction
-      const newBalance = currentBalance - amount_cents;
-      const isInstant = payout?.method === "instant";
-      const desc = `${isInstant ? "Instant" : "Standard"} payout to card${payout?.id ? ` · ${payout.id}` : ""}`;
-
-      await supabase.from("customer_wallet_transactions").insert({
-        user_id: user.id,
-        amount_cents: -amount_cents,
-        balance_after_cents: newBalance,
-        type: "withdrawal",
-        description: desc,
-      });
-      await supabase.from("customer_wallets").update({
-        balance_cents: newBalance,
-        updated_at: new Date().toISOString(),
-      }).eq("user_id", user.id);
-
-      // Telegram notify
-      const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
-      const chatId = Deno.env.get("TELEGRAM_CHAT_ID");
-      if (botToken && chatId) {
-        const msg = `⚡ *${isInstant ? "Instant" : "Standard"} Stripe Payout*\nUser: ${user.id}\nAmount: $${(amount_cents / 100).toFixed(2)}\nPayout: ${payout?.id}\nArrival: ${payout?.arrival_date ? new Date(payout.arrival_date * 1000).toISOString() : "—"}`;
-        try {
-          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: "Markdown" }),
-          });
-        } catch (_) {}
-      }
-
-      return {
-        status: 200,
-        body: {
-          success: true,
-          payout_id: payout?.id,
-          method: payout?.method,
-          arrival_date: payout?.arrival_date,
-          new_balance_cents: newBalance,
-        },
+serve(
+  withSecurity(
+    "connect-instant-payout",
+    async (req, ctx) => {
+      const headers = {
+        ...ctx.corsHeaders,
+        "Content-Type": "application/json",
       };
-    });
 
-    return new Response(JSON.stringify(result.body), {
-      status: result.status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Payout failed";
-    console.error("[CONNECT-INSTANT-PAYOUT]", msg);
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-}, { rateLimit: "payment", strictCors: true, allowedMethods: ["POST"], trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+      if (req.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405,
+          headers: { ...headers, Allow: "POST, OPTIONS" },
+        });
+      }
+
+      // Do not ask Stripe to move money until a database-owned reservation and
+      // settlement record can be committed atomically with wallet accounting.
+      return new Response(JSON.stringify(unavailableBody), {
+        status: 503,
+        headers,
+      });
+    },
+    {
+      rateLimit: "payment",
+      strictCors: true,
+      allowedMethods: ["POST"],
+      trackNetwork: "suspicious",
+      blockNetworkRiskAt: 80,
+    },
+  ),
+);

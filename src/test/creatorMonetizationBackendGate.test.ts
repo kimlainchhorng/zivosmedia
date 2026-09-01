@@ -74,8 +74,10 @@ describe("creator monetization backend compliance gate", () => {
       -1,
     );
     expect(gate, `${name} performs work before refusing`).toBeLessThan(work);
-    expect(gate, `${name} does not refuse near the handler boundary`)
-      .toBeLessThan(600);
+    expect(
+      gate,
+      `${name} does not refuse near the handler boundary`,
+    ).toBeLessThan(600);
 
     const stripeObject = source.indexOf("new Stripe(");
     if (stripeObject > -1) {
@@ -85,13 +87,10 @@ describe("creator monetization backend compliance gate", () => {
     }
   });
 
-  it("scopes shared Connect and wallet payout routes to creator accounts", () => {
+  it("scopes active shared Connect routes to creator accounts", () => {
     const scoped = [
       ["connect-onboard", "new Stripe("],
       ["connect-account-session", "new Stripe("],
-      ["connect-instant-payout", "withIdempotency("],
-      ["paypal-payout", "withIdempotency("],
-      ["process-withdrawal", "rateLimitDb("],
     ] as const;
 
     for (const [name, firstMoneyWork] of scoped) {
@@ -99,12 +98,37 @@ describe("creator monetization backend compliance gate", () => {
       const classifier = source.indexOf("isCreatorMonetizationAccount(");
       const refusal = source.indexOf("creatorMonetizationBlockedResponse(");
       const providerOrLedger = source.indexOf(firstMoneyWork);
-      expect(classifier, `${name} does not classify the signed-in account`)
-        .toBeGreaterThan(-1);
-      expect(refusal, `${name} does not refuse creator money movement`)
-        .toBeGreaterThan(classifier);
-      expect(refusal, `${name} refuses after provider/ledger work`)
-        .toBeLessThan(providerOrLedger);
+      expect(
+        classifier,
+        `${name} does not classify the signed-in account`,
+      ).toBeGreaterThan(-1);
+      expect(
+        refusal,
+        `${name} does not refuse creator money movement`,
+      ).toBeGreaterThan(classifier);
+      expect(
+        refusal,
+        `${name} refuses after provider/ledger work`,
+      ).toBeLessThan(providerOrLedger);
+    }
+  });
+
+  it("universally tombstones retired wallet payout routes before classification or money work", () => {
+    for (const name of [
+      "connect-instant-payout",
+      "paypal-payout",
+      "process-withdrawal",
+      "wallet-instant-payout",
+      "stripe-instant-payout",
+    ] as const) {
+      const source = functionSource(name);
+      expect(source).toContain("wallet_cashout_authority_unavailable");
+      expect(source).toContain("status: 503");
+      expect(source).toContain("retryable: false");
+      expect(source).not.toContain("isCreatorMonetizationAccount(");
+      expect(source).not.toContain("new Stripe(");
+      expect(source).not.toContain('from("customer_wallets")');
+      expect(source).not.toContain('from("customer_wallet_transactions")');
     }
   });
 
@@ -134,7 +158,9 @@ describe("creator monetization backend compliance gate", () => {
     );
     expect(giftGate).toBeGreaterThan(bodyRead);
     expect(giftGate).toBeLessThan(stripeObject);
-    expect(source).toContain("if (isCreatorMonetizationDisabled() && hasGiftRecipient)");
+    expect(source).toContain(
+      "if (isCreatorMonetizationDisabled() && hasGiftRecipient)",
+    );
     expect(source).toContain('type: "membership"');
   });
 
@@ -154,22 +180,26 @@ describe("creator monetization backend compliance gate", () => {
         "creatorMonetizationWebhookAcknowledgement(",
       );
       const creatorWrite = source.indexOf('.from("creator_tips")');
-      expect(ignored, `${name} does not ignore successful creator value events`)
-        .toBeGreaterThan(verified);
-      expect(ignored, `${name} writes creator value before ignoring`)
-        .toBeLessThan(creatorWrite);
+      expect(
+        ignored,
+        `${name} does not ignore successful creator value events`,
+      ).toBeGreaterThan(verified);
+      expect(
+        ignored,
+        `${name} writes creator value before ignoring`,
+      ).toBeLessThan(creatorWrite);
     }
 
     const stripeWebhook = functionSource("stripe-webhook");
     const signatureCheck = stripeWebhook.indexOf("constructEvent");
     const acknowledgements = [
       ...stripeWebhook.matchAll(/creatorMonetizationWebhookAcknowledgement\(/g),
-    ]
-      .map((match) => match.index ?? -1);
+    ].map((match) => match.index ?? -1);
     expect(signatureCheck).toBeGreaterThan(-1);
     expect(acknowledgements).toHaveLength(7);
-    expect(acknowledgements.every((position) => position > signatureCheck))
-      .toBe(true);
+    expect(
+      acknowledgements.every((position) => position > signatureCheck),
+    ).toBe(true);
 
     const paymentIntentStart = stripeWebhook.indexOf(
       'case "payment_intent.succeeded"',
@@ -188,8 +218,7 @@ describe("creator monetization backend compliance gate", () => {
       ...paymentIntentSucceeded.matchAll(
         /creatorMonetizationWebhookAcknowledgement\(/g,
       ),
-    ]
-      .map((match) => match.index ?? -1);
+    ].map((match) => match.index ?? -1);
     expect(earlyAcknowledgements).toHaveLength(3);
     expect(
       earlyAcknowledgements.every((position) => position < firstGenericWrite),
@@ -232,21 +261,19 @@ describe("creator monetization backend compliance gate", () => {
   });
 
   it("preserves cancellation, refund, dispute, and ordinary-commerce paths", () => {
-    for (
-      const name of [
-        "cancel-creator-subscription",
-        "process-refund",
-        "capture-ride-tip",
-        "charge-salon-tip",
-        "connect-onboard-stylist",
-        "driver-payout",
-        "square-payout",
-      ] as const
-    ) {
-      expect(functionSource(name), `${name} was caught by the creator shutdown`)
-        .not.toContain(
-          "creatorMonetizationBlockedResponse(",
-        );
+    for (const name of [
+      "cancel-creator-subscription",
+      "process-refund",
+      "capture-ride-tip",
+      "charge-salon-tip",
+      "connect-onboard-stylist",
+      "driver-payout",
+      "square-payout",
+    ] as const) {
+      expect(
+        functionSource(name),
+        `${name} was caught by the creator shutdown`,
+      ).not.toContain("creatorMonetizationBlockedResponse(");
     }
 
     expect(functionSource("stripe-webhook")).toContain(

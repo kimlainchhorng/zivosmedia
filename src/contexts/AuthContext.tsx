@@ -57,6 +57,29 @@ const AUTH_INITIALIZATION_ERROR_MESSAGE =
   "We couldn't verify your session. Check your connection and try again.";
 const AUTH_ADMIN_ROLE_ERROR_MESSAGE =
   "We couldn't verify your access. Check your connection and try again.";
+const PRIVATE_SERVICE_WORKER_CACHE_NAMES = ["api-cache"] as const;
+
+const clearPrivateServiceWorkerCaches = async () => {
+  if (typeof window === "undefined") return;
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.controller?.postMessage({
+      type: "CLEAR_PRIVATE_CACHES",
+    });
+  }
+
+  if (!("caches" in window)) return;
+  try {
+    await Promise.all(
+      PRIVATE_SERVICE_WORKER_CACHE_NAMES.map((cacheName) =>
+        window.caches.delete(cacheName),
+      ),
+    );
+  } catch {
+    // Cache cleanup must never prevent authentication or sign-out. The active
+    // service worker receives the same request above as a second safe path.
+  }
+};
 
 type AdminRoleResolution =
   | { available: true; isAdmin: boolean }
@@ -175,6 +198,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(nextSession?.user ?? null);
 
       if (userChanged) {
+        // Includes login, logout, and switching directly between saved
+        // accounts. Old service-worker API responses never cross that boundary.
+        void clearPrivateServiceWorkerCaches();
         setIsAdmin(false);
         setAdminRoleError(null);
         checkedAdminForRef.current = null;
@@ -492,48 +518,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      const deviceFingerprint = `${navigator.userAgent}|${Intl.DateTimeFormat().resolvedOptions().timeZone}|${navigator.language}`;
-
-      const isTransientPrecheckError = (message: string) => {
-        const msg = message.toLowerCase();
-        return (
-          msg.includes("upstream connect") ||
-          msg.includes("transport failure") ||
-          msg.includes("delayed connect") ||
-          msg.includes("failed to fetch") ||
-          msg.includes("network") ||
-          msg.includes("timeout") ||
-          msg.includes("pgrst202") ||
-          msg.includes("schema cache") ||
-          (msg.includes("function") && msg.includes("not found"))
-        );
-      };
-
-      const { data: precheckData, error: precheckError } = await withAuthTimeout(
-        "Login security check",
-        (supabase as any).rpc("auth_precheck_login", {
-          _identifier: normalizedEmail,
-          _device_fingerprint: deviceFingerprint,
-        }) as Promise<{ data: any; error: { message?: string } | null }>,
-        12_000,
-      );
-
-      if (precheckError) {
-        const message = precheckError.message || "Security precheck failed";
-        if (!isTransientPrecheckError(message)) {
-          return { error: new Error(message) };
-        }
-        console.warn("[Auth] Precheck unavailable, continuing with direct sign-in", {
-          message,
-        });
-      }
-
-      const precheck = Array.isArray(precheckData) ? precheckData[0] : precheckData;
-      if (precheck && precheck.allowed === false) {
-        return { error: new Error(precheck.reason || "Too many failed attempts. Please try later.") };
-      }
-
-      const emailExists = precheck?.email_exists ?? true;
 
       const { error } = await withAuthTimeout(
         "Supabase sign-in",
@@ -544,23 +528,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         20_000,
       );
 
-      try {
-        await withAuthTimeout(
-          "Login audit write",
-          (supabase as any).rpc("auth_record_login_attempt", {
-            _identifier: normalizedEmail,
-            _success: !error,
-            _device_fingerprint: deviceFingerprint,
-          }),
-          8_000,
-        );
-      } catch {
-        // non-critical, ignore
-      }
-
       if (error) {
-        // Attach email_exists hint for better error messages
-        (error as any)._emailExists = emailExists;
+        // Supabase Auth owns credential verification and its provider-side
+        // abuse controls. A browser must never report whether an identifier
+        // exists or declare its own login attempt successful/failed.
         return { error };
       }
 
@@ -630,6 +601,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     authInitializationUnavailableRef.current = false;
     clearSessionArtifacts();
     clearSignedUrlCache();
+    await clearPrivateServiceWorkerCaches();
     setMfaPending(null);
 
     // Remove this device from trusted devices (so next login requires OTP again)

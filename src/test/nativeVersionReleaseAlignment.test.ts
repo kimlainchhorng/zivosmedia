@@ -25,7 +25,7 @@ describe("native version release alignment", () => {
     const androidVersionCode = capture(androidBuild, /versionCode ([0-9]+)/, "Android versionCode");
 
     expect(new Set(iosMarketingVersions)).toEqual(new Set([packageJson.version]));
-    expect(new Set(iosBuildNumbers)).toEqual(new Set(["4"]));
+    expect(new Set(iosBuildNumbers)).toEqual(new Set(["5"]));
     expect(androidVersionName).toBe(packageJson.version);
     expect(Number(androidVersionCode)).toBeGreaterThan(2026053100);
 
@@ -33,7 +33,7 @@ describe("native version release alignment", () => {
       expect(listing).toContain("Release Metadata");
       expect(listing).toContain(`Version: ${packageJson.version}`);
     }
-    expect(appStoreListing).toContain("Build: 4");
+    expect(appStoreListing).toContain("Build: 5");
     expect(playStoreListing).toContain(`Version code: ${androidVersionCode}`);
   });
 });

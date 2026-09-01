@@ -217,11 +217,12 @@ describe("shop owner workflow", () => {
     expect(arQuickSettingsPanel).toContain("isAutoRepairSoftwareHost(window.location.hostname)");
     expect(arQuickSettingsPanel).toContain('"Printed on estimates & invoices alongside your business name, address, phone & logo."');
     expect(arQuickSettingsPanel).toContain('"service@example.com" : "shop@example.com"');
-    expect(supplierBrowserModal).toContain('"Account saved for the business"');
-    expect(supplierBrowserModal).toContain('"Account removed for the business"');
-    expect(supplierBrowserModal).toContain('type BrowserStoredCreds = Pick<SavedCreds, "email" | "updatedAt">');
-    expect(supplierBrowserModal).toContain('const safe: BrowserStoredCreds');
-    expect(supplierBrowserModal).toContain('localStorage above caches only the');
+    expect(supplierBrowserModal).toContain("`Account saved for the ${workspaceName}`");
+    expect(supplierBrowserModal).toContain("`Account removed for the ${workspaceName}`");
+    expect(supplierBrowserModal).toContain('type SavedCreds = { email: string; updatedAt: string }');
+    expect(supplierBrowserModal).toContain('const safe: SavedCreds');
+    expect(supplierBrowserModal).toContain('account metadata only');
+    expect(supplierBrowserModal).toContain('never synced to the application database');
     expect(supplierBrowserModal).not.toContain('JSON.stringify(c));');
     expect(financeExpenses).toContain("\"You don't have permission to save expenses for this business.\"");
     expect(financeExpenses).toContain('const diagnosticsStoreIdLabel = isAutoRepairSoftwareDomain ? "Business ID" : "Store ID"');
@@ -938,7 +939,7 @@ describe("shop owner workflow", () => {
     expect(salonClientGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.salon_clients FROM anon, authenticated");
     expect(carRentalReviewsHook).toContain('functions.invoke("car-rental-review-manage"');
     expect(carRentalReviewsHook).not.toMatch(/from\("car_rental_reviews"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
-    expect(carRentalReviewPage).toContain('functions.invoke("car-rental-review-submit"');
+    expect(carRentalReviewPage).toMatch(/functions\.invoke\(\s*["']car-rental-review-submit["']/);
     expect(carRentalReviewPage).not.toMatch(/from\("car_rental_reviews"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
     expect(carRentalReviewManage).toContain('withSecurity("car-rental-review-manage"');
     expect(carRentalReviewManage).toContain("strictCors: true");
@@ -946,10 +947,10 @@ describe("shop owner workflow", () => {
     expect(carRentalReviewManage).toContain('.from("car_rental_reviews")');
     expect(carRentalReviewManage).toContain('.from("store_profiles")');
     expect(carRentalReviewManage).toContain('rpc("has_role"');
-    expect(carRentalReviewSubmit).toContain('withSecurity("car-rental-review-submit"');
-    expect(carRentalReviewSubmit).toContain("REVIEWABLE_STATUSES");
-    expect(carRentalReviewSubmit).toContain('.from("car_rental_reservations")');
-    expect(carRentalReviewSubmit).toContain('.from("car_rental_reviews")');
+    expect(carRentalReviewSubmit).toMatch(/withSecurity\(\s*["']car-rental-review-submit["']/);
+    expect(carRentalReviewSubmit).toContain('"car_rental_submit_review"');
+    expect(carRentalReviewSubmit).not.toContain('.from("car_rental_reservations")');
+    expect(carRentalReviewSubmit).not.toContain('.from("car_rental_reviews")');
     expect(carRentalReviewGate).toContain("Car rental review inserts require trusted server-side validation");
     expect(carRentalReviewGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_rental_reviews FROM anon, authenticated");
     expect(dealershipReviewsHook).toContain('functions.invoke("car-dealership-review-manage"');
@@ -962,11 +963,27 @@ describe("shop owner workflow", () => {
     expect(dealershipReviewManage).toContain('.from("car_dealership_reviews")');
     expect(dealershipReviewManage).toContain('.from("store_profiles")');
     expect(dealershipReviewManage).toContain('rpc("has_role"');
+<<<<<<< Updated upstream
     expect(dealershipReviewSubmit).toMatch(/withSecurity\(\s*["']car-dealership-review-submit["']/);
     expect(dealershipReviewSubmit).toContain("authorizeCarDealershipSaleReviewAccess");
     expect(dealershipReviewSubmit).toContain('"car_dealership_submit_review"');
     expect(dealershipReviewSubmit).not.toContain('.from("car_dealership_sales")');
     expect(dealershipReviewSubmit).not.toContain('.from("car_dealership_reviews")');
+=======
+    expect(dealershipReviewSubmit).toContain('withSecurity("car-dealership-review-submit"');
+    expect(dealershipReviewSubmit).toContain(
+      "authorizeCarDealershipSaleReviewAccess",
+    );
+    expect(dealershipReviewSubmit).toContain(
+      '"car_dealership_submit_review"',
+    );
+    expect(dealershipReviewSubmit).not.toContain(
+      '.from("car_dealership_sales")',
+    );
+    expect(dealershipReviewSubmit).not.toContain(
+      '.from("car_dealership_reviews")',
+    );
+>>>>>>> Stashed changes
     expect(dealershipReviewGate).toContain("Car dealership review inserts require trusted server-side validation");
     expect(dealershipReviewGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_dealership_reviews FROM anon, authenticated");
     expect(dealershipTradeInsHook).toContain('functions.invoke("car-dealership-trade-in-manage"');

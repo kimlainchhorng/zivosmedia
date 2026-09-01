@@ -64,10 +64,11 @@ test.describe("SSO, sessions, and role routing contract", () => {
     const sessionSecurity = source("src/lib/security/sessionSecurity.ts");
     const listSessions = source("supabase/functions/list-my-sessions/index.ts");
     const revokeSession = source("supabase/functions/revoke-session/index.ts");
-    const lockout = source("supabase/migrations/20260411170000_auth_shield_lockout.sql");
+    const loginBoundary = source("supabase/migrations/20260831000449_harden_auth_login_attempt_boundary.sql");
 
-    expect(auth).toContain("auth_precheck_login");
-    expect(auth).toContain("auth_record_login_attempt");
+    expect(auth).toContain("signInWithPassword");
+    expect(auth).not.toContain('rpc("auth_precheck_login"');
+    expect(auth).not.toContain('rpc("auth_record_login_attempt"');
     expect(auth).toContain("getMfaChallenge");
     expect(auth).toContain("setMfaPending(challenge)");
     expect(auth).toContain('supabase.functions.invoke("log-login"');
@@ -94,7 +95,7 @@ test.describe("SSO, sessions, and role routing contract", () => {
     expect(revokeSession).toContain("withSecurity(\"revoke-session\"");
     expect(revokeSession).toContain("sessionId === \"all_others\"");
     expect(revokeSession).toContain("terminated_at");
-    expect(lockout).toContain("CREATE OR REPLACE FUNCTION public.auth_precheck_login");
-    expect(lockout).toContain("CREATE OR REPLACE FUNCTION public.auth_record_login_attempt");
+    expect(loginBoundary).toContain("FROM PUBLIC, anon, authenticated");
+    expect(loginBoundary).toContain("TO service_role");
   });
 });

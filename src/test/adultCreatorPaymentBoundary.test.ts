@@ -17,7 +17,9 @@ function stripeCreatingFunctions(): string[] {
     .map((entry) => entry.name)
     .filter((name) => {
       const file = path.join(dir, name, "index.ts");
-      return existsSync(file) && STRIPE_CREATES.test(readFileSync(file, "utf8"));
+      return (
+        existsSync(file) && STRIPE_CREATES.test(readFileSync(file, "utf8"))
+      );
     })
     .sort();
 }
@@ -126,7 +128,9 @@ describe("adult creator payment boundary", () => {
       const stripeClient = source.indexOf("new Stripe(");
       expect(guard, `${file} has no guard`).toBeGreaterThan(-1);
       if (stripeClient > -1) {
-        expect(guard, `${file} guards after constructing Stripe`).toBeLessThan(stripeClient);
+        expect(guard, `${file} guards after constructing Stripe`).toBeLessThan(
+          stripeClient,
+        );
       }
     }
   });
@@ -194,7 +198,6 @@ describe("adult creator payment boundary", () => {
     const OUTBOUND = [
       "supabase/functions/connect-onboard/index.ts",
       "supabase/functions/connect-account-session/index.ts",
-      "supabase/functions/connect-instant-payout/index.ts",
     ] as const;
 
     it("refuses Connect onboarding and payouts for adult creators", () => {
@@ -203,7 +206,9 @@ describe("adult creator payment boundary", () => {
         expect(source, `${file} is missing the adult creator guard`).toContain(
           "isAdultCreatorAccount(",
         );
-        expect(source, `${file} does not refuse`).toContain("adultCreatorPaymentBlockedResponse(");
+        expect(source, `${file} does not refuse`).toContain(
+          "adultCreatorPaymentBlockedResponse(",
+        );
       }
     });
 
@@ -213,7 +218,9 @@ describe("adult creator payment boundary", () => {
       // neither is_of_creator nor creator_type — while a body-supplied id would
       // have been both spoofable and wrong here.
       for (const file of OUTBOUND) {
-        expect(read(file)).toMatch(/isAdultCreatorAccount\(\s*supabase,\s*user\.id\s*\)/);
+        expect(read(file)).toMatch(
+          /isAdultCreatorAccount\(\s*supabase,\s*user\.id\s*\)/,
+        );
       }
     });
 
@@ -224,20 +231,22 @@ describe("adult creator payment boundary", () => {
         const stripeClient = source.indexOf("new Stripe(");
         expect(guard).toBeGreaterThan(-1);
         if (stripeClient > -1) {
-          expect(guard, `${file} guards after constructing Stripe`).toBeLessThan(stripeClient);
+          expect(
+            guard,
+            `${file} guards after constructing Stripe`,
+          ).toBeLessThan(stripeClient);
         }
       }
     });
 
-    it("does not cache the refusal against an idempotency key", () => {
-      // connect-instant-payout wraps its work in withIdempotency. A refusal
-      // stored under the request key would replay as a completed payout.
+    it("universally tombstones legacy instant payout before any account or provider work", () => {
       const source = read("supabase/functions/connect-instant-payout/index.ts");
-      const guard = source.indexOf("isAdultCreatorAccount(");
-      const idempotency = source.indexOf("withIdempotency(");
-      expect(guard).toBeGreaterThan(-1);
-      expect(idempotency).toBeGreaterThan(-1);
-      expect(guard).toBeLessThan(idempotency);
+      expect(source).toContain("wallet_cashout_authority_unavailable");
+      expect(source).toContain("status: 503");
+      expect(source).toContain("retryable: false");
+      expect(source).not.toContain("new Stripe(");
+      expect(source).not.toContain("withIdempotency(");
+      expect(source).not.toContain('from("customer_wallets")');
     });
   });
 

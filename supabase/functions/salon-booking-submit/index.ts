@@ -7,7 +7,8 @@
 import { createClient, serve } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Body = {
@@ -34,116 +35,252 @@ type Body = {
   no_show_fee_consent_at?: unknown;
 };
 
-serve(withSecurity("salon-booking-submit", async (req, ctx) => {
-  const corsHeaders = ctx.corsHeaders;
-  const json = (body: unknown, status = 200) =>
-    new Response(JSON.stringify(body), {
-      status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+type Caller =
+  | { mode: "guest"; userId: null }
+  | { mode: "authenticated"; userId: string }
+  | { mode: "invalid"; userId: null };
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } }) as any;
+serve(
+  withSecurity(
+    "salon-booking-submit",
+    async (req, ctx) => {
+      const corsHeaders = ctx.corsHeaders;
+      const json = (body: unknown, status = 200) =>
+        new Response(JSON.stringify(body), {
+          status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
 
-  const body = await req.json().catch(() => ({})) as Body;
-  const storeId = cleanUuid(body.store_id);
-  const serviceId = cleanUuid(body.service_id);
-  if (!storeId) return json({ error: "Invalid store id" }, 400);
-  if (!serviceId) return json({ error: "Invalid service id" }, 400);
+      const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+      if (!supabaseUrl || !anonKey || !serviceKey) {
+        return json({ error: "Server misconfigured" }, 500);
+      }
+      const admin = createClient(supabaseUrl, serviceKey, {
+        auth: { persistSession: false },
+      }) as any;
 
-  const { data: store, error: storeError } = await admin
-    .from("store_profiles")
-    .select("id, is_active")
-    .eq("id", storeId)
-    .maybeSingle();
-  if (storeError) {
-    console.error("[salon-booking-submit:store]", storeError.message);
-    return json({ error: "Could not verify store" }, 500);
-  }
-  if (!store?.id || store.is_active === false) return json({ error: "Store is not available" }, 404);
+      const body = (await req.json().catch(() => ({}))) as Body;
+      const storeId = cleanUuid(body.store_id);
+      const serviceId = cleanUuid(body.service_id);
+      if (!storeId) return json({ error: "Invalid store id" }, 400);
+      if (!serviceId) return json({ error: "Invalid service id" }, 400);
 
-  const { data: service, error: serviceError } = await admin
-    .from("salon_services")
-    .select("id, store_id, name, price_cents, duration_minutes, is_active")
-    .eq("id", serviceId)
-    .eq("store_id", storeId)
-    .maybeSingle();
-  if (serviceError) {
-    console.error("[salon-booking-submit:service]", serviceError.message);
-    return json({ error: "Could not verify service" }, 500);
-  }
-  if (!service?.id || service.is_active === false) return json({ error: "Selected service is not available" }, 400);
+      const caller = await resolveCaller(req, supabaseUrl, anonKey);
+      if (caller.mode === "invalid") {
+        return json({ error: "Invalid or expired authentication" }, 401);
+      }
+      const claimedUserId = cleanOptionalUuid(body.created_by_user_id);
+      if (
+        body.created_by_user_id !== undefined &&
+        body.created_by_user_id !== null &&
+        body.created_by_user_id !== "" &&
+        !claimedUserId
+      ) {
+        return json({ error: "Invalid booking account" }, 400);
+      }
+      if (
+        claimedUserId &&
+        (caller.mode !== "authenticated" || claimedUserId !== caller.userId)
+      ) {
+        return json(
+          { error: "Booking account does not match the signed-in user" },
+          403,
+        );
+      }
 
-  const stylistId = cleanOptionalUuid(body.stylist_id);
-  if (body.stylist_id && !stylistId) return json({ error: "Invalid stylist id" }, 400);
+      const { data: store, error: storeError } = await admin
+        .from("store_profiles")
+        .select("id, is_active")
+        .eq("id", storeId)
+        .maybeSingle();
+      if (storeError) {
+        console.error("[salon-booking-submit:store]", storeError.message);
+        return json({ error: "Could not verify store" }, 500);
+      }
+      if (!store?.id || store.is_active === false)
+        return json({ error: "Store is not available" }, 404);
 
-  let stylist: { id: string; display_name: string | null } | null = null;
-  if (stylistId) {
-    const { data, error } = await admin
-      .from("salon_stylists")
-      .select("id, store_id, display_name, is_active")
-      .eq("id", stylistId)
-      .eq("store_id", storeId)
-      .maybeSingle();
-    if (error) {
-      console.error("[salon-booking-submit:stylist]", error.message);
-      return json({ error: "Could not verify stylist" }, 500);
-    }
-    if (!data?.id || data.is_active === false) return json({ error: "Selected stylist is not available" }, 400);
-    stylist = { id: data.id, display_name: data.display_name ?? null };
-  }
+      const { data: service, error: serviceError } = await admin
+        .from("salon_services")
+        .select("id, store_id, name, price_cents, duration_minutes, is_active")
+        .eq("id", serviceId)
+        .eq("store_id", storeId)
+        .maybeSingle();
+      if (serviceError) {
+        console.error("[salon-booking-submit:service]", serviceError.message);
+        return json({ error: "Could not verify service" }, 500);
+      }
+      if (!service?.id || service.is_active === false)
+        return json({ error: "Selected service is not available" }, 400);
 
-  const booking = cleanBooking(body, {
-    serviceName: service.name,
-    priceCents: service.price_cents,
-    durationMinutes: service.duration_minutes,
-    stylistName: stylist?.display_name ?? null,
-  });
-  if (!booking.ok) return json({ error: booking.error }, 400);
+      const stylistId = cleanOptionalUuid(body.stylist_id);
+      if (body.stylist_id && !stylistId)
+        return json({ error: "Invalid stylist id" }, 400);
 
-  const createdByUserId = await resolveUserId(req, supabaseUrl, anonKey);
-  const { data, error } = await admin
+      let stylist: { id: string; display_name: string | null } | null = null;
+      if (stylistId) {
+        const { data, error } = await admin
+          .from("salon_stylists")
+          .select("id, store_id, display_name, is_active")
+          .eq("id", stylistId)
+          .eq("store_id", storeId)
+          .maybeSingle();
+        if (error) {
+          console.error("[salon-booking-submit:stylist]", error.message);
+          return json({ error: "Could not verify stylist" }, 500);
+        }
+        if (!data?.id || data.is_active === false)
+          return json({ error: "Selected stylist is not available" }, 400);
+        stylist = { id: data.id, display_name: data.display_name ?? null };
+      }
+
+      const booking = cleanBooking(body, {
+        serviceName: service.name,
+        priceCents: service.price_cents,
+        durationMinutes: service.duration_minutes,
+        stylistName: stylist?.display_name ?? null,
+      });
+      if (!booking.ok) return json({ error: booking.error }, 400);
+
+      const createdByUserId = caller.userId;
+      const { data, error } = await admin
+        .from("salon_bookings")
+        .insert({
+          ...booking.values,
+          store_id: storeId,
+          service_id: serviceId,
+          stylist_id: stylist?.id ?? null,
+          created_by_user_id: createdByUserId,
+        })
+        .select("id, start_at, deposit_cents, created_by_user_id")
+        .single();
+      if (error) {
+        console.error("[salon-booking-submit:insert]", error.message);
+        if (error.code === "23P01") {
+          return json({ error: error.message, code: "slot_conflict" }, 409);
+        }
+        return json({ error: "Could not submit booking" }, 500);
+      }
+
+      const storedCreatedByUserId =
+        typeof data.created_by_user_id === "string"
+          ? data.created_by_user_id
+          : null;
+      if (storedCreatedByUserId !== createdByUserId) {
+        console.error(
+          "[salon-booking-submit:account-linkage] Verified booking identity was not preserved",
+        );
+        await rollbackPendingBooking(admin, data.id);
+        return json({ error: "Could not create secure booking access" }, 500);
+      }
+
+      const { data: accessRows, error: accessError } = await admin.rpc(
+        "salon_issue_booking_access",
+        { p_booking_id: data.id, p_scope: "manage" },
+      );
+      if (accessError) {
+        console.error("[salon-booking-submit:access]", accessError.message);
+        // Never fall back to UUID-only authority. Best-effort rollback keeps a
+        // failed secure-link mint from leaving a duplicate pending booking when
+        // the customer retries the form.
+        await rollbackPendingBooking(admin, data.id);
+        return json({ error: "Could not create secure booking access" }, 500);
+      }
+
+      const access =
+        Array.isArray(accessRows) && accessRows.length === 1
+          ? accessRows[0]
+          : null;
+      const accessToken =
+        typeof access?.access_token === "string" ? access.access_token : null;
+      const accessExpiresAt =
+        typeof access?.expires_at === "string" ? access.expires_at : null;
+      const guestExpiryMs = accessExpiresAt ? Date.parse(accessExpiresAt) : NaN;
+      const accessModeMatches =
+        caller.mode === "authenticated"
+          ? access !== null &&
+            access?.access_token === null &&
+            access?.expires_at === null
+          : accessToken !== null &&
+            /^[0-9a-f]{64}$/i.test(accessToken) &&
+            Number.isFinite(guestExpiryMs) &&
+            guestExpiryMs > Date.now();
+      if (!accessModeMatches) {
+        console.error(
+          "[salon-booking-submit:access-mode] Secure access mode did not match booking ownership",
+        );
+        await rollbackPendingBooking(admin, data.id);
+        return json({ error: "Could not create secure booking access" }, 500);
+      }
+
+      return json({
+        ok: true,
+        booking: {
+          id: data.id,
+          start_at: data.start_at,
+          deposit_cents: data.deposit_cents,
+        },
+        access_token: accessToken,
+        access_expires_at: accessExpiresAt,
+      });
+    },
+    {
+      strictCors: true,
+      allowedMethods: ["POST"],
+      rateLimit: "api_general",
+      trackNetwork: "suspicious",
+      blockNetworkRiskAt: 80,
+    },
+  ),
+);
+
+async function rollbackPendingBooking(
+  admin: any,
+  bookingId: string,
+): Promise<void> {
+  const { error } = await admin
     .from("salon_bookings")
-    .insert({
-      ...booking.values,
-      store_id: storeId,
-      service_id: serviceId,
-      stylist_id: stylist?.id ?? null,
-      created_by_user_id: createdByUserId,
-    })
-    .select("id, start_at, deposit_cents")
-    .single();
+    .delete()
+    .eq("id", bookingId)
+    .eq("status", "pending")
+    .eq("deposit_paid_cents", 0);
   if (error) {
-    console.error("[salon-booking-submit:insert]", error.message);
-    if (error.code === "23P01") {
-      return json({ error: error.message, code: "slot_conflict" }, 409);
-    }
-    return json({ error: "Could not submit booking" }, 500);
+    console.error("[salon-booking-submit:access-rollback]", error.message);
   }
-
-  return json({ ok: true, booking: data });
-}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+}
 
 function cleanBooking(
   value: Body,
-  service: { serviceName: string; priceCents: number; durationMinutes: number; stylistName: string | null },
-): { ok: true; values: Record<string, string | number | boolean | null> } | { ok: false; error: string } {
+  service: {
+    serviceName: string;
+    priceCents: number;
+    durationMinutes: number;
+    stylistName: string | null;
+  },
+):
+  | { ok: true; values: Record<string, string | number | boolean | null> }
+  | { ok: false; error: string } {
   const clientName = cleanText(value.client_name, 1, 200);
   if (!clientName) return { ok: false, error: "Customer name is required" };
 
   const clientPhone = cleanNullableText(value.client_phone, 40);
   const clientEmail = cleanNullableEmail(value.client_email);
-  if (!clientPhone && !clientEmail) return { ok: false, error: "Phone or email is required" };
-  if (value.client_email && !clientEmail) return { ok: false, error: "Valid email is required" };
+  if (!clientPhone && !clientEmail)
+    return { ok: false, error: "Phone or email is required" };
+  if (value.client_email && !clientEmail)
+    return { ok: false, error: "Valid email is required" };
 
   const startAt = cleanFutureIso(value.start_at);
   if (!startAt) return { ok: false, error: "Invalid appointment start time" };
 
-  const endAt = new Date(new Date(startAt).getTime() + service.durationMinutes * 60 * 1000).toISOString();
+  const endAt = new Date(
+    new Date(startAt).getTime() + service.durationMinutes * 60 * 1000,
+  ).toISOString();
   const consentAt = cleanNullableIso(value.no_show_fee_consent_at);
-  if (value.no_show_fee_consent_at && !consentAt) return { ok: false, error: "Invalid no-show consent timestamp" };
+  if (value.no_show_fee_consent_at && !consentAt)
+    return { ok: false, error: "Invalid no-show consent timestamp" };
 
   return {
     ok: true,
@@ -169,16 +306,25 @@ function cleanBooking(
   };
 }
 
-async function resolveUserId(req: Request, supabaseUrl: string, anonKey: string): Promise<string | null> {
-  const authorization = req.headers.get("Authorization") ?? "";
-  if (!authorization.toLowerCase().startsWith("bearer ")) return null;
+async function resolveCaller(
+  req: Request,
+  supabaseUrl: string,
+  anonKey: string,
+): Promise<Caller> {
+  const authorization = (req.headers.get("Authorization") ?? "").trim();
+  if (!authorization) return { mode: "guest", userId: null };
+  const match = authorization.match(/^bearer\s+(.+)$/i);
+  if (!match) return { mode: "invalid", userId: null };
+  const token = match[1].trim();
+  if (!token) return { mode: "invalid", userId: null };
+  if (token === anonKey) return { mode: "guest", userId: null };
   const userClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authorization } },
     auth: { persistSession: false },
   }) as any;
   const { data, error } = await userClient.auth.getUser();
-  if (error || !data?.user?.id) return null;
-  return data.user.id;
+  if (error || !data?.user?.id) return { mode: "invalid", userId: null };
+  return { mode: "authenticated", userId: data.user.id };
 }
 
 function cleanUuid(value: unknown): string | null {
@@ -192,7 +338,11 @@ function cleanOptionalUuid(value: unknown): string | null {
   return cleanUuid(value);
 }
 
-function cleanText(value: unknown, minLength: number, maxLength: number): string | null {
+function cleanText(
+  value: unknown,
+  minLength: number,
+  maxLength: number,
+): string | null {
   if (typeof value !== "string") return null;
   const text = value.trim();
   if (text.length < minLength || text.length > maxLength) return null;
@@ -218,7 +368,8 @@ function cleanFutureIso(value: unknown): string | null {
   const now = Date.now();
   const max = new Date();
   max.setUTCFullYear(max.getUTCFullYear() + 1);
-  if (date.getTime() < now - 60 * 1000 || date.getTime() > max.getTime()) return null;
+  if (date.getTime() < now - 60 * 1000 || date.getTime() > max.getTime())
+    return null;
   return date.toISOString();
 }
 

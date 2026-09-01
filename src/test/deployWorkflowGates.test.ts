@@ -36,12 +36,14 @@ describe("deploy workflow gates", () => {
     expect(relevanceScript).toContain("scripts\\/deploy");
     expect(relevanceScript).toContain("scripts\\/security");
     expect(relevanceScript).toContain("scripts\\/supabase");
+    expect(relevanceScript).toContain("cloudflare\\/");
     expect(relevanceScript).toContain("docs\\/production-deploy-secrets");
     expect(relevanceScript).toContain("docs\\/supabase-deploy-env-setup");
     expect(relevanceScript).toContain("docs\\/supabase-migration-auth-setup");
     expect(relevanceScript).toContain("docs\\/platform-upgrade-workflow");
     expect(relevanceScript).toContain("docs\\/end-to-end-platform-readiness");
     expect(relevanceScript).toContain("netlify");
+    expect(relevanceScript).toContain("wrangler");
     expect(workflow.indexOf("Production preflight")).toBeLessThan(workflow.indexOf("Deploy production to Netlify"));
     expect(workflow).toContain("SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}");
     expect(workflow).toContain("SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}");
@@ -55,6 +57,8 @@ describe("deploy workflow gates", () => {
       input: [
         "docs/production-deploy-secrets.md",
         "scripts/security/check-secrets.mjs",
+        "cloudflare/worker.ts",
+        "wrangler.toml",
         "netlify.toml",
       ].join("\n"),
       encoding: "utf8",

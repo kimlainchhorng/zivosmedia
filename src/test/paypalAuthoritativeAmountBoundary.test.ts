@@ -20,7 +20,6 @@ describe("PayPal authoritative amount boundary", () => {
 
   it("rejects captured amount or currency mismatches before paid state", () => {
     for (const file of [
-      "supabase/functions/capture-eats-paypal-order/index.ts",
       "supabase/functions/capture-grocery-paypal-order/index.ts",
       "supabase/functions/capture-lodging-paypal-order/index.ts",
     ]) {
@@ -29,5 +28,15 @@ describe("PayPal authoritative amount boundary", () => {
       expect(source).toContain("toUpperCase()");
       expect(source).toContain('"USD"');
     }
+
+    const eatsCapture = read("supabase/functions/capture-eats-paypal-order/index.ts");
+    const eatsSettlement = read(
+      "supabase/migrations/20260830190000_eats_payment_cancellation_state_machine.sql",
+    );
+    expect(eatsCapture).toContain('"record_eats_provider_settlement"');
+    expect(eatsSettlement).toContain("v_expected_cents");
+    expect(eatsSettlement).toContain("p_amount_cents = v_expected_cents");
+    expect(eatsSettlement).toContain("v_currency = 'USD'");
+    expect(eatsSettlement).toContain("provider_amount_mismatch_refund_pending");
   });
 });

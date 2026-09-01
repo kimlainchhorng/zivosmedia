@@ -1,16 +1,21 @@
 import { supabase } from "@/integrations/supabase/client";
 import { trackMarketingEvent } from "@/services/marketingTracking";
+import { Capacitor } from "@capacitor/core";
+import { isMarketingConsentGranted } from "@/lib/privacy/cookieConsent";
 
 type MetaEventName = "Purchase" | "CompleteRegistration" | "InitiateCheckout";
 
 /** Read Meta browser cookies for high match quality */
 function getMetaCookies(): { fbc: string | null; fbp: string | null } {
   try {
-    const cookies = document.cookie.split(";").reduce((acc, c) => {
-      const [k, v] = c.trim().split("=");
-      if (k) acc[k] = v || "";
-      return acc;
-    }, {} as Record<string, string>);
+    const cookies = document.cookie.split(";").reduce(
+      (acc, c) => {
+        const [k, v] = c.trim().split("=");
+        if (k) acc[k] = v || "";
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
     return {
       fbc: cookies["_fbc"] || null,
       fbp: cookies["_fbp"] || null,
@@ -32,7 +37,10 @@ interface MetaEventPayload {
   payload?: Record<string, unknown>;
 }
 
-export async function sendMetaConversionEvent(input: MetaEventPayload): Promise<void> {
+export async function sendMetaConversionEvent(
+  input: MetaEventPayload,
+): Promise<void> {
+  if (Capacitor.isNativePlatform() || !isMarketingConsentGranted()) return;
   const { fbc, fbp } = getMetaCookies();
   try {
     await supabase.functions.invoke("meta-conversion-handler", {

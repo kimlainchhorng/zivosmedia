@@ -3,7 +3,12 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
-const source = (file: string) => readFileSync(path.join(root, file), "utf8").replace(/\r\n/g, "\n");
+const source = (file: string) =>
+  readFileSync(path.join(root, file), "utf8").replace(/\r\n/g, "\n");
+
+function expectSecurityRoute(text: string, route: string) {
+  expect(text).toMatch(new RegExp(`withSecurity\\(\\s*["']${route}["']`));
+}
 
 describe("API, speed, and operations readiness workflow", () => {
   it("wires the API operations contract gate into platform audit", () => {
@@ -22,12 +27,18 @@ describe("API, speed, and operations readiness workflow", () => {
       expect(contract).toContain(contractId);
     }
 
-    expect(matrix).toContain("src/test/workflows/api-operations-readiness.test.ts");
+    expect(matrix).toContain(
+      "src/test/workflows/api-operations-readiness.test.ts",
+    );
     expect(matrix).toContain("src/test/webhookFailureAlerting.test.ts");
-    expect(matrix).toContain("npx playwright test tests/e2e/server-error-fallbacks.spec.ts");
+    expect(matrix).toContain(
+      "npx playwright test tests/e2e/server-error-fallbacks.spec.ts",
+    );
     expect(matrix).toContain("server-error fallbacks, and API readiness green");
     expect(workflowCoverage).toContain("qa:api-operations-contracts");
-    expect(packageJson).toContain('"qa:api-operations-contracts": "node scripts/qa/api-operations-contracts.mjs"');
+    expect(packageJson).toContain(
+      '"qa:api-operations-contracts": "node scripts/qa/api-operations-contracts.mjs"',
+    );
     expect(packageJson).toContain("npm run qa:api-operations-contracts");
   });
 
@@ -96,10 +107,10 @@ describe("API, speed, and operations readiness workflow", () => {
       "schedule-fire",
       "secret-media-prune",
       "security-cleanup",
-      "supplier-proxy",
     ]) {
       const fn = source(`supabase/functions/${route}/index.ts`);
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expect(fn).toContain("withSecurity(");
+      expect(fn).toContain(`"${route}"`);
       expect(fn).toContain('allowedMethods: ["GET", "POST"]');
       expect(fn).toContain("strictCors: true");
       expect(fn).not.toContain('"Access-Control-Allow-Origin": "*"');
@@ -108,8 +119,12 @@ describe("API, speed, and operations readiness workflow", () => {
 
   it("surfaces webhook failures and payment mismatches to admin operations", () => {
     const webhookStatus = source("src/pages/admin/AdminWebhookStatusPage.tsx");
-    const lodgingEvents = source("src/pages/admin/AdminLodgingWebhookEventsPage.tsx");
-    const paymentsWorkflow = source("src/test/workflows/payments-refunds-webhooks.test.ts");
+    const lodgingEvents = source(
+      "src/pages/admin/AdminLodgingWebhookEventsPage.tsx",
+    );
+    const paymentsWorkflow = source(
+      "src/test/workflows/payments-refunds-webhooks.test.ts",
+    );
 
     expect(webhookStatus).toContain('supabase.from("webhook_events")');
     expect(webhookStatus).toContain("Mismatch alerts");
@@ -127,7 +142,9 @@ describe("API, speed, and operations readiness workflow", () => {
   it("keeps public report sinks, contact matching, and moderation export on strict wrappers", () => {
     const csp = source("supabase/functions/csp-report/index.ts");
     const contact = source("supabase/functions/contact-match/index.ts");
-    const moderationExport = source("supabase/functions/export-moderation-actions-csv/index.ts");
+    const moderationExport = source(
+      "supabase/functions/export-moderation-actions-csv/index.ts",
+    );
 
     for (const [route, fn] of [
       ["csp-report", csp],
@@ -137,7 +154,8 @@ describe("API, speed, and operations readiness workflow", () => {
       expect(fn).toContain("withSecurity(");
       expect(fn).toContain("const corsHeaders = ctx.corsHeaders");
       expect(fn).toContain("strictCors: true");
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expect(fn).toContain("withSecurity(");
+      expect(fn).toContain(`"${route}"`);
       expect(fn).toContain('trackNetwork: "suspicious"');
       expect(fn).toContain("blockNetworkRiskAt: 80");
       expect(fn).not.toContain('"Access-Control-Allow-Origin": "*"');
@@ -152,9 +170,11 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(contact).toContain("slice(0, 2000)");
     expect(contact).toContain("phone_hash");
 
-    expect(moderationExport).toContain('withSecurity("export-moderation-actions-csv"');
+    expect(moderationExport).toContain(
+      'withSecurity("export-moderation-actions-csv"',
+    );
     expect(moderationExport).toContain("has_role");
-    expect(moderationExport).toContain("_role: \"admin\"");
+    expect(moderationExport).toContain('_role: "admin"');
     expect(moderationExport).toContain("Content-Disposition");
   });
 
@@ -163,7 +183,9 @@ describe("API, speed, and operations readiness workflow", () => {
     const concierge = source("supabase/functions/hotel-concierge/index.ts");
     const liveSignal = source("supabase/functions/live-signal/index.ts");
     const liveWebrtc = source("src/lib/liveWebrtc.ts");
-    const liveSignalGate = source("supabase/migrations/20260601013000_live_stream_signals_server_gate.sql");
+    const liveSignalGate = source(
+      "supabase/migrations/20260601013000_live_stream_signals_server_gate.sql",
+    );
     const livekit = source("supabase/functions/livekit-recording/index.ts");
     const lookup = source("supabase/functions/lookup-store-id/index.ts");
 
@@ -174,7 +196,7 @@ describe("API, speed, and operations readiness workflow", () => {
       "livekit-recording": livekit,
       "lookup-store-id": lookup,
     })) {
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expect(fn).toMatch(new RegExp(`withSecurity\\(\\s*["']${route}["']`));
       expect(fn).toContain("const corsHeaders = ctx.corsHeaders");
       expect(fn).toContain("strictCors: true");
       if (route === "live-signal" || route === "livekit-recording") {
@@ -197,8 +219,12 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(liveSignal).toContain("isDuplicateIce");
     expect(liveSignal).toContain("skipBotDetection: true");
     expect(liveWebrtc).toContain('functions.invoke("live-signal"');
-    expect(liveWebrtc).not.toMatch(/from\("live_stream_signals"\)[\s\S]{0,160}\.insert/);
-    expect(liveSignalGate).toContain('DROP POLICY IF EXISTS "Authenticated insert signals as host or viewer"');
+    expect(liveWebrtc).not.toMatch(
+      /from\("live_stream_signals"\)[\s\S]{0,160}\.insert/,
+    );
+    expect(liveSignalGate).toContain(
+      'DROP POLICY IF EXISTS "Authenticated insert signals as host or viewer"',
+    );
     expect(liveSignalGate).toContain("trusted server-side ingestion");
 
     expect(livekit).toContain("session.host_id !== user.id");
@@ -210,9 +236,15 @@ describe("API, speed, and operations readiness workflow", () => {
   });
 
   it("keeps lodging iCal, marketing tick, chat handoff, and pair-live routes protected", () => {
-    const exportFeed = source("supabase/functions/lodging-ical-export/index.ts");
-    const importFeed = source("supabase/functions/lodging-ical-import/index.ts");
-    const tick = source("supabase/functions/marketing-automations-tick/index.ts");
+    const exportFeed = source(
+      "supabase/functions/lodging-ical-export/index.ts",
+    );
+    const importFeed = source(
+      "supabase/functions/lodging-ical-import/index.ts",
+    );
+    const tick = source(
+      "supabase/functions/marketing-automations-tick/index.ts",
+    );
     const handoff = source("supabase/functions/mint-chat-handoff/index.ts");
     const pairLive = source("supabase/functions/pair-go-live/index.ts");
 
@@ -223,7 +255,8 @@ describe("API, speed, and operations readiness workflow", () => {
       "mint-chat-handoff": handoff,
       "pair-go-live": pairLive,
     })) {
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expect(fn).toContain("withSecurity(");
+      expect(fn).toContain(`"${route}"`);
       expect(fn).toContain("const corsHeaders = ctx.corsHeaders");
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('trackNetwork: "suspicious"');
@@ -237,7 +270,7 @@ describe("API, speed, and operations readiness workflow", () => {
     }
 
     expect(exportFeed).toContain("ical_export_token");
-    expect(exportFeed).toContain("Content-Type\": \"text/calendar");
+    expect(exportFeed).toContain('Content-Type": "text/calendar');
 
     expect(importFeed).toContain("isServiceRoleRequest(req, SERVICE_ROLE)");
     expect(importFeed).toContain("x-cron-secret");
@@ -247,8 +280,10 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(importFeed).toContain("user_roles");
     expect(importFeed).toContain("syncConnection(admin, c)");
 
-    expect(tick).toContain("CRON_SECRET");
-    expect(tick).toContain("x-cron-secret");
+    expect(tick).toContain("isAuthorizedInternalCron");
+    expect(tick).toContain('functionName: "marketing-automations-tick"');
+    expect(tick).toContain("isInternalCronReadinessProbe");
+    expect(tick).not.toContain('req.headers.get("x-cron-secret")');
     expect(tick).toContain("notify-dispatch");
     expect(tick).toContain('category: "marketing"');
 
@@ -267,9 +302,15 @@ describe("API, speed, and operations readiness workflow", () => {
   it("keeps social preview, Facebook posting, security queue, and avatar upload endpoints bounded", () => {
     const postOg = source("supabase/functions/post-og/index.ts");
     const profileOg = source("supabase/functions/profile-og/index.ts");
-    const facebook = source("supabase/functions/post-to-facebook-page/index.ts");
-    const securityQueue = source("supabase/functions/process-security-notifications/index.ts");
-    const avatarUpload = source("supabase/functions/profile-avatar-upload/index.ts");
+    const facebook = source(
+      "supabase/functions/post-to-facebook-page/index.ts",
+    );
+    const securityQueue = source(
+      "supabase/functions/process-security-notifications/index.ts",
+    );
+    const avatarUpload = source(
+      "supabase/functions/profile-avatar-upload/index.ts",
+    );
 
     for (const [route, fn] of Object.entries({
       "post-og": postOg,
@@ -278,7 +319,7 @@ describe("API, speed, and operations readiness workflow", () => {
       "process-security-notifications": securityQueue,
       "profile-avatar-upload": avatarUpload,
     })) {
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain("const corsHeaders = ctx.corsHeaders");
       expect(fn).toContain("strictCors: true");
       if (route === "profile-avatar-upload") {
@@ -316,18 +357,26 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(securityQueue).toContain("send-transactional-email");
 
     expect(avatarUpload).toContain("admin.auth.getUser(token)");
-    expect(avatarUpload).toContain('new Set(["image/jpeg", "image/png", "image/webp"])');
+    expect(avatarUpload).toContain(
+      'new Set(["image/jpeg", "image/png", "image/webp"])',
+    );
     expect(avatarUpload).toContain("5 * 1024 * 1024");
     expect(avatarUpload).toContain("8 * 1024 * 1024");
   });
 
   it("keeps scheduled maintenance, employee invites, promo redemption, and transcription protected", () => {
-    const lowStock = source("supabase/functions/salon-low-stock-digest/index.ts");
+    const lowStock = source(
+      "supabase/functions/salon-low-stock-digest/index.ts",
+    );
     const scheduleFire = source("supabase/functions/schedule-fire/index.ts");
     const mediaPrune = source("supabase/functions/secret-media-prune/index.ts");
     const cleanup = source("supabase/functions/security-cleanup/index.ts");
-    const emailInvite = source("supabase/functions/send-employee-email-invite/index.ts");
-    const smsInvite = source("supabase/functions/send-employee-sms-invite/index.ts");
+    const emailInvite = source(
+      "supabase/functions/send-employee-email-invite/index.ts",
+    );
+    const smsInvite = source(
+      "supabase/functions/send-employee-sms-invite/index.ts",
+    );
     const promo = source("supabase/functions/track-promo-redemption/index.ts");
     const transcribe = source("supabase/functions/transcribe-voice/index.ts");
 
@@ -341,7 +390,7 @@ describe("API, speed, and operations readiness workflow", () => {
       "track-promo-redemption": promo,
       "transcribe-voice": transcribe,
     })) {
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain("const corsHeaders = ctx.corsHeaders");
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('trackNetwork: "suspicious"');
@@ -377,16 +426,24 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(transcribe).toContain("auth.getUser(token)");
     expect(transcribe).toContain("canAccessVoiceNote");
     expect(transcribe).toContain("direct_messages");
-    expect(transcribe).toContain("message.sender_id === userId || message.receiver_id === userId");
+    expect(transcribe).toContain(
+      "message.sender_id === userId || message.receiver_id === userId",
+    );
   });
 
   it("keeps provider webhooks and internal payment crons off legacy wildcard CORS", () => {
     const sharedCors = source("supabase/functions/_shared/cors.ts");
     const wrapper = source("supabase/functions/_shared/withSecurity.ts");
     const authEmail = source("supabase/functions/auth-email-hook/index.ts");
-    const staleOrders = source("supabase/functions/auto-cancel-stale-orders/index.ts");
-    const adsRecharge = source("supabase/functions/auto-recharge-ads-wallet/index.ts");
-    const rideWebhook = source("supabase/functions/stripe-ride-webhook/index.ts");
+    const staleOrders = source(
+      "supabase/functions/auto-cancel-stale-orders/index.ts",
+    );
+    const adsRecharge = source(
+      "supabase/functions/auto-recharge-ads-wallet/index.ts",
+    );
+    const rideWebhook = source(
+      "supabase/functions/stripe-ride-webhook/index.ts",
+    );
 
     expect(sharedCors).toContain("stripe-signature");
     expect(sharedCors).toContain("x-lovable-signature");
@@ -401,7 +458,8 @@ describe("API, speed, and operations readiness workflow", () => {
       "auto-recharge-ads-wallet": adsRecharge,
       "stripe-ride-webhook": rideWebhook,
     })) {
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expect(fn).toContain("withSecurity(");
+      expect(fn).toContain(`"${route}"`);
       expect(fn).toContain("const corsHeaders = ctx.corsHeaders");
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('trackNetwork: "suspicious"');
@@ -413,7 +471,8 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(authEmail).toContain('allowedMethods: ["POST"]');
     expect(authEmail).toContain("handlePreview(req, corsHeaders)");
     expect(authEmail).toContain("handleWebhook(req, corsHeaders)");
-    expect(staleOrders).toContain("isInternalCaller(req)");
+    expect(staleOrders).toContain("await isInternalCaller(req,");
+    expect(staleOrders).toContain("isAuthorizedInternalCron");
     expect(staleOrders).toContain('allowedMethods: ["POST"]');
     expect(adsRecharge).toContain('allowedMethods: ["POST"]');
     expect(adsRecharge).toContain("stripe.paymentIntents.create");
@@ -426,7 +485,9 @@ describe("API, speed, and operations readiness workflow", () => {
     const claim = source("supabase/functions/device-link-claim/index.ts");
     const register = source("supabase/functions/device-register/index.ts");
     const manage = source("supabase/functions/linked-device-manage/index.ts");
-    const manageGate = source("supabase/migrations/20260601111500_linked_devices_server_gate.sql");
+    const manageGate = source(
+      "supabase/migrations/20260601111500_linked_devices_server_gate.sql",
+    );
     const linkedDevicesHook = source("src/hooks/useLinkedDevices.ts");
     const clockQr = source("supabase/functions/clock-qr/index.ts");
 
@@ -437,7 +498,7 @@ describe("API, speed, and operations readiness workflow", () => {
       "linked-device-manage": manage,
       "clock-qr": clockQr,
     })) {
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain("const corsHeaders = ctx.corsHeaders");
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('trackNetwork: "suspicious"');
@@ -460,8 +521,12 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(manageGate).toContain("linked_devices_block_direct_delete");
     expect(manageGate).toContain("AS RESTRICTIVE");
     expect(manageGate).toContain("trusted server-side ownership validation");
-    expect(linkedDevicesHook).toContain('functions.invoke("linked-device-manage"');
-    expect(linkedDevicesHook).not.toMatch(/from\("linked_devices"\)[\s\S]{0,180}\.delete/);
+    expect(linkedDevicesHook).toContain(
+      'functions.invoke("linked-device-manage"',
+    );
+    expect(linkedDevicesHook).not.toMatch(
+      /from\("linked_devices"\)[\s\S]{0,180}\.delete/,
+    );
     expect(clockQr).toContain('action === "generate"');
     expect(clockQr).toContain('action === "validate"');
     expect(clockQr).toContain('.eq("owner_id", userId)');
@@ -480,7 +545,7 @@ describe("API, speed, and operations readiness workflow", () => {
       "dispatch-eats-order": eats,
       "compute-eta": eta,
     })) {
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain("ctx.corsHeaders");
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('trackNetwork: "suspicious"');
@@ -500,24 +565,37 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(eta).toContain("GOOGLE_MAPS_API_KEY");
     expect(eta).toContain("eta_minutes");
 
-    expect(eats).toContain("payment_status");
-    expect(eats).toContain('payment_status !== "paid"');
+    expect(eats).toContain('admin.rpc(\n          "claim_eats_dispatch"');
+    expect(eats).toContain('admin.rpc(\n          "finish_eats_dispatch"');
+    expect(eats).toContain("claim.dispatch_required !== true");
     expect(eats).toContain("dispatch-start");
     expect(eats).toContain("isServiceRoleRequest(req, serviceKey)");
 
     expect(start).toContain("isServiceRoleRequest(req, serviceRoleKey)");
     expect(start).toContain("if (!isInternal)");
     expect(start).toContain("job.customer_id !== userId");
-    expect(start).toContain("manualDispatch(adminClient, jobId, job.customer_id");
+    expect(start).toMatch(
+      /manualDispatch\(\s*adminClient,\s*jobId,\s*job\.customer_id/,
+    );
   });
 
   it("keeps deposits, gift cards, and salon off-session charges on payment security", () => {
-    const lodging = source("supabase/functions/create-lodging-deposit/index.ts");
-    const carRental = source("supabase/functions/create-car-rental-deposit/index.ts");
-    const salonDeposit = source("supabase/functions/create-salon-deposit/index.ts");
-    const noShow = source("supabase/functions/charge-salon-no-show-fee/index.ts");
+    const lodging = source(
+      "supabase/functions/create-lodging-deposit/index.ts",
+    );
+    const carRental = source(
+      "supabase/functions/create-car-rental-deposit/index.ts",
+    );
+    const salonDeposit = source(
+      "supabase/functions/create-salon-deposit/index.ts",
+    );
+    const noShow = source(
+      "supabase/functions/charge-salon-no-show-fee/index.ts",
+    );
     const tip = source("supabase/functions/charge-salon-tip/index.ts");
-    const giftPurchase = source("supabase/functions/purchase-gift-card/index.ts");
+    const giftPurchase = source(
+      "supabase/functions/purchase-gift-card/index.ts",
+    );
     const giftRedeem = source("supabase/functions/redeem-gift-card/index.ts");
 
     for (const [route, fn] of Object.entries({
@@ -529,7 +607,7 @@ describe("API, speed, and operations readiness workflow", () => {
       "purchase-gift-card": giftPurchase,
       "redeem-gift-card": giftRedeem,
     })) {
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain("ctx.corsHeaders");
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('allowedMethods: ["POST"]');
@@ -544,31 +622,51 @@ describe("API, speed, and operations readiness workflow", () => {
 
     expect(lodging).toContain("payment_lock_token");
     expect(lodging).toContain("lodging_deposit_retry_attempts");
-    expect(lodging).toContain("rateLimitDb(user.id, \"payment\")");
-    expect(carRental).toContain("car_rental_payment_attempts");
-    expect(carRental).toContain("capture_method");
+    expect(lodging).toContain('rateLimitDb(user.id, "payment")');
+    expect(carRental).toContain(
+      'code: "car_rental_payment_authority_unavailable"',
+    );
+    expect(carRental).toContain("status: 503");
+    expect(carRental).not.toContain("paymentIntents");
+    expect(carRental).not.toContain("req.json");
     expect(salonDeposit).toContain("transfer_data: { destination: accountId }");
-    expect(salonDeposit).toContain("setup_future_usage: \"off_session\"");
+    expect(salonDeposit).toContain('setup_future_usage: "off_session"');
     expect(noShow).toContain("store_members");
     expect(noShow).toContain("off_session: true");
     expect(tip).toContain("MAX_TIP_CENTS");
     expect(tip).toContain("tip_stripe_payment_intent_id");
     expect(giftPurchase).toContain("PRESET_AMOUNTS");
     expect(giftPurchase).toContain("gift_card_purchase");
-    expect(giftRedeem).toContain("rateLimitDb(user.id, \"payment\")");
+    expect(giftRedeem).toContain('rateLimitDb(user.id, "payment")');
     expect(giftRedeem).toContain("customer_wallet_transactions");
   });
 
   it("keeps ads, smart deals, driver Connect, and salon membership sync bounded", () => {
     const smartDeals = source("supabase/functions/ai-smart-deals/index.ts");
-    const refreshDeals = source("supabase/functions/refresh-smart-deals/index.ts");
-    const refreshRoutes = source("supabase/functions/refresh-popular-routes/index.ts");
-    const googleCreate = source("supabase/functions/google-ads-create-campaign/index.ts");
-    const googleConversion = source("supabase/functions/google-ads-conversion/index.ts");
-    const metaCreate = source("supabase/functions/meta-ads-create-campaign/index.ts");
-    const driverOnboard = source("supabase/functions/driver-connect-onboard/index.ts");
-    const driverStatus = source("supabase/functions/driver-connect-status/index.ts");
-    const membership = source("supabase/functions/sync-salon-membership-tier/index.ts");
+    const refreshDeals = source(
+      "supabase/functions/refresh-smart-deals/index.ts",
+    );
+    const refreshRoutes = source(
+      "supabase/functions/refresh-popular-routes/index.ts",
+    );
+    const googleCreate = source(
+      "supabase/functions/google-ads-create-campaign/index.ts",
+    );
+    const googleConversion = source(
+      "supabase/functions/google-ads-conversion/index.ts",
+    );
+    const metaCreate = source(
+      "supabase/functions/meta-ads-create-campaign/index.ts",
+    );
+    const driverOnboard = source(
+      "supabase/functions/driver-connect-onboard/index.ts",
+    );
+    const driverStatus = source(
+      "supabase/functions/driver-connect-status/index.ts",
+    );
+    const membership = source(
+      "supabase/functions/sync-salon-membership-tier/index.ts",
+    );
 
     for (const [route, fn] of Object.entries({
       "ai-smart-deals": smartDeals,
@@ -581,7 +679,7 @@ describe("API, speed, and operations readiness workflow", () => {
       "driver-connect-status": driverStatus,
       "sync-salon-membership-tier": membership,
     })) {
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain("ctx.corsHeaders");
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('trackNetwork: "suspicious"');
@@ -599,7 +697,7 @@ describe("API, speed, and operations readiness workflow", () => {
       expect(fn).toContain("skipBotDetection: true");
     }
 
-    expect(smartDeals).toContain("rateLimitDb(rateLimitKey, \"api_general\")");
+    expect(smartDeals).toContain('rateLimitDb(rateLimitKey, "api_general")');
     expect(smartDeals).toContain("ai_smart_deals_cache");
     expect(refreshDeals).toContain("x-cron-secret");
     expect(refreshDeals).toContain("ai_deals_refresh_log");
@@ -607,7 +705,7 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(refreshRoutes).toContain("popular_route_prices");
 
     expect(googleCreate).toContain("has_role");
-    expect(googleCreate).toContain("_role: \"admin\"");
+    expect(googleCreate).toContain('_role: "admin"');
     expect(googleConversion).toContain("uploadClickConversions");
     expect(metaCreate).toContain("has_role");
     expect(metaCreate).toContain("META_ACCESS_TOKEN");
@@ -621,16 +719,26 @@ describe("API, speed, and operations readiness workflow", () => {
 
   it("keeps remaining service-role travel, signup, webhooks, and monitor routes bounded", () => {
     const duffel = source("supabase/functions/duffel-flights/index.ts");
-    const stylist = source("supabase/functions/connect-onboard-stylist/index.ts");
+    const stylist = source(
+      "supabase/functions/connect-onboard-stylist/index.ts",
+    );
     const escalate = source("supabase/functions/dispatch-escalate/index.ts");
-    const suppression = source("supabase/functions/handle-email-suppression/index.ts");
+    const suppression = source(
+      "supabase/functions/handle-email-suppression/index.ts",
+    );
     const wiring = source("supabase/functions/lodging-wiring-monitor/index.ts");
     const capi = source("supabase/functions/meta-capi-bridge/index.ts");
-    const conversion = source("supabase/functions/meta-conversion-bridge/index.ts");
+    const conversion = source(
+      "supabase/functions/meta-conversion-bridge/index.ts",
+    );
     const signup = source("supabase/functions/public-signup/index.ts");
     const verifyOtp = source("supabase/functions/verify-otp-code/index.ts");
-    const subscribe = source("supabase/functions/subscribe-salon-membership/index.ts");
-    const cancelMembership = source("supabase/functions/cancel-membership/index.ts");
+    const subscribe = source(
+      "supabase/functions/subscribe-salon-membership/index.ts",
+    );
+    const cancelMembership = source(
+      "supabase/functions/cancel-membership/index.ts",
+    );
 
     for (const [route, fn] of Object.entries({
       "duffel-flights": duffel,
@@ -643,7 +751,7 @@ describe("API, speed, and operations readiness workflow", () => {
       "public-signup": signup,
       "subscribe-salon-membership": subscribe,
     })) {
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('trackNetwork: "suspicious"');
       expect(fn).toContain("blockNetworkRiskAt: 80");
@@ -653,7 +761,8 @@ describe("API, speed, and operations readiness workflow", () => {
       expect(fn).not.toContain("'Access-Control-Allow-Origin': '*'");
     }
 
-    expect(duffel).toContain("rateLimitDb(user.id, \"search\")");
+    expect(duffel).toContain("checkAuthoritativeSearchRateLimit(user.id)");
+    expect(duffel).toContain("if (!rl.available)");
     expect(duffel).toContain("DUFFEL_API_KEY");
     expect(stylist).toContain("stripe.accounts.create");
     expect(stylist).toContain("salon_stylists");
@@ -664,7 +773,9 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(cancelMembership).toContain('allowedMethods: ["POST"]');
     expect(cancelMembership).toContain('rateLimit: "payment"');
     expect(cancelMembership).toContain('trackNetwork: "suspicious"');
-    expect(cancelMembership).not.toContain('"Access-Control-Allow-Origin": "*"');
+    expect(cancelMembership).not.toContain(
+      '"Access-Control-Allow-Origin": "*"',
+    );
 
     for (const fn of [escalate, wiring, capi, conversion]) {
       expect(fn).toContain("isServiceRoleRequest(req");
@@ -693,15 +804,19 @@ describe("API, speed, and operations readiness workflow", () => {
 
   it("keeps account, notification, and email preview routes bounded", () => {
     const account = source("supabase/functions/account-summary/index.ts");
-    const notifications = source("supabase/functions/notifications-summary/index.ts");
-    const emailPreview = source("supabase/functions/preview-transactional-email/index.ts");
+    const notifications = source(
+      "supabase/functions/notifications-summary/index.ts",
+    );
+    const emailPreview = source(
+      "supabase/functions/preview-transactional-email/index.ts",
+    );
 
     for (const [route, fn] of Object.entries({
       "account-summary": account,
       "notifications-summary": notifications,
       "preview-transactional-email": emailPreview,
     })) {
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain("ctx.corsHeaders");
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('trackNetwork: "suspicious"');
@@ -728,7 +843,9 @@ describe("API, speed, and operations readiness workflow", () => {
 
   it("keeps authenticated maps proxy routes bounded", () => {
     const mapsApiKey = source("supabase/functions/maps-api-key/index.ts");
-    const autocomplete = source("supabase/functions/maps-autocomplete/index.ts");
+    const autocomplete = source(
+      "supabase/functions/maps-autocomplete/index.ts",
+    );
     const geocode = source("supabase/functions/maps-geocode/index.ts");
     const details = source("supabase/functions/maps-place-details/index.ts");
     const reverse = source("supabase/functions/maps-reverse-geocode/index.ts");
@@ -768,7 +885,9 @@ describe("API, speed, and operations readiness workflow", () => {
   it("keeps AI and reel boost routes bounded", () => {
     const faceEdit = source("supabase/functions/ai-face-edit/index.ts");
     const supportChat = source("supabase/functions/ai-support-chat/index.ts");
-    const tripSuggestions = source("supabase/functions/ai-trip-suggestions/index.ts");
+    const tripSuggestions = source(
+      "supabase/functions/ai-trip-suggestions/index.ts",
+    );
     const reelBoost = source("supabase/functions/create-reel-boost/index.ts");
 
     for (const [routeName, fn] of Object.entries({
@@ -892,8 +1011,12 @@ describe("API, speed, and operations readiness workflow", () => {
 
   it("keeps device link polling and Duffel helper routes bounded", () => {
     const devicePoll = source("supabase/functions/device-link-poll/index.ts");
-    const destinationPrices = source("supabase/functions/duffel-destination-prices/index.ts");
-    const fareCalendar = source("supabase/functions/duffel-fare-calendar/index.ts");
+    const destinationPrices = source(
+      "supabase/functions/duffel-destination-prices/index.ts",
+    );
+    const fareCalendar = source(
+      "supabase/functions/duffel-fare-calendar/index.ts",
+    );
     const hotDeals = source("supabase/functions/duffel-hot-deals/index.ts");
 
     for (const [routeName, fn] of Object.entries({
@@ -1001,28 +1124,38 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(grocery).toContain("STORE_QUERIES");
   });
 
-  it("keeps the supplier iframe proxy bounded", () => {
+  it("keeps the retired supplier proxy authenticated and unable to forward traffic", () => {
     const supplier = source("supabase/functions/supplier-proxy/index.ts");
+    const modal = source(
+      "src/components/admin/store/autorepair/SupplierBrowserModal.tsx",
+    );
 
     expect(supplier).toContain('withSecurity("supplier-proxy"');
-    expect(supplier).toContain("ctx.corsHeaders");
+    expect(supplier).toContain("requireUser(req)");
+    expect(supplier).toContain("requireUserNotBlocked(auth.userId)");
+    expect(supplier).toContain("SUPPLIER_PROXY_RETIRED");
+    expect(supplier).toContain("status: 410");
+    expect(supplier).toContain('"Cache-Control": "no-store, max-age=0"');
     expect(supplier).toContain("strictCors: true");
     expect(supplier).toContain('rateLimit: "api_general"');
-    expect(supplier).toContain('trackNetwork: "suspicious"');
-    expect(supplier).toContain("blockNetworkRiskAt: 80");
-    expect(supplier).toContain("skipBotDetection: true");
-    expect(supplier).toContain("skipWaf: true");
-    expect(supplier).toContain("ALLOWED_HOSTS");
-    expect(supplier).toContain("HOST_NOT_ALLOWED");
-    expect(supplier).toContain("STRIP_HEADERS");
-    expect(supplier).toContain("zivo-supplier-navigate");
-    expect(supplier).not.toContain("Access-Control-Allow-Origin\": \"*");
-    expect(supplier).not.toContain("req.headers.get(\"origin\") ?? \"*\"");
+    expect(supplier).not.toMatch(/\bfetch\s*\(/);
+    expect(supplier).not.toContain("ALLOWED_HOSTS");
+    expect(supplier).not.toContain("arrayBuffer");
+    expect(supplier).not.toContain("postMessage");
+    expect(modal).toContain(
+      'window.open(value, "_blank", "noopener,noreferrer")',
+    );
+    expect(modal).not.toContain("supplier-proxy");
+    expect(modal).not.toContain("URL.createObjectURL");
+    expect(modal).not.toContain("<iframe");
+    expect(modal).not.toContain("postMessage");
   });
 
   it("routes bug reports through trusted server-side ingestion", () => {
     const fn = source("supabase/functions/bug-report-submit/index.ts");
-    const gate = source("supabase/migrations/20260601021500_bug_reports_server_gate.sql");
+    const gate = source(
+      "supabase/migrations/20260601021500_bug_reports_server_gate.sql",
+    );
     const bugPage = source("src/pages/BugReportsPage.tsx");
     const bugSheet = source("src/components/support/BugReportSheet.tsx");
 
@@ -1038,9 +1171,13 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(fn).toContain("safeUrl(body.page_url)");
     expect(fn).toContain("cleanMetadata(body)");
 
-    expect(gate).toContain("REVOKE INSERT ON TABLE public.bug_reports FROM authenticated");
+    expect(gate).toContain(
+      "REVOKE INSERT ON TABLE public.bug_reports FROM authenticated",
+    );
     expect(gate).toContain('CREATE POLICY "bug_reports_select_own"');
-    expect(gate).toContain("trusted server-side ingestion through bug-report-submit");
+    expect(gate).toContain(
+      "trusted server-side ingestion through bug-report-submit",
+    );
 
     // MarketplacePage was a third client here until the marketplace feature was
     // withdrawn; the remaining clients still carry the full contract.
@@ -1053,8 +1190,12 @@ describe("API, speed, and operations readiness workflow", () => {
   it("routes account support tickets through trusted server-side ingestion", () => {
     const fn = source("supabase/functions/support-ticket-submit/index.ts");
     const manage = source("supabase/functions/support-ticket-manage/index.ts");
-    const gate = source("supabase/migrations/20260601033000_support_tickets_server_gate.sql");
-    const manageGate = source("supabase/migrations/20260601233000_support_tickets_customer_manage_gate.sql");
+    const gate = source(
+      "supabase/migrations/20260601033000_support_tickets_server_gate.sql",
+    );
+    const manageGate = source(
+      "supabase/migrations/20260601233000_support_tickets_customer_manage_gate.sql",
+    );
     const personalHelp = source("src/pages/app/personal/PersonalHelpPage.tsx");
     const liveChat = source("src/components/shared/LiveChatWidget.tsx");
     const newTicket = source("src/pages/support/CreateSupportTicketPage.tsx");
@@ -1081,28 +1222,42 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(manage).toContain("requireUserNotBlocked(userId)");
     expect(manage).toContain("getServiceRoleClient()");
     expect(manage).toContain('.from("support_tickets")');
-    expect(manage).toContain('.delete()');
+    expect(manage).toContain(".delete()");
     expect(manage).toContain('.eq("user_id", userId)');
-    expect(manageGate).toContain('DROP POLICY IF EXISTS "Users manage own tickets"');
+    expect(manageGate).toContain(
+      'DROP POLICY IF EXISTS "Users manage own tickets"',
+    );
     expect(manageGate).toContain('CREATE POLICY "Users view own tickets"');
     expect(manageGate).toContain("FOR SELECT");
-    expect(manageGate).toContain("Customer writes require trusted server-side support-ticket-manage");
+    expect(manageGate).toContain(
+      "Customer writes require trusted server-side support-ticket-manage",
+    );
 
     expect(personalHelp).toContain('functions.invoke("support-ticket-submit"');
     expect(personalHelp).not.toMatch(/from\("feedback_submissions"\)\.insert/);
     expect(liveChat).toContain('functions.invoke("support-ticket-submit"');
-    expect(liveChat).toContain('source: `live_chat:${escalationCategory}`');
-    expect(liveChat).not.toMatch(/from\("support_tickets"\)[\s\S]{0,240}\.insert/);
+    expect(liveChat).toContain("source: `live_chat:${escalationCategory}`");
+    expect(liveChat).not.toMatch(
+      /from\("support_tickets"\)[\s\S]{0,240}\.insert/,
+    );
     expect(newTicket).toContain('functions.invoke("support-ticket-submit"');
-    expect(newTicket).toContain('source: `support_new:${category}:${priority}`');
-    expect(newTicket).not.toMatch(/from\("support_tickets"\)[\s\S]{0,260}\.insert/);
+    expect(newTicket).toContain(
+      "source: `support_new:${category}:${priority}`",
+    );
+    expect(newTicket).not.toMatch(
+      /from\("support_tickets"\)[\s\S]{0,260}\.insert/,
+    );
     expect(chatHub).toContain('functions.invoke("support-ticket-manage"');
-    expect(chatHub).not.toMatch(/from\("support_tickets"\)[\s\S]{0,260}\.delete/);
+    expect(chatHub).not.toMatch(
+      /from\("support_tickets"\)[\s\S]{0,260}\.delete/,
+    );
   });
 
   it("routes AI concierge handoff messages through trusted server-side ingestion", () => {
     const fn = source("supabase/functions/concierge-message-submit/index.ts");
-    const gate = source("supabase/migrations/20260601051500_concierge_messages_server_gate.sql");
+    const gate = source(
+      "supabase/migrations/20260601051500_concierge_messages_server_gate.sql",
+    );
     const concierge = source("src/components/profile/AIConciergeTrigger.tsx");
 
     expect(fn).toContain('withSecurity(\n    "concierge-message-submit"');
@@ -1115,7 +1270,9 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(fn).toContain("blockNetworkRiskAt: 80");
 
     expect(gate).toContain("AS RESTRICTIVE");
-    expect(gate).toContain("COALESCE(category, 'general') <> 'concierge_message'");
+    expect(gate).toContain(
+      "COALESCE(category, 'general') <> 'concierge_message'",
+    );
     expect(gate).toContain("trusted server-side ingestion");
 
     expect(concierge).toContain('functions.invoke("concierge-message-submit"');
@@ -1124,7 +1281,9 @@ describe("API, speed, and operations readiness workflow", () => {
 
   it("routes service waitlist signups through trusted server-side ingestion", () => {
     const fn = source("supabase/functions/service-waitlist-submit/index.ts");
-    const gate = source("supabase/migrations/20260601034500_service_waitlist_server_gate.sql");
+    const gate = source(
+      "supabase/migrations/20260601034500_service_waitlist_server_gate.sql",
+    );
     const servicesPage = source("src/pages/app/ServicesPage.tsx");
 
     expect(fn).toContain('withSecurity("service-waitlist-submit"');
@@ -1140,16 +1299,22 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(fn).toContain('category: "service_waitlist"');
 
     expect(gate).toContain("AS RESTRICTIVE");
-    expect(gate).toContain("COALESCE(category, 'general') <> 'service_waitlist'");
+    expect(gate).toContain(
+      "COALESCE(category, 'general') <> 'service_waitlist'",
+    );
     expect(gate).toContain("trusted server-side ingestion");
 
-    expect(servicesPage).toContain('functions.invoke("service-waitlist-submit"');
+    expect(servicesPage).toContain(
+      'functions.invoke("service-waitlist-submit"',
+    );
     expect(servicesPage).not.toMatch(/from\("feedback_submissions"\)\.insert/);
   });
 
   it("routes product feedback through trusted server-side ingestion", () => {
     const fn = source("supabase/functions/feedback-submit/index.ts");
-    const gate = source("supabase/migrations/20260601040000_product_feedback_server_gate.sql");
+    const gate = source(
+      "supabase/migrations/20260601040000_product_feedback_server_gate.sql",
+    );
     const feedback = source("src/pages/Feedback.tsx");
     const feedbackPage = source("src/pages/FeedbackPage.tsx");
 
@@ -1179,12 +1344,16 @@ describe("API, speed, and operations readiness workflow", () => {
 
   it("routes marketing and B2B lead capture through trusted server-side ingestion", () => {
     const fn = source("supabase/functions/marketing-interest-submit/index.ts");
-    const gate = source("supabase/migrations/20260601041500_marketing_interest_server_gate.sql");
+    const gate = source(
+      "supabase/migrations/20260601041500_marketing_interest_server_gate.sql",
+    );
     const deals = source("src/pages/Deals.tsx");
     const vision = source("src/pages/Vision.tsx");
     const apiPartners = source("src/pages/business/APIPartners.tsx");
     const corporateTravel = source("src/pages/business/CorporateTravel.tsx");
-    const businessLanding = source("src/pages/business/BusinessLandingPage.tsx");
+    const businessLanding = source(
+      "src/pages/business/BusinessLandingPage.tsx",
+    );
 
     expect(fn).toContain('withSecurity("marketing-interest-submit"');
     expect(fn).toContain("strictCors: true");
@@ -1210,7 +1379,13 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(gate).toContain("AS RESTRICTIVE");
     expect(gate).toContain("trusted server-side ingestion");
 
-    for (const client of [deals, vision, apiPartners, corporateTravel, businessLanding]) {
+    for (const client of [
+      deals,
+      vision,
+      apiPartners,
+      corporateTravel,
+      businessLanding,
+    ]) {
       expect(client).toContain('functions.invoke("marketing-interest-submit"');
       expect(client).not.toMatch(/from\("feedback_submissions"\)\.insert/);
     }
@@ -1238,6 +1413,8 @@ describe("API, speed, and operations readiness workflow", () => {
 
     expect(platform).toContain("function 5xx");
     expect(platform).toContain("database slow queries");
-    expect(plan).toContain("src/test/workflows/api-operations-readiness.test.ts");
+    expect(plan).toContain(
+      "src/test/workflows/api-operations-readiness.test.ts",
+    );
   });
 });

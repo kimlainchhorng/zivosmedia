@@ -11,7 +11,7 @@ describe("refund and support trust intake", () => {
   it("routes wallet refund requests through the protected refund Edge Function", () => {
     const wallet = read("src/pages/account/WalletPage.tsx");
 
-    expect(wallet).toContain('functions.invoke("refund-request-submit"');
+    expect(wallet).toMatch(/functions\.invoke\(\s*"refund-request-submit"/);
     expect(wallet).toContain("reason: refundReason");
     expect(wallet).toContain("transaction_id: refundTx.id");
     expect(wallet).toContain("amount: Math.abs(Number(refundTx.amount))");

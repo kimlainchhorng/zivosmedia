@@ -83,16 +83,28 @@ async function prepareStableVisualPage(page: import("@playwright/test").Page) {
           updatedAt: new Date().toISOString(),
         }),
       );
+<<<<<<< Updated upstream
       // This one-time coach intentionally appears on a timer, but it is not
       // part of the safe-area chrome under test.
+=======
+      // The one-time gesture coach deliberately appears on a timer. It is not
+      // part of safe-area chrome, so mark it seen before the app mounts.
+>>>>>>> Stashed changes
       window.localStorage.setItem("zivo:swipe-nav-hint-seen-v1", "visual-qa");
     } catch {
       // Storage can be unavailable in hardened browser contexts.
     }
 
+<<<<<<< Updated upstream
     // Capture the settled layout instead of a device-speed-dependent frame
     // from a route or Framer Motion transition. This is visual-test-only;
     // production motion still follows the user's preference.
+=======
+    // Pixel snapshots must capture the settled layout, not a device-speed-
+    // dependent frame from a route or Framer Motion transition. Production
+    // users still receive motion according to their own preference; this is
+    // scoped to the visual-regression browser only.
+>>>>>>> Stashed changes
     const style = document.createElement("style");
     style.id = "__qa_stable_visuals";
     style.textContent = `
@@ -103,18 +115,65 @@ async function prepareStableVisualPage(page: import("@playwright/test").Page) {
         transition-delay: 0s !important;
         transition-duration: 0s !important;
       }
+<<<<<<< Updated upstream
       /* Route progress is intentionally timer-driven and can be 8%, 35%,
          60%, 80%, or 100% wide at capture time. It is not permanent safe-area
          chrome, so exclude it from this layout baseline. */
       .zivo-safe-top-none {
         opacity: 0 !important;
       }
+=======
+>>>>>>> Stashed changes
     `;
     const install = () => {
       if (!document.getElementById(style.id)) document.head.appendChild(style);
     };
     if (document.head) install();
     else document.addEventListener("DOMContentLoaded", install, { once: true });
+<<<<<<< Updated upstream
+=======
+  });
+}
+
+async function waitForStableVisuals(
+  page: import("@playwright/test").Page,
+  routeName: string,
+) {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  if (routeName === "home") {
+    await page
+      .getByText("More Services", { exact: true })
+      .waitFor({ state: "visible" });
+    await page.locator("[data-zivo-mobile-nav]").waitFor({ state: "visible" });
+    await page
+      .locator('section[aria-labelledby="home-services-heading"] img')
+      .evaluateAll(async (images) => {
+        await Promise.all(
+          images.map(async (node) => {
+            const image = node as HTMLImageElement;
+            if (!image.complete) {
+              await new Promise<void>((resolve) => {
+                image.addEventListener("load", () => resolve(), { once: true });
+                image.addEventListener("error", () => resolve(), {
+                  once: true,
+                });
+              });
+            }
+            await image.decode().catch(() => undefined);
+          }),
+        );
+      });
+  } else if (routeName === "account") {
+    await page
+      .getByRole("button", { name: "Back to Zivo" })
+      .waitFor({ state: "visible" });
+  }
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+>>>>>>> Stashed changes
   });
 }
 
@@ -222,14 +281,18 @@ for (const vp of VIEWPORTS) {
       const skip = route.needsAuth && !HAS_AUTH;
 
       test(`${route.name} — top region`, async ({ page }) => {
+<<<<<<< Updated upstream
         // A cold Vite transform can exceed the repository-wide 30s default on
         // a busy local/CI runner. This only raises the ceiling; named UI waits
         // below still make successful captures finish as soon as they settle.
         test.setTimeout(90_000);
+=======
+>>>>>>> Stashed changes
         test.skip(
           skip || !!route.skipTop,
           "auth state missing or top check disabled",
         );
+<<<<<<< Updated upstream
         await prepareStableVisualPage(page);
         await page.goto(route.path, { waitUntil: "domcontentloaded" });
         await waitForStableVisuals(page, route.name);
@@ -246,20 +309,46 @@ for (const vp of VIEWPORTS) {
               width: vp.viewport.width,
               height: TOP_CLIP_HEIGHT,
             },
+=======
+        await seedConsent(page);
+        await page.goto(route.path, { waitUntil: "networkidle" });
+        await waitForStableVisuals(page, route.name);
+        const buf = await page.screenshot({
+          clip: {
+            x: 0,
+            y: 0,
+            width: vp.viewport.width,
+            height: TOP_CLIP_HEIGHT,
+          },
+        });
+        expect(buf).toMatchSnapshot(
+          safeAreaSnapshotName(vp.name, route.name, "top"),
+          {
+            maxDiffPixelRatio: 0.001,
+>>>>>>> Stashed changes
           },
         );
       });
 
       test(`${route.name} — bottom region`, async ({ page }) => {
+<<<<<<< Updated upstream
         test.setTimeout(90_000);
+=======
+>>>>>>> Stashed changes
         test.skip(
           skip || !!route.skipBottom,
           "auth state missing or bottom check disabled",
         );
+<<<<<<< Updated upstream
         await prepareStableVisualPage(page);
         await page.goto(route.path, { waitUntil: "domcontentloaded" });
         await waitForStableVisuals(page, route.name);
         await isolateHomeBottomChrome(page, route.name);
+=======
+        await seedConsent(page);
+        await page.goto(route.path, { waitUntil: "networkidle" });
+        await waitForStableVisuals(page, route.name);
+>>>>>>> Stashed changes
         const h = vp.viewport.height;
         await expect(page).toHaveScreenshot(
           safeAreaSnapshotName(vp.name, route.name, "bottom"),
@@ -275,6 +364,15 @@ for (const vp of VIEWPORTS) {
               height: BOTTOM_CLIP_HEIGHT,
             },
           },
+<<<<<<< Updated upstream
+=======
+        });
+        expect(buf).toMatchSnapshot(
+          safeAreaSnapshotName(vp.name, route.name, "bottom"),
+          {
+            maxDiffPixelRatio: 0.001,
+          },
+>>>>>>> Stashed changes
         );
       });
     }

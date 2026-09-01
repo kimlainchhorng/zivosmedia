@@ -34,7 +34,7 @@ describe("Zivo Travel mobile Home navigation", () => {
   });
 
   it("preserves the non-Travel fallback behavior", () => {
-    expect(getZivoMobileNavActiveTab("/support", false)).toBe("home");
+    expect(getZivoMobileNavActiveTab("/support", false)).toBeNull();
     expect(getZivoMobileNavActiveTab("/more", false)).toBe("account");
   });
 });

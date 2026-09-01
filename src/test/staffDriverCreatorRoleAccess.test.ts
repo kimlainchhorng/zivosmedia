@@ -16,15 +16,15 @@ describe("staff and driver role access with retired creator monetization", () =>
     const protectedRoute = read("src/components/auth/ProtectedRoute.tsx");
 
     for (const route of [
-      'path="/shop-dashboard/employees" element={<ProtectedRoute><ShopEmployeesPage /></ProtectedRoute>}',
-      'path="/shop-dashboard/employee-schedule" element={<ProtectedRoute><ShopEmployeeSchedulePage /></ProtectedRoute>}',
-      'path="/shop-dashboard/employee-rules" element={<ProtectedRoute><ShopEmployeeRulesPage /></ProtectedRoute>}',
-      'path="/eats/driver-deliveries" element={<ProtectedRoute><EatsDriverDeliveryPage /></ProtectedRoute>}',
-      'path="/driver/payouts" element={<ProtectedRoute><DriverPayoutsPage /></ProtectedRoute>}',
-      'path="/admin/employees" element={<ProtectedRoute requireAdmin={true} allowSupport={true}>',
-      'path="/admin/support" element={<ProtectedRoute requireAdmin={true} allowSupport={true}>',
+      /path="\/shop-dashboard\/employees"[\s\S]{0,180}<ProtectedRoute>[\s\S]{0,120}<ShopEmployeesPage/,
+      /path="\/shop-dashboard\/employee-schedule"[\s\S]{0,180}<ProtectedRoute>[\s\S]{0,120}<ShopEmployeeSchedulePage/,
+      /path="\/shop-dashboard\/employee-rules"[\s\S]{0,180}<ProtectedRoute>[\s\S]{0,120}<ShopEmployeeRulesPage/,
+      /path="\/eats\/driver-deliveries"[\s\S]{0,180}<ProtectedRoute>[\s\S]{0,120}<EatsDriverDeliveryPage/,
+      /path="\/driver\/payouts"[\s\S]{0,180}<ProtectedRoute>[\s\S]{0,120}<DriverPayoutsPage/,
+      /path="\/admin\/employees"[\s\S]{0,220}<ProtectedRoute[\s\S]{0,120}requireAdmin=\{true\}[\s\S]{0,120}allowSupport=\{true\}/,
+      /path="\/admin\/support"[\s\S]{0,220}<ProtectedRoute[\s\S]{0,120}requireAdmin=\{true\}[\s\S]{0,120}allowSupport=\{true\}/,
     ]) {
-      expect(app).toContain(route);
+      expect(app).toMatch(route);
     }
 
     for (const shortcut of [
@@ -71,11 +71,19 @@ describe("staff and driver role access with retired creator monetization", () =>
 
   it("keeps shop staff mutations behind owner/admin server authorization", () => {
     const employeesPage = read("src/pages/app/shop/ShopEmployeesPage.tsx");
-    const employeeFunction = read("supabase/functions/store-employee-manage/index.ts");
-    const employeeGate = read("supabase/migrations/20260601141500_store_employees_server_gate.sql");
+    const employeeFunction = read(
+      "supabase/functions/store-employee-manage/index.ts",
+    );
+    const employeeGate = read(
+      "supabase/migrations/20260601141500_store_employees_server_gate.sql",
+    );
 
-    expect(employeesPage).toContain('supabase.functions.invoke("store-employee-manage"');
-    expect(employeesPage).not.toMatch(/from\("store_employees"\)[\s\S]{0,220}\.(insert|update|delete|upsert)/);
+    expect(employeesPage).toContain(
+      'supabase.functions.invoke("store-employee-manage"',
+    );
+    expect(employeesPage).not.toMatch(
+      /from\("store_employees"\)[\s\S]{0,220}\.(insert|update|delete|upsert)/,
+    );
 
     for (const needle of [
       'withSecurity("store-employee-manage"',
@@ -99,8 +107,12 @@ describe("staff and driver role access with retired creator monetization", () =>
 
   it("keeps driver payouts protected and creator payout creation fail-closed", () => {
     const driverPayouts = read("src/pages/driver/DriverPayoutsPage.tsx");
-    const customerPayoutMethod = read("supabase/functions/customer-payout-method-record/index.ts");
-    const creatorPayout = read("supabase/functions/creator-payout-request/index.ts");
+    const customerPayoutMethod = read(
+      "supabase/functions/customer-payout-method-record/index.ts",
+    );
+    const creatorPayout = read(
+      "supabase/functions/creator-payout-request/index.ts",
+    );
 
     for (const fn of [
       "driver-connect-status",
@@ -111,9 +123,7 @@ describe("staff and driver role access with retired creator monetization", () =>
     }
 
     for (const needle of [
-      'withSecurity("customer-payout-method-record"',
       "enforceAal2(authHeader, corsHeaders)",
-      'withIdempotency(req, "customer-payout-method-record", userId, execute)',
       "assertMethodOwner(supabase, userId, methodId)",
       "assertCanManageStore(supabase, userId, storeId)",
       'rateLimit: "admin_action"',
@@ -121,6 +131,12 @@ describe("staff and driver role access with retired creator monetization", () =>
     ]) {
       expect(customerPayoutMethod).toContain(needle);
     }
+    expect(customerPayoutMethod).toMatch(
+      /withSecurity\(\s*"customer-payout-method-record"/,
+    );
+    expect(customerPayoutMethod).toMatch(
+      /withIdempotency\(\s*req,\s*"customer-payout-method-record",\s*userId,\s*execute/,
+    );
 
     for (const needle of [
       'withSecurity("creator-payout-request"',

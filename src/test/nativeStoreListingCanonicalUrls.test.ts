@@ -89,4 +89,42 @@ describe("native store listing canonical URLs", () => {
       expect(playStore).not.toContain(unverifiedClaim);
     }
   });
+
+  it("keeps the iOS draft conservative and exposes unresolved console decisions", () => {
+    const appStore = read("ios/store-listing/APP_STORE.md");
+
+    expect(appStore).toMatch(/## 1\. App Name[\s\S]*?```text\nZIVO\n```/);
+    expect(appStore).toContain(
+      "ZIVO brings social discovery, messaging, and travel search into one app.",
+    );
+    expect(appStore).toContain(
+      "Feature availability varies by location, provider, account, and internet connection.",
+    );
+    expect(appStore).toContain("Identity preflight — resolve before submission");
+    expect(appStore).toContain(
+      "Info.plist, and iOS\nDebug/Release build settings now use `ZIVO`",
+    );
+    expect(appStore).toContain(
+      "Use the rating calculated by App Store Connect",
+    );
+    expect(appStore).toContain("Do not paste the obsolete `12+` note");
+    expect(appStore).toContain(
+      "App Store Connect already processed build 4",
+    );
+    expect(appStore).toContain(
+      "Their presence is not upload readiness.",
+    );
+
+    for (const unverifiedClaim of [
+      "500+ trusted partners",
+      "AI trip planner builds your itinerary in seconds",
+      "Built-in POS, orders, and payouts via Stripe",
+      "End-to-end messaging",
+      "Free voice and HD video calls",
+      "No booking fees on travel searches",
+      "Works everywhere",
+    ]) {
+      expect(appStore).not.toContain(unverifiedClaim);
+    }
+  });
 });

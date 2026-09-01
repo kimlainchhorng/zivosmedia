@@ -43,8 +43,9 @@ describe("SSO, auth, sessions, and devices workflow", () => {
     expect(login).toContain("redirectTo: getEmailRedirectTo()");
     expect(auth).toContain("supabase.auth.getSession()");
     expect(auth).toContain("supabase.auth.onAuthStateChange");
-    expect(auth).toContain("auth_precheck_login");
-    expect(auth).toContain("auth_record_login_attempt");
+    expect(auth).toContain("signInWithPassword");
+    expect(auth).not.toContain('rpc("auth_precheck_login"');
+    expect(auth).not.toContain('rpc("auth_record_login_attempt"');
     expect(auth).toContain("getMfaChallenge");
     expect(auth).toContain("verifyMfaChallenge");
     expect(verifyDevice).toContain("register_trusted_device");

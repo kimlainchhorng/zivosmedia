@@ -15,8 +15,8 @@ describe("Dating product removal", () => {
     const countryHub = source("src/pages/seo/CountryHubPage.tsx");
     expect(app).not.toContain("DatingPage");
     expect(app).not.toContain('path="/dating"');
-    expect(app).toContain(
-      '<Route path="/:countrySlug" element={<CountryHubPage />} />',
+    expect(app).toMatch(
+      /<Route\s+path="\/:countrySlug"\s+element=\{\s*<CountryHubPage\s*\/>\s*\}\s*\/>/,
     );
     expect(countryHub).toContain("return <NotFound />;");
   });
@@ -41,6 +41,8 @@ describe("Dating product removal", () => {
     expect(source("src/hooks/useVerificationRealtime.ts")).not.toContain(
       '"dating-profiles"',
     );
-    expect(source("src/config/liveFeatureFlags.ts")).not.toContain("datingLive");
+    expect(source("src/config/liveFeatureFlags.ts")).not.toContain(
+      "datingLive",
+    );
   });
 });

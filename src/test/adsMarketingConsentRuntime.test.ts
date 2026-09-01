@@ -107,6 +107,8 @@ describe("ads marketing consent runtime", () => {
     expect(manifest).not.toContain(
       '<uses-permission android:name="com.google.android.gms.permission.AD_ID" />',
     );
-    expect(playListing).toContain("Contains ads:    No (UGC + commerce)");
+    expect(playListing).toContain(
+      "Contains ads:    Yes (sponsored posts may appear in Reels)",
+    );
   });
 });

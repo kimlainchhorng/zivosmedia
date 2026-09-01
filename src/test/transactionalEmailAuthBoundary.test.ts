@@ -18,9 +18,9 @@ describe("transactional email authentication boundary", () => {
     expect(source).toContain("status: 401");
   });
 
-  it("enables Supabase JWT verification for the internal-only function", () => {
+  it("uses handler-owned service-key auth for non-JWT Supabase secret keys", () => {
     const config = read("supabase/config.toml");
 
-    expect(config).toMatch(/\[functions\.send-transactional-email\]\s+verify_jwt = true/);
+    expect(config).toMatch(/\[functions\.send-transactional-email\][\s\S]*?verify_jwt = false/);
   });
 });

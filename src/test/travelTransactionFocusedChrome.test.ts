@@ -47,5 +47,12 @@ describe("focused transaction chrome", () => {
     expect(busSource).toContain(
       "{/* Popular routes */}\n                    <div>",
     );
+    expect(busSource).toContain('data-testid="bus-search-cta"');
+    expect(busSource).toContain(
+      "bottom-[calc(var(--zivo-mobile-nav-h,68px)+var(--zivo-safe-bottom,0px)+1.75rem)]",
+    );
+    expect(busSource).toContain('data-testid="bus-search-cta-desktop"');
+    expect(busSource).toContain("z-[1390] mx-auto max-w-lg");
+    expect(busSource).toContain("backdrop-blur-xl lg:hidden");
   });
 });

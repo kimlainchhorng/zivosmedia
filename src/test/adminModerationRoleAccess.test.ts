@@ -13,40 +13,72 @@ describe("admin moderation role access", () => {
     const app = source("src/App.tsx");
     const moderationPage = source("src/pages/AdminModerationPage.tsx");
     const contentReportsPage = source("src/pages/AdminContentReportsPage.tsx");
-    const moderationFunction = source("supabase/functions/admin-moderation-review/index.ts");
-    const reportsFunction = source("supabase/functions/admin-content-report-status/index.ts");
-    const moderationGate = source("supabase/migrations/20260601063000_admin_moderation_review_server_gate.sql");
-    const reportsGate = source("supabase/migrations/20260601064500_admin_content_reports_status_server_gate.sql");
+    const moderationFunction = source(
+      "supabase/functions/admin-moderation-review/index.ts",
+    );
+    const reportsFunction = source(
+      "supabase/functions/admin-content-report-status/index.ts",
+    );
+    const moderationGate = source(
+      "supabase/migrations/20260601063000_admin_moderation_review_server_gate.sql",
+    );
+    const reportsGate = source(
+      "supabase/migrations/20260601064500_admin_content_reports_status_server_gate.sql",
+    );
 
-    expect(app).toContain('path="/admin/moderation" element={<ProtectedRoute requireAdmin={true} allowSupport={true}>');
-    expect(app).toContain('path="/admin/moderation/messages" element={<ProtectedRoute requireAdmin={true} allowSupport={true}>');
-    expect(app).toContain('path="/admin/content-reports" element={<ProtectedRoute requireAdmin={true}>');
+    expect(app).toMatch(
+      /<Route\s+path="\/admin\/moderation"\s+element=\{\s*<ProtectedRoute\s+requireAdmin=\{true\}\s+allowSupport=\{true\}\s*>\s*<AdminModerationPage\s*\/>\s*<\/ProtectedRoute>\s*\}\s*\/>/,
+    );
+    expect(app).toMatch(
+      /<Route\s+path="\/admin\/moderation\/messages"\s+element=\{\s*<ProtectedRoute\s+requireAdmin=\{true\}\s+allowSupport=\{true\}\s*>\s*<AdminMessageModerationPage\s*\/>\s*<\/ProtectedRoute>\s*\}\s*\/>/,
+    );
+    expect(app).toMatch(
+      /<Route\s+path="\/admin\/content-reports"\s+element=\{\s*<ProtectedRoute\s+requireAdmin=\{true\}\s*>\s*<AdminContentReportsPage\s*\/>\s*<\/ProtectedRoute>\s*\}\s*\/>/,
+    );
 
     expect(moderationPage).toContain('.from("content_moderation_queue")');
-    expect(moderationPage).toMatch(serverGatedInvoke("admin-moderation-review"));
-    expect(moderationPage).not.toContain('.from("content_moderation_queue")\n    .update');
+    expect(moderationPage).toMatch(
+      serverGatedInvoke("admin-moderation-review"),
+    );
+    expect(moderationPage).not.toContain(
+      '.from("content_moderation_queue")\n    .update',
+    );
     expect(contentReportsPage).toContain('.from("content_reports")');
-    expect(contentReportsPage).toMatch(serverGatedInvoke("admin-content-report-status"));
+    expect(contentReportsPage).toMatch(
+      serverGatedInvoke("admin-content-report-status"),
+    );
 
-    expect(moderationFunction).toContain('withSecurity("admin-moderation-review"');
+    expect(moderationFunction).toContain(
+      'withSecurity("admin-moderation-review"',
+    );
     expect(moderationFunction).toContain('allowedMethods: ["POST"]');
-    expect(moderationFunction).toContain("enforceAal2(authHeader, corsHeaders)");
-    expect(moderationFunction).toContain('admin.rpc("has_role", { _user_id: user.id, _role: "admin" })');
+    expect(moderationFunction).toContain(
+      "enforceAal2(authHeader, corsHeaders)",
+    );
+    expect(moderationFunction).toContain(
+      'admin.rpc("has_role", { _user_id: user.id, _role: "admin" })',
+    );
     expect(moderationFunction).toContain('.from("content_moderation_queue")');
     expect(moderationFunction).toContain('.from("moderation_actions").insert');
     expect(moderationFunction).toContain("applyTargetVisibility");
     expect(moderationFunction).toContain('rateLimit: "api_general"');
     expect(moderationFunction).toContain("blockNetworkRiskAt: 85");
 
-    expect(reportsFunction).toContain('withSecurity("admin-content-report-status"');
+    expect(reportsFunction).toContain(
+      'withSecurity("admin-content-report-status"',
+    );
     expect(reportsFunction).toContain('allowedMethods: ["POST"]');
     expect(reportsFunction).toContain("enforceAal2(authHeader, corsHeaders)");
-    expect(reportsFunction).toContain('admin.rpc("has_role", { _user_id: user.id, _role: "admin" })');
+    expect(reportsFunction).toContain(
+      'admin.rpc("has_role", { _user_id: user.id, _role: "admin" })',
+    );
     expect(reportsFunction).toContain('.from("content_reports")');
     expect(reportsFunction).toContain(".update(patch)");
     expect(reportsFunction).toContain("reviewed_by: user.id");
 
-    expect(moderationGate).toContain("content_moderation_queue_block_direct_update");
+    expect(moderationGate).toContain(
+      "content_moderation_queue_block_direct_update",
+    );
     expect(moderationGate).toContain("moderation_actions_block_direct_insert");
     expect(moderationGate).toContain("AS RESTRICTIVE");
     expect(moderationGate).toContain("trusted server-side ingestion");

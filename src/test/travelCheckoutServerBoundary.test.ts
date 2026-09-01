@@ -36,15 +36,21 @@ describe("travel checkout server boundary", () => {
 
   it("fails closed with explicit no-order and no-payment truthfulness", () => {
     expect(source).toContain("Travel checkout is temporarily unavailable");
-    expect(source).toContain("No booking was created and no payment was taken.");
+    expect(source).toContain(
+      "No booking was created and no payment was taken.",
+    );
     expect(source).toContain("verified by the travel service");
     expect(source).toContain('role="alert"');
   });
 
   it("does not demand authentication or profile data for a disabled checkout", () => {
-    const route = appSource.match(/<Route path="\/travel\/checkout"[^\n]+/u)?.[0] ?? "";
+    const route =
+      appSource.match(
+        /<Route\s+path="\/travel\/checkout"\s+element=\{\s*<RouteErrorBoundary\b[^>]*>\s*<TravelCartProvider>\s*<TravelCheckoutPage\s*\/>\s*<\/TravelCartProvider>\s*<\/RouteErrorBoundary>\s*\}\s*\/>/u,
+      )?.[0] ?? "";
 
-    expect(route).toContain("<TravelCartProvider><TravelCheckoutPage /></TravelCartProvider>");
+    expect(route).not.toBe("");
+    expect(route).toContain("<TravelCheckoutPage />");
     expect(route).not.toContain("CheckoutAuthGate");
     expect(route).not.toContain("PhoneRequiredGate");
   });

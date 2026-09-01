@@ -36,8 +36,12 @@ describe("security attack drill guard", () => {
     const login = read("supabase/functions/log-login/index.ts");
     const listSessions = read("supabase/functions/list-my-sessions/index.ts");
     const revokeSession = read("supabase/functions/revoke-session/index.ts");
-    const securityNotifications = read("supabase/functions/process-security-notifications/index.ts");
-    const authHardening = read("supabase/migrations/20260429230000_security_hardening.sql");
+    const securityNotifications = read(
+      "supabase/functions/process-security-notifications/index.ts",
+    );
+    const authHardening = read(
+      "supabase/migrations/20260429230000_security_hardening.sql",
+    );
 
     for (const source of [otpEmail, otpSms]) {
       expect(source).toContain("withSecurity(");
@@ -62,27 +66,45 @@ describe("security attack drill guard", () => {
 
     expect(securityNotifications).toContain("new-device-login");
     expect(securityNotifications).toContain("country-change-login");
-    expect(authHardening.toLowerCase()).toContain("create table if not exists public.auth_lockout_state");
+    expect(authHardening.toLowerCase()).toContain(
+      "create table if not exists public.auth_lockout_state",
+    );
     expect(authHardening).toContain("fail_count");
     expect(authHardening).toContain("locked_until");
   });
 
   it("keeps money and booking abuse drills protected by idempotency, terminal states, and server-side pricing", () => {
     const stripeWebhook = read("supabase/functions/stripe-webhook/index.ts");
-    const groceryCheckout = read("supabase/functions/create-grocery-checkout/index.ts");
-    const carDeposit = read("supabase/functions/create-car-rental-deposit/index.ts");
-    const lodgingDeposit = read("supabase/functions/create-lodging-deposit/index.ts");
-    const salonBookingSecurity = read("supabase/migrations/20260524110000_salon_public_booking_security.sql");
-    const salonBookingGate = read("supabase/migrations/20260601231500_salon_bookings_public_submit_gate.sql");
-    const salonBookingSubmit = read("supabase/functions/salon-booking-submit/index.ts");
+    const groceryCheckout = read(
+      "supabase/functions/create-grocery-checkout/index.ts",
+    );
+    const carDeposit = read(
+      "supabase/functions/create-car-rental-deposit/index.ts",
+    );
+    const lodgingDeposit = read(
+      "supabase/functions/create-lodging-deposit/index.ts",
+    );
+    const salonBookingSecurity = read(
+      "supabase/migrations/20260524110000_salon_public_booking_security.sql",
+    );
+    const salonBookingGate = read(
+      "supabase/migrations/20260601231500_salon_bookings_public_submit_gate.sql",
+    );
+    const salonBookingSubmit = read(
+      "supabase/functions/salon-booking-submit/index.ts",
+    );
     const salonBookingPage = read("src/pages/salon/PublicSalonBookingPage.tsx");
-    const paymentsWorkflow = read("src/test/workflows/payments-refunds-webhooks.test.ts");
+    const paymentsWorkflow = read(
+      "src/test/workflows/payments-refunds-webhooks.test.ts",
+    );
 
-    expect(stripeWebhook).toContain('withSecurity("stripe-webhook"');
+    expect(stripeWebhook).toMatch(/withSecurity\(\s*["']stripe-webhook["']/);
     expect(stripeWebhook).toContain("idempotency");
     expect(stripeWebhook).toContain("flight_payment_audit_log");
     expect(stripeWebhook).toContain("purchase_records");
-    expect(paymentsWorkflow).toContain("keeps provider webhooks idempotent and provider-authoritative");
+    expect(paymentsWorkflow).toContain(
+      "keeps provider webhooks idempotent and provider-authoritative",
+    );
 
     for (const checkout of [groceryCheckout, carDeposit, lodgingDeposit]) {
       expect(checkout).toContain("rateLimit");
@@ -91,30 +113,48 @@ describe("security attack drill guard", () => {
       expect(checkout).toContain("blockNetworkRiskAt: 80");
     }
 
-    expect(carDeposit).toContain("rateLimitDb(rlKey, \"payment\")");
-    expect(carDeposit).toContain("TERMINAL_PAYMENT_STATES");
-    expect(carDeposit).toContain("const idempotencyKey = `car_rental_dep_");
-    expect(lodgingDeposit).toContain("rateLimitDb(user.id, \"payment\")");
+    expect(carDeposit).toContain(
+      'code: "car_rental_payment_authority_unavailable"',
+    );
+    expect(carDeposit).toContain("status: 503");
+    expect(carDeposit).not.toContain("Stripe");
+    expect(carDeposit).not.toContain("paymentIntents");
+    expect(carDeposit).not.toContain("req.json");
+    expect(lodgingDeposit).toContain('rateLimitDb(user.id, "payment")');
     expect(lodgingDeposit).toContain("TERMINAL_PAYMENT_STATES");
-    expect(lodgingDeposit).toContain("checkout.sessions.create(sessionParams, { idempotencyKey })");
+    expect(lodgingDeposit).toContain(
+      "checkout.sessions.create(sessionParams, { idempotencyKey })",
+    );
 
     expect(salonBookingSecurity).toContain("tg_salon_sanitize_public_booking");
-    expect(salonBookingSecurity).toContain("NEW.price_cents := v_svc.price_cents");
+    expect(salonBookingSecurity).toContain(
+      "NEW.price_cents := v_svc.price_cents",
+    );
     expect(salonBookingSecurity).toContain("NEW.status := 'pending'");
     expect(salonBookingSecurity).toContain("Public can request bookings");
     expect(salonBookingPage).toContain('"salon-booking-submit"');
-    expect(salonBookingPage).not.toMatch(/from\("salon_bookings"\)[\s\S]{0,360}\.(insert|upsert)/);
+    expect(salonBookingPage).not.toMatch(
+      /from\("salon_bookings"\)[\s\S]{0,360}\.(insert|upsert)/,
+    );
     expect(salonBookingSubmit).toContain('withSecurity("salon-booking-submit"');
     expect(salonBookingSubmit).toContain('allowedMethods: ["POST"]');
     expect(salonBookingSubmit).toContain("SUPABASE_SERVICE_ROLE_KEY");
-    expect(salonBookingGate).toContain("Salon booking public inserts require trusted server-side validation");
-    expect(salonBookingGate).toContain("REVOKE INSERT ON TABLE public.salon_bookings FROM anon");
+    expect(salonBookingGate).toContain(
+      "Salon booking public inserts require trusted server-side validation",
+    );
+    expect(salonBookingGate).toContain(
+      "REVOKE INSERT ON TABLE public.salon_bookings FROM anon",
+    );
   });
 
   it("keeps spam, scraping, scanner, and key-leak controls observable", () => {
     const dispatch = read("supabase/functions/notify-dispatch/index.ts");
-    const transactional = read("supabase/functions/send-transactional-email/index.ts");
-    const unsubscribe = read("supabase/functions/handle-email-unsubscribe/index.ts");
+    const transactional = read(
+      "supabase/functions/send-transactional-email/index.ts",
+    );
+    const unsubscribe = read(
+      "supabase/functions/handle-email-unsubscribe/index.ts",
+    );
     const botDetection = read("supabase/functions/_shared/botDetection.ts");
     const waf = read("supabase/functions/_shared/waf.ts");
     const threatIntel = read("supabase/functions/_shared/threatIntel.ts");

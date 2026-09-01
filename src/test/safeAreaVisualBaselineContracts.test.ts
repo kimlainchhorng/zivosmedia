@@ -66,11 +66,15 @@ describe("safe-area visual baseline contracts", () => {
       expect(safeAreaVisual).toContain(needle);
     }
     expect(safeAreaVisual).toMatch(/test\.skip\(\s*skip \|\| !!route\.skipTop/);
+<<<<<<< Updated upstream
     expect(safeAreaVisual).toMatch(
       /test\.skip\(\s*skip \|\| !!route\.skipBottom/,
     );
     expect(safeAreaVisual).not.toContain("waitForTimeout(500)");
     expect(safeAreaVisual).not.toContain('waitUntil: "networkidle"');
+=======
+    expect(safeAreaVisual).toMatch(/test\.skip\(\s*skip \|\| !!route\.skipBottom/);
+>>>>>>> Stashed changes
   });
 
   it("keeps required committed baselines and frontend contract wiring in place", () => {

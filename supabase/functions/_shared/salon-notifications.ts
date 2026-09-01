@@ -26,7 +26,8 @@ interface ReminderRow {
   store_id: string;
   client_id: string | null;
   booking_id: string | null;
-  reminder_type: "booking_24h" | "booking_lead" | "birthday" | "winback" | "review_request";
+  reminder_type:
+    "booking_24h" | "booking_lead" | "birthday" | "winback" | "review_request";
   channel_sms: boolean;
   channel_email: boolean;
   idempotency_key: string;
@@ -40,7 +41,10 @@ interface Recipient {
   full_name: string;
 }
 
-type Admin = ReturnType<typeof createClient>;
+// Edge Functions do not ship generated database types. Instantiate the
+// generic explicitly so Supabase's current SDK does not infer every relation
+// as `never` during `deno check`.
+type Admin = ReturnType<typeof createClient<any>>;
 
 const TEMPLATE_KEY: Record<SalonReminderEvent, string> = {
   booking_reminder_24h: "salon-booking-reminder-24h",
@@ -49,34 +53,51 @@ const TEMPLATE_KEY: Record<SalonReminderEvent, string> = {
   review_request: "salon-review-request",
 };
 
-const maskEmail = (email?: string | null) => email ? email.replace(/(^.).*(@.*$)/, "$1***$2") : null;
-const maskPhone = (phone?: string | null) => phone ? `***${phone.slice(-4)}` : null;
-const firstNameOf = (full: string): string => (full?.trim().split(/\s+/)[0] ?? "").trim() || "there";
+const maskEmail = (email?: string | null) =>
+  email ? email.replace(/(^.).*(@.*$)/, "$1***$2") : null;
+const maskPhone = (phone?: string | null) =>
+  phone ? `***${phone.slice(-4)}` : null;
+const firstNameOf = (full: string): string =>
+  (full?.trim().split(/\s+/)[0] ?? "").trim() || "there";
 
 async function audit(admin: Admin, row: Record<string, unknown>) {
   // Best-effort — never let an audit insert failure mask the actual outcome.
-  await admin.from("notification_audit").insert(row).then(() => null);
+  await admin
+    .from("notification_audit")
+    .insert(row)
+    .then(() => null);
 }
 
 async function sendSms(to: string, body: string) {
   const lovableKey = Deno.env.get("LOVABLE_API_KEY");
   const twilioKey = Deno.env.get("TWILIO_API_KEY");
-  const from = Deno.env.get("TWILIO_FROM_NUMBER") || Deno.env.get("TWILIO_PHONE_NUMBER");
+  const from =
+    Deno.env.get("TWILIO_FROM_NUMBER") || Deno.env.get("TWILIO_PHONE_NUMBER");
   if (!lovableKey || !twilioKey || !from) {
     return { skipped: true as const, reason: "sms_not_configured" };
   }
-  const res = await fetch("https://connector-gateway.lovable.dev/twilio/Messages.json", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": twilioKey,
-      "Content-Type": "application/x-www-form-urlencoded",
+  const res = await fetch(
+    "https://connector-gateway.lovable.dev/twilio/Messages.json",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": twilioKey,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        To: to,
+        From: from,
+        Body: body.slice(0, 1200),
+      }),
     },
-    body: new URLSearchParams({ To: to, From: from, Body: body.slice(0, 1200) }),
-  });
+  );
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(JSON.stringify(data));
-  return { skipped: false as const, provider_id: data.sid as string | undefined };
+  return {
+    skipped: false as const,
+    provider_id: data.sid as string | undefined,
+  };
 }
 
 /**
@@ -154,16 +175,21 @@ export async function sendSalonReminder(
       if (recipient.user_id) {
         const prefs = await admin
           .from("notification_preferences")
-          .select("sms_enabled, operational_enabled, marketing_enabled, phone_number, phone_verified")
+          .select(
+            "sms_enabled, operational_enabled, marketing_enabled, phone_number, phone_verified",
+          )
           .eq("user_id", recipient.user_id)
           .maybeSingle();
         if (prefs.data) {
           // booking_reminder_24h is the only purely transactional event;
           // everything else (birthday/winback/review) is marketing under
           // TCPA so we require explicit marketing opt-in.
-          const enabledCheck = event === "booking_reminder_24h"
-            ? (prefs.data.sms_enabled === true && prefs.data.operational_enabled !== false)
-            : (prefs.data.sms_enabled === true && prefs.data.marketing_enabled === true);
+          const enabledCheck =
+            event === "booking_reminder_24h"
+              ? prefs.data.sms_enabled === true &&
+                prefs.data.operational_enabled !== false
+              : prefs.data.sms_enabled === true &&
+                prefs.data.marketing_enabled === true;
           smsAllowed = enabledCheck;
           phone = prefs.data.phone_number || recipient.phone;
           phoneVerified = prefs.data.phone_verified !== false;

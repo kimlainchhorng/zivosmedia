@@ -49,6 +49,7 @@ describe("native app release workflow", () => {
     for (const dependency of ["@capacitor/core", "@capacitor/ios", "@capacitor/android", "@capgo/capacitor-updater"]) {
       expect(packageJson).toContain(dependency);
     }
+    expect(packageJson).not.toContain("capacitor-plugin-app-tracking-transparency");
     expect(main).toContain("SplashScreen.hide");
   });
 
@@ -57,21 +58,51 @@ describe("native app release workflow", () => {
     const info = read("ios/App/App/Info.plist");
     const privacy = read("ios/App/App/PrivacyInfo.xcprivacy");
     const entitlements = read("ios/App/App/App.entitlements");
+    const capacitorPackage = read("ios/App/CapApp-SPM/Package.swift");
     const listing = read("ios/store-listing/APP_STORE.md");
+    const archiveRunner = read("scripts/native/run-ios-store.mjs");
+    const appStoreUpload = read("scripts/upload-to-app-store.mjs");
 
     expect(project).toContain("PRODUCT_BUNDLE_IDENTIFIER = com.hizovo.app");
     expect(project).toContain("MARKETING_VERSION = 1.3.0");
+    expect(project.match(/PrivacyInfo\.xcprivacy in Resources/g)).toHaveLength(2);
     expect(info).toContain("NSCameraUsageDescription");
     expect(info).toContain("NSMicrophoneUsageDescription");
     expect(info).toContain("NSLocationWhenInUseUsageDescription");
-    expect(info).toContain("NSUserTrackingUsageDescription");
-    expect(info).toContain("NSPinnedDomains");
-    expect(info).toContain("supabase.co");
-    expect(info).toContain("stripe.com");
+    expect(info).toContain("QR codes you choose to scan");
+    expect(info).toContain("voice messages you choose to share");
+    expect(info).toContain("photos and videos you choose");
+    expect(info).not.toContain("NSUserTrackingUsageDescription");
+    expect(info).not.toContain("NSPinnedDomains");
+    expect(info).not.toContain("<key>stripe.com</key>");
 
     expect(privacy).toContain("NSPrivacyTracking");
+    expect(privacy).toContain("<key>NSPrivacyTracking</key>\n\t<false/>");
+    expect(privacy).toContain("<key>NSPrivacyTrackingDomains</key>\n\t<array/>");
+    expect(privacy).not.toContain("NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising");
+    expect(capacitorPackage).not.toContain("AppTrackingTransparency");
     expect(privacy).toContain("NSPrivacyCollectedDataTypes");
     expect(privacy).toContain("NSPrivacyAccessedAPITypes");
+    for (const dataType of [
+      "NSPrivacyCollectedDataTypeEmailsOrTextMessages",
+      "NSPrivacyCollectedDataTypePhotosorVideos",
+      "NSPrivacyCollectedDataTypeAudioData",
+      "NSPrivacyCollectedDataTypeOtherUserContent",
+    ]) {
+      expect(privacy).toContain(dataType);
+    }
+
+    expect(archiveRunner).toContain("validateIosNativeSourcePayload");
+    expect(archiveRunner).toContain("validateIosArchive");
+    expect(archiveRunner).toContain("validateIosIpa");
+    expect(appStoreUpload).toContain(
+      "app bundle root is missing PrivacyInfo.xcprivacy",
+    );
+    expect(appStoreUpload).toContain("CFBundleVersion mismatch");
+    expect(appStoreUpload).toContain(
+      'webPayloadFinding("app bundle public payload", webCheck)',
+    );
+    expect(appStoreUpload).toContain("does not match current dist");
 
     expect(entitlements).toContain("aps-environment");
     expect(entitlements).toContain("com.apple.developer.applesignin");
@@ -94,7 +125,7 @@ describe("native app release workflow", () => {
 
     expect(build).toContain('namespace = "com.hizovo.app"');
     expect(build).toContain('applicationId "com.hizovo.app"');
-    expect(build).toContain("versionCode 2026082601");
+    expect(build).toContain("versionCode 2026083001");
     expect(build).toContain('versionName "1.3.0"');
     expect(build).toContain("com.google.android.play:integrity");
     expect(build).toContain("keystore.properties");
@@ -324,5 +355,77 @@ describe("native app release workflow", () => {
     expect(coverage).toContain("native-mobile-release");
     expect(coverage).toContain("qa:native-app-contracts");
     expect(coverageCheck).toContain("native-mobile-release");
+  });
+
+  it("fails mobile CI closed on stale native payloads and obsolete Apple toolchains", () => {
+    const mobileCi = read(".github/workflows/mobile-ci.yml");
+    const mobileBuild = read(".github/workflows/mobile-build.yml");
+    const webSyncCheck = read("scripts/native/check-web-sync.mjs");
+    const releaseSecretsGuide = read("scripts/native/release-secrets-guide.mjs");
+
+    for (const workflow of [mobileCi, mobileBuild]) {
+      expect(workflow).toContain("runs-on: macos-26");
+      expect(workflow).not.toContain("runs-on: macos-14");
+      expect(workflow).toContain("Require Xcode 26 and iOS 26 SDK");
+      expect(workflow).toContain("xcodebuild -version");
+      expect(workflow).toContain("xcrun --sdk iphoneos --show-sdk-version");
+      expect(workflow).toContain('xcode_major" -lt 26');
+      expect(workflow).toContain('ios_sdk_major" -lt 26');
+      expect(workflow).toContain(
+        "node scripts/native/check-web-sync.mjs --platform ios",
+      );
+      expect(workflow).toContain(
+        "node scripts/native/check-web-sync.mjs --platform android",
+      );
+    }
+
+    const ciAndroidSync = mobileCi.indexOf("npx cap sync android");
+    const ciAndroidGradle = mobileCi.indexOf("./gradlew assembleDebug");
+    expect(ciAndroidSync).toBeGreaterThan(-1);
+    expect(ciAndroidGradle).toBeGreaterThan(ciAndroidSync);
+
+    const releaseAndroidSync = mobileBuild.indexOf("npx cap sync android");
+    const releaseAndroidGradle = mobileBuild.indexOf(
+      "./gradlew bundleRelease packageReleaseUniversalApk",
+    );
+    expect(releaseAndroidSync).toBeGreaterThan(-1);
+    expect(releaseAndroidGradle).toBeGreaterThan(releaseAndroidSync);
+    expect(mobileBuild).toContain("npm run android:optimization:check");
+    expect(mobileBuild).toContain("npm run android:installability:check");
+    expect(mobileBuild).toContain("include-hidden-files: true");
+    expect(mobileBuild).toContain("`dist/.well-known`");
+
+    expect(mobileBuild).toContain(
+      "IOS_NOTIFICATION_SERVICE_PROVISIONING_PROFILE_B64",
+    );
+    expect(mobileBuild).toContain(
+      'install_profile "$APP_PROFILE_B64" "com.hizovo.app"',
+    );
+    expect(mobileBuild).toContain(
+      'install_profile "$EXTENSION_PROFILE_B64" "com.hizovo.app.NotificationServiceExtension"',
+    );
+    expect(mobileBuild).toContain(
+      "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles",
+    );
+    expect(mobileBuild).toContain("Entitlements:get-task-allow");
+    expect(mobileBuild).toContain("ProvisionedDevices");
+    expect(mobileBuild).toContain("ProvisionsAllDevices");
+    expect(mobileBuild).toContain("Verify archived iOS payload and extension");
+    expect(mobileBuild).toContain(
+      "ZIVO_NATIVE_WEB_ROOT_IOS: ${{ runner.temp }}/App.xcarchive/Products/Applications/App.app/public",
+    );
+    expect(mobileBuild).toContain(
+      'codesign --verify --strict "$extension_path"',
+    );
+
+    expect(webSyncCheck).toContain("compareWebPayloads");
+    expect(webSyncCheck).toContain("ZIVO_NATIVE_WEB_ROOT_IOS");
+    expect(webSyncCheck).toContain("cordova_plugins.js");
+    expect(releaseSecretsGuide).toContain(
+      "IOS_NOTIFICATION_SERVICE_PROVISIONING_PROFILE_PATH",
+    );
+    expect(releaseSecretsGuide).toContain(
+      "IOS_NOTIFICATION_SERVICE_PROVISIONING_PROFILE_B64",
+    );
   });
 });

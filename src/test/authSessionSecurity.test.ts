@@ -34,22 +34,22 @@ describe("auth session security contracts", () => {
     ]);
   });
 
-  it("keeps login risk precheck, login audit, driver blocking, and post-login MFA step-up intact", () => {
+  it("keeps provider-owned password verification, authenticated login audit, driver blocking, and post-login MFA step-up intact", () => {
     const auth = source("src/contexts/AuthContext.tsx");
     const mfa = source("src/lib/security/mfa.ts");
     const mfaDialog = source("src/components/auth/MfaChallengeDialog.tsx");
 
     expectAll(auth, [
-      "auth_precheck_login",
-      "auth_record_login_attempt",
       "signInWithPassword",
-      "emailExists",
       "is_driver",
       "DRIVER_ACCOUNT",
       "getMfaChallenge",
       "setMfaPending(challenge)",
       'supabase.functions.invoke("log-login"',
     ]);
+    expect(auth).not.toContain('rpc("auth_precheck_login"');
+    expect(auth).not.toContain('rpc("auth_record_login_attempt"');
+    expect(auth).not.toContain("_emailExists");
 
     expectAll(mfa, [
       "getAuthenticatorAssuranceLevel",

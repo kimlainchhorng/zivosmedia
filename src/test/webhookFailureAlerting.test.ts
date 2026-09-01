@@ -7,6 +7,10 @@ const root = process.cwd();
 const source = (relativePath: string) =>
   readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
 
+const expectSecurityRoute = (text: string, route: string) => {
+  expect(text).toMatch(new RegExp(`withSecurity\\(\\s*"${route}"`));
+};
+
 describe("webhook failure alerting contracts", () => {
   it("keeps provider webhook handlers idempotent, signed, and exempt from browser-only defenses", () => {
     const providers = [
@@ -20,7 +24,7 @@ describe("webhook failure alerting contracts", () => {
 
     for (const [route, relativePath] of providers) {
       const text = source(relativePath);
-      expect(text).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(text, route);
       expect(text).toContain("strictCors: true");
       expect(text).toContain('trackNetwork: "suspicious"');
       expect(text).toContain("skipWaf: true");
@@ -133,11 +137,16 @@ describe("webhook failure alerting contracts", () => {
 
     for (const route of cronRoutes) {
       const text = source(`supabase/functions/${route}/index.ts`);
-      expect(text).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(text, route);
       expect(text).toContain("strictCors: true");
       expect(text).toContain('trackNetwork: "suspicious"');
       expect(text).toContain("blockNetworkRiskAt: 80");
-      expect(text).toContain("x-cron-secret");
+      if (route === "marketing-automations-tick") {
+        expect(text).toContain("isAuthorizedInternalCron");
+        expect(text).toContain("getInternalCronReadinessFailurePayload");
+      } else {
+        expect(text).toContain("x-cron-secret");
+      }
       expect(text).toContain("skipBotDetection: true");
       expect(text).not.toContain('"Access-Control-Allow-Origin": "*"');
     }

@@ -50,7 +50,9 @@ describe("ZIVO Software workspace access", () => {
     expect(guard).toContain("ownerAccessAllowed &&");
     expect(guard).toContain("softwareAccessQuery.data?.access_granted === true");
     expect(guard).toContain("isSoftwareSubscriptionRoute");
-    expect(guard).toContain("getZivoSoftwareSubscriptionPath(storeId, location.search, location.hash)");
+    expect(guard).toMatch(
+      /getZivoSoftwareSubscriptionPath\(\s*storeId,\s*location\.search,\s*location\.hash,?\s*\)/,
+    );
     expect(status).toContain("await assertBusinessOwner(admin, user.id, businessId)");
     expect(status).toContain("stripeSoftwareAccessGranted(subscription?.status)");
     expect(status).toContain("manualSoftwareAccessGranted(entitlement)");

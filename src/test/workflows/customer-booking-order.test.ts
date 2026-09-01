@@ -8,6 +8,14 @@ function source(relativePath: string) {
   return readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
 }
 
+function expectFunctionInvoke(code: string, route: string) {
+  expect(code).toMatch(new RegExp(`(?:supabase\\.)?functions\\.invoke\\(\\s*"${route}"`));
+}
+
+function expectSecurityRoute(code: string, route: string) {
+  expect(code).toMatch(new RegExp(`withSecurity\\(\\s*"${route}"`));
+}
+
 describe("customer booking and order workflow", () => {
   it("keeps the standalone customer booking contract gate wired into platform audit", () => {
     const contractScript = source("scripts/qa/customer-booking-contracts.mjs");
@@ -51,13 +59,13 @@ describe("customer booking and order workflow", () => {
     }
 
     expect(storePage).toContain("GroceryCheckoutDrawer");
-    expect(checkout).toContain('supabase.functions.invoke("create-grocery-payment-intent"');
-    expect(checkout).toContain('supabase.functions.invoke("confirm-grocery-payment"');
+    expectFunctionInvoke(checkout, "create-grocery-payment-intent");
+    expectFunctionInvoke(checkout, "confirm-grocery-payment");
     expect(checkout).toContain('returnUrl = `${window.location.origin}/grocery/orders?${returnParam}=${orderId}`');
     expect(checkout).toContain('cancelUrl = `${window.location.origin}/grocery/orders?grocery_paypal_cancel=${orderId}`');
-    expect(checkout).toContain('<Link to="/grocery/returns"');
-    expect(checkout).toContain('<Link to="/grocery/fees"');
-    expect(checkout).toContain('<Link to="/grocery/terms"');
+    expect(checkout).toMatch(/<Link\s+to="\/grocery\/returns"/);
+    expect(checkout).toMatch(/<Link\s+to="\/grocery\/fees"/);
+    expect(checkout).toMatch(/<Link\s+to="\/grocery\/terms"/);
 
     expect(confirmed).toContain('params.get("order_id")');
     expect(confirmed).toContain('.eq("user_id", user.id)');
@@ -200,7 +208,7 @@ describe("customer booking and order workflow", () => {
     const submit = source("supabase/functions/car-rental-booking-extras-submit/index.ts");
     const gate = source("supabase/migrations/20260601203000_car_rental_booking_extras_server_gate.sql");
 
-    expect(bookingPage).toContain('functions.invoke("car-rental-booking-extras-submit"');
+    expectFunctionInvoke(bookingPage, "car-rental-booking-extras-submit");
     expect(bookingPage).not.toMatch(/from\("car_rental_promo_redemptions"\)[\s\S]{0,420}\.(insert|update|delete|upsert)/);
     expect(bookingPage).not.toMatch(/from\("car_rental_reservation_addons"\)[\s\S]{0,420}\.(insert|update|delete|upsert)/);
 
@@ -209,11 +217,12 @@ describe("customer booking and order workflow", () => {
     expect(submit).toContain("strictCors: true");
     expect(submit).toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(submit).toContain("confirmation_code");
-    expect(submit).toContain('.from("car_rental_reservations")');
-    expect(submit).toContain('.from("car_rental_addons")');
-    expect(submit).toContain('.from("car_rental_reservation_addons")');
-    expect(submit).toContain('.from("car_rental_promotions")');
-    expect(submit).toContain('.from("car_rental_promo_redemptions")');
+    expect(submit).toContain('"car_rental_apply_booking_extras"');
+    expect(submit).not.toContain('.from("car_rental_reservations")');
+    expect(submit).not.toContain('.from("car_rental_addons")');
+    expect(submit).not.toContain('.from("car_rental_reservation_addons")');
+    expect(submit).not.toContain('.from("car_rental_promotions")');
+    expect(submit).not.toContain('.from("car_rental_promo_redemptions")');
 
     expect(gate).toContain("Car rental reservation add-on inserts require trusted server-side validation");
     expect(gate).toContain("Car rental promo redemption inserts require trusted server-side validation");
@@ -278,7 +287,7 @@ describe("customer booking and order workflow", () => {
     expect(createIntent).toContain("stripe_payment_intent_id: paymentIntent.id");
     expect(createIntent).toContain('payment_provider: "stripe"');
     expect(createIntent).toContain("payment_status: paymentIntent.status === \"succeeded\" ? \"paid\" : \"pending\"");
-    expect(createEatsPayment).toContain('withSecurity("create-eats-payment"');
+    expectSecurityRoute(createEatsPayment, "create-eats-payment");
     expect(createEatsPayment).toContain('allowedMethods: ["POST"]');
     expect(createEatsPayment).toContain('rateLimit: "payment"');
     expect(createEatsPayment).toContain("Order not found or access denied");
@@ -346,7 +355,7 @@ describe("customer booking and order workflow", () => {
 
     for (const route of ["capture-grocery-paypal-order", "capture-eats-paypal-order"]) {
       const fn = source(`supabase/functions/${route}/index.ts`);
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain('allowedMethods: ["POST"]');
       expect(fn).toContain('rateLimit: "payment"');
     }

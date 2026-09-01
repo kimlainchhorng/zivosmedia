@@ -3,8 +3,10 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
-const read = (relativePath: string) => readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
-const exists = (relativePath: string) => existsSync(path.join(root, relativePath));
+const read = (relativePath: string) =>
+  readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
+const exists = (relativePath: string) =>
+  existsSync(path.join(root, relativePath));
 const legacyLegalOrigin = "https://hizivo" + ".com";
 
 describe("legal canonical SEO URLs", () => {
@@ -14,8 +16,12 @@ describe("legal canonical SEO URLs", () => {
     const refunds = read("src/pages/legal/RefundPolicy.tsx");
     const cookies = read("src/pages/legal/CookiePolicy.tsx");
 
-    expect(refunds).toContain('canonical="https://zivosmedia.com/legal/refunds"');
-    expect(cookies).toContain('canonical="https://zivosmedia.com/legal/cookies"');
+    expect(refunds).toContain(
+      'canonical="https://zivosmedia.com/legal/refunds"',
+    );
+    expect(cookies).toContain(
+      'canonical="https://zivosmedia.com/legal/cookies"',
+    );
 
     for (const source of [terms, privacy, refunds, cookies]) {
       expect(source).not.toContain(`${legacyLegalOrigin}/terms`);
@@ -46,7 +52,10 @@ describe("legal canonical SEO URLs", () => {
       "src/pages/Refunds.tsx",
       "src/pages/Privacy.tsx",
     ]) {
-      expect(exists(duplicate), `${duplicate} is a stale duplicate policy page`).toBe(false);
+      expect(
+        exists(duplicate),
+        `${duplicate} is a stale duplicate policy page`,
+      ).toBe(false);
     }
   });
 
@@ -54,12 +63,18 @@ describe("legal canonical SEO URLs", () => {
     // /refunds and /terms are the URLs a customer or reviewer types by hand,
     // so they must land on the maintained policy rather than 404 or on a copy.
     const app = read("src/App.tsx");
-    expect(app).toContain('<Route path="/terms" element={<Navigate to="/legal/terms" replace />} />');
-    expect(app).toContain('<Route path="/refunds" element={<Navigate to="/legal/refunds" replace />} />');
+    expect(app).toMatch(
+      /<Route\s+path="\/terms"\s+element=\{\s*<Navigate\s+to="\/legal\/terms"\s+replace\s*\/>\s*\}\s*\/>/,
+    );
+    expect(app).toMatch(
+      /<Route\s+path="\/refunds"\s+element=\{\s*<Navigate\s+to="\/legal\/refunds"\s+replace\s*\/>\s*\}\s*\/>/,
+    );
   });
 
   it("keeps marketing share URLs on zivosmedia.com and legal links canonical", () => {
-    const storeMarketing = read("src/components/admin/StoreMarketingSection.tsx");
+    const storeMarketing = read(
+      "src/components/admin/StoreMarketingSection.tsx",
+    );
     const damagePolicy = read("src/pages/legal/DamagePolicy.tsx");
 
     expect(storeMarketing).toContain("ZIVO_MEDIA_ORIGIN");

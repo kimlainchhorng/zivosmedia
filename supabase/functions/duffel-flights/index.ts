@@ -1,6 +1,9 @@
 import { serve, createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
-import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
+import {
+  parseAuthoritativeRateLimit,
+  type AuthoritativeRateLimitResult,
+} from "../_shared/authoritativeRateLimit.ts";
 
 /**
  * Duffel Flights API Edge Function
@@ -25,6 +28,43 @@ const DUFFEL_ENV = Deno.env.get('DUFFEL_ENV') || 'sandbox';
 
 // Default cache TTL in seconds (2 minutes)
 const DEFAULT_CACHE_TTL = 120;
+const SEARCH_RATE_LIMIT = 30;
+const SEARCH_RATE_WINDOW_SECONDS = 60;
+
+/**
+ * The paid supplier boundary must not fall back to per-isolate memory. A
+ * missing or failed RPC means the cross-isolate quota cannot be proven, so the
+ * live Duffel call stays closed until the database control is available.
+ */
+async function checkAuthoritativeSearchRateLimit(
+  identifier: string,
+): Promise<AuthoritativeRateLimitResult> {
+  const result = await supabase.rpc('rate_limit_check', {
+    _category: 'search',
+    _identifier: identifier,
+    _max: SEARCH_RATE_LIMIT,
+    _window_sec: SEARCH_RATE_WINDOW_SECONDS,
+  });
+
+  const decision = parseAuthoritativeRateLimit(result);
+  if (!decision.available) {
+    console.error('[Rate Limit] Authoritative search quota unavailable', {
+      code: result.error?.code,
+      message: result.error?.message,
+    });
+  }
+  return decision;
+}
+
+function searchRateLimitHeaders(result: AuthoritativeRateLimitResult): Record<string, string> {
+  const headers: Record<string, string> = {
+    'X-RateLimit-Limit': String(SEARCH_RATE_LIMIT),
+    'X-RateLimit-Remaining': String(result.remaining),
+    'X-RateLimit-Reset': String(Math.ceil(result.resetAt / 1000)),
+  };
+  if (result.retryAfter != null) headers['Retry-After'] = String(result.retryAfter);
+  return headers;
+}
 
 /**
  * Generate cache key for search params
@@ -113,46 +153,38 @@ async function setCache(params: {
 }
 
 /**
- * Check API limits and update usage
+ * Atomically reserve one unit of daily supplier usage. The database function
+ * locks today's counter row and checks the live cap before incrementing it, so
+ * concurrent callers cannot all pass a separate read. Cached hits still call
+ * this for best-effort accounting, but their already-available result is not
+ * blocked if accounting is unavailable.
  */
-async function checkAndUpdateApiUsage(isLive: boolean): Promise<{ allowed: boolean; reason?: string }> {
-  const today = new Date().toISOString().split('T')[0];
-
+async function checkAndUpdateApiUsage(
+  isLive: boolean,
+): Promise<{ allowed: boolean; reason?: string; status?: 429 | 503 }> {
   try {
-    // Get limits
-    const { data: limits } = await supabase
-      .from('flight_api_limits')
-      .select('daily_search_cap, daily_booking_cap, is_active')
-      .single();
-
-    if (!limits?.is_active) {
-      return { allowed: true };
-    }
-
-    // Get today's usage
-    const { data: usage } = await supabase
-      .from('flight_api_usage')
-      .select('searches_live, bookings_total')
-      .eq('date', today)
-      .single();
-
-    const currentSearches = usage?.searches_live || 0;
-
-    if (limits.daily_search_cap && currentSearches >= limits.daily_search_cap) {
-      return { allowed: false, reason: 'Daily search limit reached' };
-    }
-
-    // Update usage
-    if (isLive) {
-      await supabase.rpc('increment_flight_api_usage', { is_cached: false });
-    } else {
-      await supabase.rpc('increment_flight_api_usage', { is_cached: true });
+    const { error: incrementError } = await supabase.rpc('increment_flight_api_usage', {
+      is_cached: !isLive,
+    });
+    if (incrementError) {
+      if (
+        isLive
+        && incrementError.code === 'P0001'
+        && incrementError.message === 'flight_daily_search_cap_reached'
+      ) {
+        return { allowed: false, reason: 'Daily search limit reached', status: 429 };
+      }
+      throw incrementError;
     }
 
     return { allowed: true };
   } catch (err) {
     console.error('[API Limits] Check failed:', err);
-    return { allowed: true }; // Allow on error to not block searches
+    return {
+      allowed: false,
+      reason: 'Flight search quota is temporarily unavailable. Please try again shortly.',
+      status: 503,
+    };
   }
 }
 
@@ -345,7 +377,10 @@ async function createOfferRequest(params: CreateOfferRequestParams) {
   // Check API limits before live call
   const limitsCheck = await checkAndUpdateApiUsage(true); // true = live
   if (!limitsCheck.allowed) {
-    return { error: limitsCheck.reason || 'API limit reached' };
+    return {
+      error: limitsCheck.reason || 'API limit reached',
+      status: limitsCheck.status ?? 429,
+    };
   }
   
   // Omit cabin_class so Duffel returns all cabin classes (Economy, Business, First)
@@ -1278,10 +1313,25 @@ serve(withSecurity("duffel-flights", async (req, ctx) => {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-  const rl = await rateLimitDb(user.id, "search");
+  const rl = await checkAuthoritativeSearchRateLimit(user.id);
+  if (!rl.available) {
+    return new Response(JSON.stringify({ error: "Flight search protection is temporarily unavailable. Please try again shortly." }), {
+      status: 503,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        ...searchRateLimitHeaders(rl),
+      },
+    });
+  }
   if (!rl.allowed) {
     return new Response(JSON.stringify({ error: "Too many requests. Please wait before searching again." }), {
-      status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", ...rateLimitHeaders(rl, "search") },
+      status: 429,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        ...searchRateLimitHeaders(rl),
+      },
     });
   }
 
@@ -1348,9 +1398,12 @@ serve(withSecurity("duffel-flights", async (req, ctx) => {
     }
 
     if ('error' in result && result.error) {
+      const resultStatus = 'status' in result && typeof result.status === 'number'
+        ? result.status
+        : 400;
       return new Response(
         JSON.stringify({ error: result.error }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: resultStatus, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

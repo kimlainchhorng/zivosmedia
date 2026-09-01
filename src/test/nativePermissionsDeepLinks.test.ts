@@ -64,7 +64,6 @@ describe("native permissions, deep links, and push contracts", () => {
       "NSCameraUsageDescription",
       "NSMicrophoneUsageDescription",
       "NSLocationWhenInUseUsageDescription",
-      "NSUserTrackingUsageDescription",
       "CFBundleURLSchemes",
       "com.hizovo.app",
       "UIBackgroundModes",
@@ -72,6 +71,13 @@ describe("native permissions, deep links, and push contracts", () => {
     ]) {
       expect(info).toContain(needle);
     }
+    expect(info).not.toContain("NSUserTrackingUsageDescription");
+    expect(info).not.toContain("<string>voip</string>");
+    expect(info).not.toContain("<string>audio</string>");
+    expect(project).not.toContain("INFOPLIST_KEY_CFBundleDisplayName = ZIVOS;");
+    expect(
+      project.match(/INFOPLIST_KEY_CFBundleDisplayName = ZIVO;/g),
+    ).toHaveLength(2);
 
     for (const needle of [
       "applinks:zivosmedia.com",

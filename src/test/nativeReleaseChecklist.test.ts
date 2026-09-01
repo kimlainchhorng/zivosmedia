@@ -36,9 +36,9 @@ describe("native release checklist", () => {
 
     for (const releaseValue of [
       "App version: 1.3.0",
-      "iOS build: 4",
+      "iOS build: 5",
       "iOS bundle ID: com.hizovo.app",
-      "Android versionCode: 2026082601",
+      "Android versionCode: 2026083001",
       "Android package: com.hizovo.app",
       "Android target SDK: 36 (Android 16)",
     ]) {

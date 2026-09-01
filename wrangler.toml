@@ -30,3 +30,11 @@ ALLOWED_ORIGINS = "https://zivosmedia.com,https://www.zivosmedia.com,https://adm
 binding = "ZIVO_MEDIA"
 bucket_name = "zivo-media"
 preview_bucket_name = "zivo-media-dev"
+
+[[durable_objects.bindings]]
+name = "AI_QUOTA"
+class_name = "AiQuota"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["AiQuota"]

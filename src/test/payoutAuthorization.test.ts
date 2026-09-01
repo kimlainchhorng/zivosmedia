@@ -6,7 +6,10 @@ import { serverGatedInvoke } from "./serverGatedInvoke";
 const root = process.cwd();
 
 function source(relativePath: string) {
-  return readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
+  return readFileSync(path.join(root, relativePath), "utf8").replace(
+    /\r\n/g,
+    "\n",
+  );
 }
 
 function expectAll(text: string, needles: readonly string[]) {
@@ -16,65 +19,85 @@ function expectAll(text: string, needles: readonly string[]) {
 }
 
 function expectPostMutationRoute(text: string) {
-  expectAll(text, ["strictCors: true", 'allowedMethods: ["POST"]', 'trackNetwork: "suspicious"']);
+  expectAll(text, [
+    "strictCors: true",
+    'allowedMethods: ["POST"]',
+    'trackNetwork: "suspicious"',
+  ]);
 }
 
 describe("payout authorization and ledger contracts", () => {
   it("keeps payout mutations protected by MFA, idempotency, rate limits, and owner/admin checks", () => {
-    const instant = source("supabase/functions/connect-instant-payout/index.ts");
-    const creator = source("supabase/functions/creator-payout-request/index.ts");
-    const merchant = source("supabase/functions/merchant-payout-request/index.ts");
+    const instant = source(
+      "supabase/functions/connect-instant-payout/index.ts",
+    );
+    const creator = source(
+      "supabase/functions/creator-payout-request/index.ts",
+    );
+    const merchant = source(
+      "supabase/functions/merchant-payout-request/index.ts",
+    );
     const lodging = source("supabase/functions/lodge-payout-request/index.ts");
     const eats = source("supabase/functions/eats-payout-request/index.ts");
     const driverPayout = source("supabase/functions/driver-payout/index.ts");
-    const driverResolve = source("supabase/functions/resolve-driver-earning-payout/index.ts");
+    const driverResolve = source(
+      "supabase/functions/resolve-driver-earning-payout/index.ts",
+    );
 
-    for (const text of [instant, creator, merchant, lodging, eats, driverPayout, driverResolve]) {
+    for (const text of [
+      instant,
+      creator,
+      merchant,
+      lodging,
+      eats,
+      driverPayout,
+      driverResolve,
+    ]) {
       expectPostMutationRoute(text);
     }
 
     expectAll(instant, [
-      "enforceAal2(authHeader, corsHeaders)",
-      "supabase.auth.getUser",
-      "withIdempotency(req, \"connect-instant-payout\", user.id",
-      ".eq(\"payee_id\", user.id)",
-      ".eq(\"user_id\", user.id)",
-      "idempotencyKey: `${idempotencyKey}:transfer`",
-      "idempotencyKey: `${idempotencyKey}:payout:${method}`",
+      'withSecurity(\n    "connect-instant-payout"',
+      'code: "wallet_cashout_authority_unavailable"',
+      "retryable: false",
+      "status: 503",
     ]);
+    expect(instant).not.toContain("stripe.transfers.create");
+    expect(instant).not.toContain("stripe.payouts.create");
 
     expectAll(creator, [
       "enforceAal2(auth, corsHeaders)",
-      "withIdempotency(req, \"creator-payout-request\", user.id",
-      "\"request_live_earnings_payout\"",
-      "\"X-Idempotency-Cache\"",
+      'withIdempotency(req, "creator-payout-request", user.id',
+      '"request_live_earnings_payout"',
+      '"X-Idempotency-Cache"',
     ]);
 
     expectAll(merchant, [
-      "withSecurity(\"merchant-payout-request\"",
+      'withSecurity("merchant-payout-request"',
       "enforceAal2(authHeader, corsHeaders)",
       "withIdempotency(req,",
-      "\"X-Idempotency-Cache\"",
-      ".from(\"store_profiles\")",
-      ".from(\"store_orders\")",
-      ".from(\"merchant_payouts\")",
+      '"X-Idempotency-Cache"',
+      '.from("store_profiles")',
+      '.from("store_orders")',
+      '.from("merchant_payouts")',
       "availableCents",
     ]);
 
     expectAll(lodging, [
       "enforceAal2(auth, corsHeaders)",
-      "if (store.owner_id !== user.id) throw new Error(\"Not authorized for this store\")",
+      'if (store.owner_id !== user.id) throw new Error("Not authorized for this store")',
       "method.user_id !== user.id || method.store_id !== store_id",
     ]);
 
     expectAll(eats, [
       "enforceAal2(auth, corsHeaders)",
       "owner_id",
-      "Payout method does not belong to this user",
+      "Payout method does not belong to this restaurant",
+      'storedRail === "bank_transfer" ? "bank_wire" : storedRail',
     ]);
 
     for (const text of [driverPayout, driverResolve]) {
-      expectAll(text, ["has_role", "_role: \"admin\"", "admin_driver_actions"]);
+      expectAll(text, ["has_role", '_role: "admin"', "admin_driver_actions"]);
     }
   });
 
@@ -94,15 +117,24 @@ describe("payout authorization and ledger contracts", () => {
       ],
       [
         "supabase/migrations/20260531214500_salon_commission_payouts_server_gate.sql",
-        ["Salon commission payouts are written by salon-commission-payout-record"],
+        [
+          "Salon commission payouts are written by salon-commission-payout-record",
+        ],
       ],
       [
         "supabase/migrations/20260531220000_customer_payout_methods_server_gate.sql",
-        ["Payout methods are written by customer-payout-method-record", "method_type IN ('bank_transfer', 'aba', 'paypal')"],
+        [
+          "Payout methods are written by customer-payout-method-record",
+          "method_type IN ('bank_transfer', 'aba', 'paypal')",
+        ],
       ],
       [
         "supabase/migrations/20260531221500_creator_payout_methods_server_gate.sql",
-        ["prevent_direct_creator_payout_profile_writes", "creator_payout_profile_server_gate_required", "request_role <> 'service_role'"],
+        [
+          "prevent_direct_creator_payout_profile_writes",
+          "creator_payout_profile_server_gate_required",
+          "request_role <> 'service_role'",
+        ],
       ],
     ] as const;
 
@@ -110,23 +142,31 @@ describe("payout authorization and ledger contracts", () => {
       expectAll(source(relativePath), needles);
     }
 
-    const customerMethod = source("supabase/functions/customer-payout-method-record/index.ts");
-    const creatorMethod = source("supabase/functions/creator-payout-method-record/index.ts");
+    const customerMethod = source(
+      "supabase/functions/customer-payout-method-record/index.ts",
+    );
+    const creatorMethod = source(
+      "supabase/functions/creator-payout-method-record/index.ts",
+    );
     expectPostMutationRoute(customerMethod);
     expectPostMutationRoute(creatorMethod);
 
     expectAll(customerMethod, [
-      "withSecurity(\"customer-payout-method-record\"",
       "enforceAal2(authHeader, corsHeaders)",
-      "withIdempotency(req, \"customer-payout-method-record\"",
-      "\"X-Idempotency-Cache\"",
+      '"X-Idempotency-Cache"',
       "clearDefaultMethods",
     ]);
+    expect(customerMethod).toMatch(
+      /withSecurity\(\s*"customer-payout-method-record"/,
+    );
+    expect(customerMethod).toMatch(
+      /withIdempotency\(\s*req,\s*"customer-payout-method-record",\s*userId,\s*execute/,
+    );
     expectAll(creatorMethod, [
-      "withSecurity(\"creator-payout-method-record\"",
+      'withSecurity("creator-payout-method-record"',
       "enforceAal2(authHeader, corsHeaders)",
-      ".from(\"creator_profiles\")",
-      "payout_method: \"paypal\"",
+      '.from("creator_profiles")',
+      'payout_method: "paypal"',
       "paypal_email",
     ]);
 
@@ -137,44 +177,62 @@ describe("payout authorization and ledger contracts", () => {
     ]) {
       const text = source(relativePath);
       expect(text).toMatch(serverGatedInvoke("customer-payout-method-record"));
-      expect(text).not.toMatch(/from\(["']customer_payout_methods["']\)[\s\S]{0,80}\.(insert|update|delete)/);
+      expect(text).not.toMatch(
+        /from\(["']customer_payout_methods["']\)[\s\S]{0,80}\.(insert|update|delete)/,
+      );
     }
 
     const paypalHook = source("src/hooks/usePayPalPayout.ts");
-    expect(paypalHook).toMatch(serverGatedInvoke("creator-payout-method-record"));
-    expect(paypalHook).toContain("\"Idempotency-Key\": idempotencyKey");
-    expect(paypalHook).not.toMatch(/from\("creator_profiles"\)[\s\S]{0,240}\.(insert|update)/);
+    expect(paypalHook).toMatch(
+      serverGatedInvoke("creator-payout-method-record"),
+    );
+    expect(paypalHook).toContain('"Idempotency-Key": idempotencyKey');
+    expect(paypalHook).not.toMatch(
+      /from\("creator_profiles"\)[\s\S]{0,240}\.(insert|update)/,
+    );
   });
 
-  it("keeps payout retries idempotent and auditable in wallet ledgers", () => {
-    const paypal = source("supabase/functions/paypal-payout/index.ts");
-    const withdrawal = source("supabase/functions/process-withdrawal/index.ts");
-    const atomicWithdrawal = source("supabase/migrations/20260531204500_atomic_customer_wallet_withdrawal.sql");
-    const idempotency = source("supabase/migrations/20260425214912_ee44c2d6-1039-43b3-9982-c515012cb92c.sql");
-    const payoutNotifications = source("supabase/migrations/20260509170000_live_and_payout_notifications.sql");
+  it("keeps generic Wallet payout rails retired until one durable authority exists", () => {
+    const retiredPaths = [
+      "supabase/functions/connect-instant-payout/index.ts",
+      "supabase/functions/paypal-payout/index.ts",
+      "supabase/functions/process-withdrawal/index.ts",
+      "supabase/functions/wallet-instant-payout/index.ts",
+      "supabase/functions/stripe-instant-payout/index.ts",
+    ];
+    const atomicWithdrawal = source(
+      "supabase/migrations/20260531204500_atomic_customer_wallet_withdrawal.sql",
+    );
+    const idempotency = source(
+      "supabase/migrations/20260425214912_ee44c2d6-1039-43b3-9982-c515012cb92c.sql",
+    );
+    const payoutNotifications = source(
+      "supabase/migrations/20260509170000_live_and_payout_notifications.sql",
+    );
     const transactions = source("src/pages/TransactionsPage.tsx");
     const customerWallet = source("src/hooks/useCustomerWallet.ts");
 
-    expectPostMutationRoute(paypal);
-    expectPostMutationRoute(withdrawal);
-
-    expectAll(paypal, [
-      "withIdempotency(req, \"paypal-payout\", user.id",
-      "sender_batch_id: senderBatchId",
-      "sender_item_id: senderItemId",
-      "customer_wallet_transactions",
-      "balance_after_cents: newBalance",
-      "type: \"withdrawal\"",
-      "\"X-Idempotency-Cache\": result.cached ? \"HIT\" : \"MISS\"",
-    ]);
-
-    expectAll(withdrawal, [
-      "withSecurity(\"process-withdrawal\"",
-      "strictCors: true",
-      "withIdempotency(req, \"process-withdrawal\", userId",
-      "process_customer_wallet_withdrawal",
-      "\"X-Idempotency-Cache\": result.cached ? \"HIT\" : \"MISS\"",
-    ]);
+    for (const relativePath of retiredPaths) {
+      const text = source(relativePath);
+      expectPostMutationRoute(text);
+      expectAll(text, [
+        'code: "wallet_cashout_authority_unavailable"',
+        "retryable: false",
+        "status: 503",
+      ]);
+      for (const forbidden of [
+        "stripe.transfers.create",
+        "stripe.payouts.create",
+        "/v1/payments/payouts",
+        "process_customer_wallet_withdrawal",
+        "customer_wallet_transactions",
+        "customer_wallets\").update",
+      ]) {
+        expect(text, `${relativePath} must not move money`).not.toContain(
+          forbidden,
+        );
+      }
+    }
 
     expectAll(atomicWithdrawal, [
       "CREATE OR REPLACE FUNCTION public.process_customer_wallet_withdrawal",
@@ -187,14 +245,18 @@ describe("payout authorization and ledger contracts", () => {
       "SET search_path = public",
     ]);
 
-    expect(idempotency).toContain("CREATE TABLE IF NOT EXISTS public.idempotency_records");
+    expect(idempotency).toContain(
+      "CREATE TABLE IF NOT EXISTS public.idempotency_records",
+    );
     expect(payoutNotifications).toContain("tg_notify_payout_status");
-    expect(transactions).toContain(".from(\"transactions\")");
+    expect(transactions).toContain('.from("transactions")');
     expect(customerWallet).toContain("customer_wallet_transactions");
   });
 
   it("keeps payout UI states and QA wiring visible to the release gate", () => {
-    const stripeCard = source("src/components/wallet/StripeConnectPayoutCard.tsx");
+    const stripeCard = source(
+      "src/components/wallet/StripeConnectPayoutCard.tsx",
+    );
     const unifiedCard = source("src/components/wallet/UnifiedPayoutCard.tsx");
     const creatorPayouts = source("src/pages/CreatorPayoutsPage.tsx");
     const driverPayouts = source("src/pages/driver/DriverPayoutsPage.tsx");
@@ -210,12 +272,35 @@ describe("payout authorization and ledger contracts", () => {
       "Continue setup",
       "Standard payouts ready",
     ]);
-    expectAll(unifiedCard, ["STRIPE_UNSUPPORTED", "Stripe Connect doesn't support your country", "PayPal"]);
-    expectAll(creatorPayouts, ["Pending", "processing", "failed", "reversed", "Paid"]);
-    expectAll(driverPayouts, ["Details", "Payouts", "Charges", "verification_status", "Continue onboarding"]);
+    expectAll(unifiedCard, [
+      "Wallet payouts are paused",
+      "Stripe and PayPal cash out are temporarily unavailable",
+      "Your wallet balance is unchanged",
+    ]);
+    expectAll(creatorPayouts, [
+      "Pending",
+      "processing",
+      "failed",
+      "reversed",
+      "Paid",
+    ]);
+    expectAll(driverPayouts, [
+      "Details",
+      "Payouts",
+      "Charges",
+      "verification_status",
+      "Continue onboarding",
+    ]);
 
-    expectAll(matrix, ["payments-payouts", "src/test/paymentWebhookIdempotency.test.ts", "src/test/payoutAuthorization.test.ts"]);
-    expectAll(packageJson, ["qa:payouts-earnings-contracts", "qa:payments-refunds-contracts"]);
+    expectAll(matrix, [
+      "payments-payouts",
+      "src/test/paymentWebhookIdempotency.test.ts",
+      "src/test/payoutAuthorization.test.ts",
+    ]);
+    expectAll(packageJson, [
+      "qa:payouts-earnings-contracts",
+      "qa:payments-refunds-contracts",
+    ]);
     expectAll(workflow, ["payments-refunds", "payouts-earnings"]);
   });
 });

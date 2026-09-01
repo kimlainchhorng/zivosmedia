@@ -11,25 +11,35 @@ const source = (relativePath: string) =>
 describe("admin support account role access", () => {
   it("keeps support staff routes scoped and account operations behind privileged functions", () => {
     const app = source("src/App.tsx");
-    const supportDashboard = source("src/pages/admin/AdminSupportDashboard.tsx");
+    const supportDashboard = source(
+      "src/pages/admin/AdminSupportDashboard.tsx",
+    );
     const userAccounts = source("src/pages/admin/AdminUserAccounts.tsx");
     const createUser = source("supabase/functions/admin-create-user/index.ts");
-    const updateProfile = source("supabase/functions/admin-update-profile/index.ts");
+    const updateProfile = source(
+      "supabase/functions/admin-update-profile/index.ts",
+    );
     const deleteUser = source("supabase/functions/admin-delete-user/index.ts");
-    const listUsers = source("supabase/functions/admin-list-created-users/index.ts");
+    const listUsers = source(
+      "supabase/functions/admin-list-created-users/index.ts",
+    );
 
-    for (const route of [
-      'path="/admin/support" element={<ProtectedRoute requireAdmin={true} allowSupport={true}>',
-      'path="/admin/user-accounts" element={<ProtectedRoute requireAdmin={true} allowSupport={true}>',
-      'path="/admin/employees" element={<ProtectedRoute requireAdmin={true} allowSupport={true}>',
-      'path="/admin/god-view" element={<ProtectedRoute requireAdmin={true} allowSupport={true}>',
+    for (const [routePath, page] of [
+      ["/admin/support", "AdminSupportDashboard"],
+      ["/admin/user-accounts", "AdminUserAccounts"],
+      ["/admin/employees", "AdminEmployeesPage"],
+      ["/admin/god-view", "AdminGodView"],
     ]) {
-      expect(app).toContain(route);
+      expect(app).toMatch(
+        new RegExp(
+          `<Route\\s+path="${routePath}"\\s+element=\\{\\s*<ProtectedRoute(?=[^>]*requireAdmin=\\{true\\})(?=[^>]*allowSupport=\\{true\\})[^>]*>\\s*<${page}\\s*\\/>\\s*<\\/ProtectedRoute>\\s*\\}\\s*\\/>`,
+        ),
+      );
     }
 
     expect(supportDashboard).toContain("useUserAccess(user?.id)");
     expect(supportDashboard).toContain("access?.isSupport || access?.isAdmin");
-    expect(supportDashboard).toContain('enabled: isAuthorized');
+    expect(supportDashboard).toContain("enabled: isAuthorized");
     expect(supportDashboard).toContain('.from("ai_conversations")');
     expect(supportDashboard).toContain('.from("admin_security_alerts")');
     expect(supportDashboard).toContain('.from("account_activity_log")');
@@ -49,7 +59,9 @@ describe("admin support account role access", () => {
     for (const fnSource of [createUser, updateProfile, deleteUser, listUsers]) {
       expect(fnSource).toContain("enforceAal2(authHeader, corsHeaders)");
       expect(fnSource).toContain('withSecurity("admin-');
-      expect(fnSource).toContain('const allowedRoles = ["admin", "super_admin", "support"]');
+      expect(fnSource).toContain(
+        'const allowedRoles = ["admin", "super_admin", "support"]',
+      );
       expect(fnSource).toContain('.from("user_roles")');
       expect(fnSource).toContain('.eq("user_id", caller.id)');
       expect(fnSource).toContain("Admin access required");

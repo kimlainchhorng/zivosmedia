@@ -8,6 +8,10 @@ importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.4.1/workbox
 
 // Precache manifest (injected by vite-plugin-pwa)
 const precacheManifest = self.__WB_MANIFEST;
+const PRIVATE_RUNTIME_CACHES = ['api-cache'];
+
+const clearPrivateRuntimeCaches = () =>
+  Promise.all(PRIVATE_RUNTIME_CACHES.map((cacheName) => caches.delete(cacheName)));
 
 // Configure Workbox
 if (workbox) {
@@ -37,9 +41,13 @@ if (workbox) {
     })
   );
 
-  // Cache images (local assets only — cross-origin images are handled separately)
+  // Cache images from this app only. Supabase media has its own public-only
+  // route below, so signed/private storage URLs can never fall into this cache.
   workbox.routing.registerRoute(
-    /\.(?:png|jpg|jpeg|svg|gif|webp|avif)$/i,
+    ({ request, url }) =>
+      url.origin === self.location.origin &&
+      request.destination === 'image' &&
+      /\.(?:png|jpg|jpeg|svg|gif|webp|avif)$/i.test(url.pathname),
     new workbox.strategies.CacheFirst({
       cacheName: 'images-cache',
       plugins: [
@@ -98,24 +106,14 @@ if (workbox) {
     }
   );
 
-  // NetworkFirst for Supabase API/auth/realtime calls (not storage — handled above)
+  // Authenticated Supabase API/auth/functions traffic is account-owned data.
+  // Never put it in shared Cache Storage: a timeout after logout or account
+  // switching must not be able to replay another account's response.
   workbox.routing.registerRoute(
     ({ url }) =>
       url.hostname.endsWith('.supabase.co') &&
       !url.pathname.includes('/storage/v1/object/public/'),
-    new workbox.strategies.NetworkFirst({
-      cacheName: 'api-cache',
-      networkTimeoutSeconds: 4, // was 5s — fail faster on mobile
-      plugins: [
-        new workbox.expiration.ExpirationPlugin({
-          maxEntries: 50,
-          maxAgeSeconds: 60 * 5, // 5 min stale fallback
-        }),
-        new workbox.cacheableResponse.CacheableResponsePlugin({
-          statuses: [0, 200],
-        }),
-      ],
-    })
+    new workbox.strategies.NetworkOnly()
   );
 } else {
   console.log('[SW] Workbox failed to load');
@@ -166,6 +164,34 @@ self.addEventListener('push', (event) => {
   );
 });
 
+const notificationId = (value) =>
+  encodeURIComponent(String(value));
+
+const travelBookingPath = (data, defaultService = 'hotels') => {
+  const bookingId = data.booking_id || data.reservation_id || data.order_id;
+  if (!bookingId) return '/my-trips';
+
+  const service = String(data.service || data.booking_type || defaultService).toLowerCase();
+  const routeSegment = {
+    flight: 'flights',
+    flights: 'flights',
+    hotel: 'hotels',
+    hotels: 'hotels',
+    lodging: 'lodging',
+    car: 'cars',
+    cars: 'cars',
+    bus: 'bus',
+    restaurant: 'restaurants',
+    restaurants: 'restaurants',
+    activity: 'activities',
+    activities: 'activities',
+  }[service];
+
+  return routeSegment
+    ? `/my-trips/${routeSegment}/${notificationId(bookingId)}`
+    : '/my-trips';
+};
+
 // Notification click handler
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
@@ -215,7 +241,9 @@ self.addEventListener('notificationclick', (event) => {
     case 'order_status_update':
     case 'order_ready':
     case 'order_delivered':
-      urlToOpen = data.order_id ? `/eats/order/${data.order_id}` : '/eats';
+      urlToOpen = data.order_id
+        ? `/eats/track/${notificationId(data.order_id)}`
+        : '/eats/orders';
       break;
 
     // Flights & Travel
@@ -229,7 +257,7 @@ self.addEventListener('notificationclick', (event) => {
     case 'booking_update':
     case 'reservation_confirmed':
     case 'check_in_reminder':
-      urlToOpen = data.booking_id ? `/bookings/${data.booking_id}` : '/bookings';
+      urlToOpen = travelBookingPath(data);
       break;
 
     // Payments & Wallet
@@ -237,6 +265,11 @@ self.addEventListener('notificationclick', (event) => {
     case 'payment_failed':
     case 'wallet_credited':
       urlToOpen = '/wallet';
+      break;
+    case 'payment_confirmed':
+      urlToOpen = data.booking_id
+        ? travelBookingPath(data, String(data.service || ''))
+        : '/wallet';
       break;
 
     // Loyalty & Rewards
@@ -251,7 +284,9 @@ self.addEventListener('notificationclick', (event) => {
     case 'delivery_picked_up':
     case 'delivery_en_route':
     case 'delivery_completed':
-      urlToOpen = data.delivery_id ? `/delivery/${data.delivery_id}` : '/delivery';
+      urlToOpen = data.delivery_id
+        ? `/delivery/track/${notificationId(data.delivery_id)}`
+        : '/delivery';
       break;
 
     // Support
@@ -266,7 +301,9 @@ self.addEventListener('notificationclick', (event) => {
 
     // Grocery / Store
     case 'store_order_update':
-      urlToOpen = data.order_id ? `/orders/${data.order_id}` : '/grocery';
+      urlToOpen = data.order_id
+        ? `/grocery/track/${notificationId(data.order_id)}`
+        : '/grocery';
       break;
 
     default:
@@ -310,7 +347,6 @@ self.addEventListener('activate', (event) => {
         'google-fonts-webfonts',
         'images-cache',
         'supabase-storage-cache',
-        'api-cache',
         'local-images',
         'unsplash-images',
       ];
@@ -323,7 +359,7 @@ self.addEventListener('activate', (event) => {
         cacheNames
           .filter((name) => !keepCaches.includes(name))
           .map((name) => caches.delete(name))
-      );
+      ).then(clearPrivateRuntimeCaches);
     }).then(() => clients.claim())
   );
 });
@@ -331,5 +367,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+    return;
+  }
+
+  if (event.data && event.data.type === 'CLEAR_PRIVATE_CACHES') {
+    event.waitUntil(clearPrivateRuntimeCaches());
   }
 });

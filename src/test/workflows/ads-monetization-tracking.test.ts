@@ -75,7 +75,7 @@ describe("ads, monetization, and conversion tracking workflow", () => {
 
     expect(client).toContain("captureGclidFromUrl");
     expect(client).toContain("zivo_gclid");
-    expect(client).toContain('supabase.functions.invoke("google-ads-conversion"');
+    expect(client).toMatch(/supabase\.functions\.invoke\(\s*"google-ads-conversion"/);
     expect(client).toContain("conversion_action_id");
     expect(client).toContain("order_id");
 

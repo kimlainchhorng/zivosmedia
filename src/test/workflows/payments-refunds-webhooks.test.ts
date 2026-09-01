@@ -5,7 +5,20 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 
 function source(relativePath: string) {
-  return readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
+  return readFileSync(path.join(root, relativePath), "utf8").replace(
+    /\r\n/g,
+    "\n",
+  );
+}
+
+function expectSecurityRoute(text: string, route: string) {
+  expect(text).toMatch(new RegExp(`withSecurity\\(\\s*["']${route}["']`));
+}
+
+function expectFunctionInvocation(text: string, route: string) {
+  expect(text).toMatch(
+    new RegExp(`supabase\\.functions\\.invoke\\(\\s*["']${route}["']`),
+  );
 }
 
 describe("payments, refunds, and webhook workflow", () => {
@@ -40,17 +53,29 @@ describe("payments, refunds, and webhook workflow", () => {
 
   it("keeps provider webhooks idempotent and provider-authoritative", () => {
     const stripe = source("supabase/functions/stripe-webhook/index.ts");
-    const paypalGrocery = source("supabase/functions/paypal-grocery-webhook/index.ts");
-    const squareGrocery = source("supabase/functions/square-grocery-webhook/index.ts");
-    const groceryConfirm = source("supabase/functions/confirm-grocery-payment/index.ts");
-    const groceryCreate = source("supabase/functions/create-grocery-payment-intent/index.ts");
+    const paypalGrocery = source(
+      "supabase/functions/paypal-grocery-webhook/index.ts",
+    );
+    const squareGrocery = source(
+      "supabase/functions/square-grocery-webhook/index.ts",
+    );
+    const groceryConfirm = source(
+      "supabase/functions/confirm-grocery-payment/index.ts",
+    );
+    const groceryCreate = source(
+      "supabase/functions/create-grocery-payment-intent/index.ts",
+    );
 
-    expect(stripe).toContain('withSecurity("stripe-webhook"');
+    expectSecurityRoute(stripe, "stripe-webhook");
     expect(stripe).toContain('allowedMethods: ["POST"]');
     expect(stripe).toContain("constructEvent");
-    expect(stripe).toContain("upsert(payload, { onConflict: 'transaction_id' })");
+    expect(stripe).toContain(
+      'upsert(payload, { onConflict: "transaction_id" })',
+    );
     expect(stripe).toContain("Webhook safety net for grocery orders");
-    expect(stripe).toContain('.eq("stripe_payment_intent_id", paymentIntent.id)');
+    expect(stripe).toContain(
+      '.eq("stripe_payment_intent_id", paymentIntent.id)',
+    );
     expect(stripe).toContain("notifyGroceryOrderConfirmed");
 
     for (const webhook of [paypalGrocery, squareGrocery]) {
@@ -65,7 +90,9 @@ describe("payments, refunds, and webhook workflow", () => {
     expect(paypalGrocery).toContain("grocery_paypal_webhook_events");
     expect(squareGrocery).toContain("grocery_square_webhook_events");
 
-    expect(groceryCreate).toContain("stripe_payment_intent_id: paymentIntent.id");
+    expect(groceryCreate).toContain(
+      "stripe_payment_intent_id: paymentIntent.id",
+    );
     expect(groceryCreate).toContain('payment_provider: "stripe"');
     expect(groceryConfirm).toContain("paymentIntent.metadata?.order_id");
     expect(groceryConfirm).toContain("orderRecord.user_id !== user.id");
@@ -80,7 +107,7 @@ describe("payments, refunds, and webhook workflow", () => {
       "stripe-car-rental-webhook",
     ]) {
       const fn = source(`supabase/functions/${route}/index.ts`);
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('allowedMethods: ["POST"]');
       expect(fn).toContain("skipBotDetection: true");
@@ -92,14 +119,18 @@ describe("payments, refunds, and webhook workflow", () => {
 
   it("keeps refund execution idempotent, scoped, and audited", () => {
     const processRefund = source("supabase/functions/process-refund/index.ts");
-    const carRefund = source("supabase/functions/refund-car-rental-deposit/index.ts");
-    const paymentWebhookIdempotency = source("src/test/paymentWebhookIdempotency.test.ts");
+    const carRefund = source(
+      "supabase/functions/refund-car-rental-deposit/index.ts",
+    );
+    const paymentWebhookIdempotency = source(
+      "src/test/paymentWebhookIdempotency.test.ts",
+    );
 
     expect(processRefund).toContain('withSecurity("process-refund"');
     expect(processRefund).toContain('rateLimit: "admin_action"');
-    expect(processRefund).toContain('admin role required');
-    expect(processRefund).toContain('scanContentForLinks(notes)');
-    expect(processRefund).toContain('const idempotencyKey = `ride_refund_');
+    expect(processRefund).toContain("admin role required");
+    expect(processRefund).toContain("scanContentForLinks(notes)");
+    expect(processRefund).toContain("const idempotencyKey = `ride_refund_");
     expect(processRefund).toContain("stripe.refunds.create(");
     expect(processRefund).toContain("{ idempotencyKey }");
     expect(processRefund).toContain('.from("financial_ledger")');
@@ -112,21 +143,34 @@ describe("payments, refunds, and webhook workflow", () => {
 
     expect(carRefund).toContain('withSecurity("refund-car-rental-deposit"');
     expect(carRefund).toContain("const cors = ctx.corsHeaders");
-    expect(carRefund).not.toContain('getCorsHeaders(req)');
+    expect(carRefund).not.toContain("getCorsHeaders(req)");
     expect(carRefund).toContain('rateLimitDb(user.id, "payment")');
     expect(carRefund).toContain("paymentIntents.cancel(");
     expect(carRefund).toContain("stripe.refunds.create(");
     expect(carRefund).toContain("idempotencyKey: `car_rental_dep_cancel_");
     expect(carRefund).toContain("idempotencyKey: `car_rental_dep_refund_");
     expect(carRefund).toContain('payment_status: "refunded"');
-    expect(carRefund).toContain('payment_status: refund.status === "succeeded" ? "refunded" : "refund_pending"');
+    expect(carRefund).toContain(
+      'payment_status: refund.status === "succeeded" ? "refunded" : "refund_pending"',
+    );
 
-    const carCapture = source("supabase/functions/capture-car-rental-balance/index.ts");
-    expect(carCapture).toContain('withSecurity("capture-car-rental-balance"');
-    expect(carCapture).toContain("const cors = ctx.corsHeaders");
-    expect(carCapture).not.toContain('getCorsHeaders(req)');
+    const carCapture = source(
+      "supabase/functions/capture-car-rental-balance/index.ts",
+    );
+    expect(carCapture).toMatch(
+      /withSecurity\(\s*["']capture-car-rental-balance["']/,
+    );
+    expect(carCapture).toContain("...ctx.corsHeaders");
+    expect(carCapture).not.toContain("getCorsHeaders(req)");
+    expect(carCapture).toContain(
+      'code: "car_rental_payment_authority_unavailable"',
+    );
+    expect(carCapture).toContain("status: 503");
+    expect(carCapture).not.toContain("paymentIntents");
 
-    expect(paymentWebhookIdempotency).toContain("payment webhook and payout idempotency contracts");
+    expect(paymentWebhookIdempotency).toContain(
+      "payment webhook and payout idempotency contracts",
+    );
   });
 
   it("keeps ZIVO Plus subscription status and portal routes behind strict wrapper security", () => {
@@ -150,9 +194,15 @@ describe("payments, refunds, and webhook workflow", () => {
   });
 
   it("keeps saved payment method metadata mutations behind server-side ownership checks", () => {
-    const stripeManage = source("supabase/functions/manage-payment-methods/index.ts");
-    const manage = source("supabase/functions/zivo-payment-method-manage/index.ts");
-    const gate = source("supabase/migrations/20260601113000_zivo_payment_methods_server_gate.sql");
+    const stripeManage = source(
+      "supabase/functions/manage-payment-methods/index.ts",
+    );
+    const manage = source(
+      "supabase/functions/zivo-payment-method-manage/index.ts",
+    );
+    const gate = source(
+      "supabase/migrations/20260601113000_zivo_payment_methods_server_gate.sql",
+    );
     const localMethods = source("src/hooks/useLocalPaymentMethods.ts");
     const walletMethods = source("src/hooks/useZivoWallet.ts");
 
@@ -188,8 +238,12 @@ describe("payments, refunds, and webhook workflow", () => {
 
     for (const hook of [localMethods, walletMethods]) {
       expect(hook).toContain('functions.invoke("zivo-payment-method-manage"');
-      expect(hook).not.toMatch(/from\("zivo_payment_methods"\)[\s\S]{0,220}\.(insert|update|delete|upsert)/);
-      expect(hook).not.toMatch(/from\("zivo_payment_methods" as any\)[\s\S]{0,220}\.(insert|update|delete|upsert)/);
+      expect(hook).not.toMatch(
+        /from\("zivo_payment_methods"\)[\s\S]{0,220}\.(insert|update|delete|upsert)/,
+      );
+      expect(hook).not.toMatch(
+        /from\("zivo_payment_methods" as any\)[\s\S]{0,220}\.(insert|update|delete|upsert)/,
+      );
     }
   });
 
@@ -204,7 +258,7 @@ describe("payments, refunds, and webhook workflow", () => {
       "aba-payway-checkout": aba,
       "bakong-verify": bakong,
     })) {
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expect(fn).toMatch(new RegExp(`withSecurity\\(\\s*["']${route}["']`));
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('allowedMethods: ["POST"]');
       expect(fn).toContain('rateLimit: "payment"');
@@ -217,10 +271,16 @@ describe("payments, refunds, and webhook workflow", () => {
     expect(aba).toContain("generateHash");
     expect(bakong).toContain("validateKhqrPayload");
     expect(bakong).toContain("validateSinceSec");
-    expect(abaHook).toContain('supabase.functions.invoke("aba-payway-checkout"');
-    expect(khqrModal).toContain('supabase.functions.invoke("aba-payway-checkout"');
+    expect(abaHook).toContain(
+      'supabase.functions.invoke("aba-payway-checkout"',
+    );
+    expect(khqrModal).toContain(
+      'supabase.functions.invoke("aba-payway-checkout"',
+    );
     expect(canonicalRideFrame).not.toContain("bakong-verify");
-    expect(existsSync(path.join(root, "src/components/rides/AbaPaymentModal.tsx"))).toBe(false);
+    expect(
+      existsSync(path.join(root, "src/components/rides/AbaPaymentModal.tsx")),
+    ).toBe(false);
   });
 
   it("requires an explicit server-owned merchant QR for legacy Bakong verification", () => {
@@ -237,8 +297,12 @@ describe("payments, refunds, and webhook workflow", () => {
 
   it("retires legacy Bakong ride creation by default at the server boundary", () => {
     const legacyRide = source("supabase/functions/create-bakong-ride/index.ts");
-    const gate = legacyRide.indexOf('Deno.env.get("ENABLE_LEGACY_BAKONG_RIDE") !== "true"');
-    const auth = legacyRide.indexOf('const authHeader = req.headers.get("Authorization")');
+    const gate = legacyRide.indexOf(
+      'Deno.env.get("ENABLE_LEGACY_BAKONG_RIDE") !== "true"',
+    );
+    const auth = legacyRide.indexOf(
+      'const authHeader = req.headers.get("Authorization")',
+    );
 
     expect(gate).toBeGreaterThan(-1);
     expect(legacyRide).toContain('code: "legacy_ride_checkout_retired"');
@@ -254,14 +318,22 @@ describe("payments, refunds, and webhook workflow", () => {
       "supabase/functions/complete-ride-request/index.ts",
     ]) {
       const legacyRoute = source(relativePath);
-      const gate = legacyRoute.indexOf('Deno.env.get("ENABLE_LEGACY_MEDIA_RIDE_PAYMENTS") !== "true"');
+      const gate = legacyRoute.indexOf(
+        'Deno.env.get("ENABLE_LEGACY_MEDIA_RIDE_PAYMENTS") !== "true"',
+      );
       const auth = legacyRoute.indexOf("Authorization");
 
       expect(gate).toBeGreaterThan(-1);
-      expect(legacyRoute).toContain('code: "legacy_media_ride_payments_retired"');
-      expect(legacyRoute).toMatch(/legacy_media_ride_payments_retired[\s\S]{0,180}410/);
+      expect(legacyRoute).toContain(
+        'code: "legacy_media_ride_payments_retired"',
+      );
+      expect(legacyRoute).toMatch(
+        /legacy_media_ride_payments_retired[\s\S]{0,180}410/,
+      );
       expect(gate).toBeLessThan(auth);
-      expect(legacyRoute).not.toContain("VITE_ENABLE_LEGACY_MEDIA_RIDE_PAYMENTS");
+      expect(legacyRoute).not.toContain(
+        "VITE_ENABLE_LEGACY_MEDIA_RIDE_PAYMENTS",
+      );
     }
   });
 
@@ -270,7 +342,9 @@ describe("payments, refunds, and webhook workflow", () => {
 
     // A usable QR must come from the checkout provider; a deep link or a
     // locally invented reference is not a KHQR payment payload.
-    expect(khqrModal).toContain('const providerQr = typeof data?.qr_string === "string" ? data.qr_string.trim() : "";');
+    expect(khqrModal).toContain(
+      'const providerQr = typeof data?.qr_string === "string" ? data.qr_string.trim() : "";',
+    );
     expect(khqrModal).toContain("if (!providerQr) {");
     expect(khqrModal).toContain("setQrData(providerQr);");
 
@@ -285,14 +359,22 @@ describe("payments, refunds, and webhook workflow", () => {
     expect(khqrModal).not.toContain("data?.abapay_deeplink || `KHQR:");
 
     // The actual provider deep link remains available alongside a real QR.
-    expect(khqrModal).toContain('window.open(deepLink, "_blank", "noopener,noreferrer")');
-    expect(khqrModal).toContain("Payment will be confirmed only after ABA verifies it.");
+    expect(khqrModal).toContain(
+      'window.open(deepLink, "_blank", "noopener,noreferrer")',
+    );
+    expect(khqrModal).toContain(
+      "Payment will be confirmed only after ABA verifies it.",
+    );
   });
 
   it("keeps customer payment capture routes POST-gated and payment-rate-limited", () => {
-    const paymentReturn = source("src/components/lodging/PaymentReturnHandler.tsx");
+    const paymentReturn = source(
+      "src/components/lodging/PaymentReturnHandler.tsx",
+    );
     const canonicalRideFrame = source("src/pages/app/CanonicalRidePage.tsx");
-    const carCheckout = source("src/components/admin/store/car-rental/CarRentalCheckoutSection.tsx");
+    const carCheckout = source(
+      "src/components/admin/store/car-rental/CarRentalCheckoutSection.tsx",
+    );
 
     for (const route of [
       "capture-eats-paypal-order",
@@ -303,7 +385,7 @@ describe("payments, refunds, and webhook workflow", () => {
       "capture-car-rental-balance",
     ]) {
       const fn = source(`supabase/functions/${route}/index.ts`);
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('allowedMethods: ["POST"]');
       expect(fn).toContain('rateLimit: "payment"');
@@ -318,10 +400,14 @@ describe("payments, refunds, and webhook workflow", () => {
     ]) {
       expect(paymentReturn).toContain(`supabase.functions.invoke("${route}"`);
     }
-    expect(paymentReturn).not.toContain('supabase.functions.invoke("capture-tip-paypal-order"');
+    expect(paymentReturn).not.toContain(
+      'supabase.functions.invoke("capture-tip-paypal-order"',
+    );
     expect(canonicalRideFrame).toContain("resolveRideAppBaseUrl");
     expect(canonicalRideFrame).not.toContain("capture-ride-tip");
-    expect(existsSync(path.join(root, "src/pages/app/RideHubPage.tsx"))).toBe(false);
+    expect(existsSync(path.join(root, "src/pages/app/RideHubPage.tsx"))).toBe(
+      false,
+    );
     expect(carCheckout).toContain('"capture-car-rental-balance"');
   });
 
@@ -336,7 +422,7 @@ describe("payments, refunds, and webhook workflow", () => {
       "create-reel-boost",
     ]) {
       const fn = source(`supabase/functions/${route}/index.ts`);
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('allowedMethods: ["POST"]');
       expect(fn).toContain('rateLimit: "payment"');
@@ -360,7 +446,7 @@ describe("payments, refunds, and webhook workflow", () => {
 
     for (const route of routes) {
       const fn = source(`supabase/functions/${route}/index.ts`);
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('allowedMethods: ["POST"]');
       expect(fn).toContain('rateLimit: "payment"');
@@ -383,18 +469,30 @@ describe("payments, refunds, and webhook workflow", () => {
 
     for (const route of routes) {
       const fn = source(`supabase/functions/${route}/index.ts`);
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('allowedMethods: ["POST"]');
       expect(fn).toContain('rateLimit: "payment"');
       expect(fn).not.toContain('"Access-Control-Allow-Origin": "*"');
     }
 
-    expect(source("src/components/live/CoinRechargeSheet.tsx")).toContain('supabase.functions.invoke("create-coin-payment-intent"');
-    expect(source("src/components/social/TipSheet.tsx")).toContain('supabase.functions.invoke("create-tip-payment-intent"');
-    expect(source("src/pages/ZivoPlusPage.tsx")).toContain('supabase.functions.invoke("create-zivo-plus-checkout"');
-    expect(source("src/components/admin/AdsStudioWalletGuard.tsx")).toContain('supabase.functions.invoke("create-ads-wallet-topup"');
-    expect(source("src/hooks/useEatsOrder.ts")).toContain('supabase.functions.invoke("create-eats-payment"');
+    expect(source("src/components/live/CoinRechargeSheet.tsx")).toContain(
+      'supabase.functions.invoke("create-coin-payment-intent"',
+    );
+    expect(source("src/components/social/TipSheet.tsx")).toContain(
+      'supabase.functions.invoke("create-tip-payment-intent"',
+    );
+    expectFunctionInvocation(
+      source("src/pages/ZivoPlusPage.tsx"),
+      "create-zivo-plus-checkout",
+    );
+    expectFunctionInvocation(
+      source("src/components/admin/AdsStudioWalletGuard.tsx"),
+      "create-ads-wallet-topup",
+    );
+    expect(source("src/hooks/useEatsOrder.ts")).toContain(
+      '"create-eats-payment"',
+    );
   });
 
   it("keeps payment verification routes POST-gated while chat media unlock remains retired", () => {
@@ -407,7 +505,7 @@ describe("payments, refunds, and webhook workflow", () => {
 
     for (const { route, rateLimit } of routes) {
       const fn = source(`supabase/functions/${route}/index.ts`);
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('allowedMethods: ["POST"]');
       expect(fn).toContain(`rateLimit: "${rateLimit}"`);
@@ -416,12 +514,23 @@ describe("payments, refunds, and webhook workflow", () => {
       expect(fn).not.toContain('"Access-Control-Allow-Origin": "*"');
     }
 
-    expect(source("src/components/admin/PaymentVerificationDialog.tsx")).toContain('supabase.functions.invoke("payment-verification"');
-    expect(source("src/components/live/CoinRechargeSheet.tsx")).toContain('supabase.functions.invoke("verify-coin-purchase"');
-    expect(source("src/components/admin/AdsStudioWalletGuard.tsx")).toContain('supabase.functions.invoke("verify-ads-wallet-topup"');
+    expect(
+      source("src/components/admin/PaymentVerificationDialog.tsx"),
+    ).toContain('supabase.functions.invoke("payment-verification"');
+    expect(source("src/components/live/CoinRechargeSheet.tsx")).toContain(
+      'supabase.functions.invoke("verify-coin-purchase"',
+    );
+    expectFunctionInvocation(
+      source("src/components/admin/AdsStudioWalletGuard.tsx"),
+      "verify-ads-wallet-topup",
+    );
     const chatBubble = source("src/components/chat/ChatMessageBubble.tsx");
-    expect(chatBubble).not.toContain('supabase.functions.invoke("verify-media-unlock"');
-    expect(chatBubble).not.toContain('supabase.functions.invoke("unlock-media-checkout"');
+    expect(chatBubble).not.toContain(
+      'supabase.functions.invoke("verify-media-unlock"',
+    );
+    expect(chatBubble).not.toContain(
+      'supabase.functions.invoke("unlock-media-checkout"',
+    );
     expect(chatBubble).not.toContain("handleUnlockPayment");
     expect(chatBubble).toContain("Legacy paid attachment unavailable");
   });
@@ -434,7 +543,7 @@ describe("payments, refunds, and webhook workflow", () => {
       "chat-unlock-group-media",
     ]) {
       const fn = source(`supabase/functions/${route}/index.ts`);
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('allowedMethods: ["POST"]');
       expect(fn).toContain('rateLimit: "payment"');
@@ -443,15 +552,27 @@ describe("payments, refunds, and webhook workflow", () => {
       expect(fn).not.toContain('"Access-Control-Allow-Origin": "*"');
     }
 
-    expect(source("src/hooks/useCoinTransfer.ts")).toContain('supabase.functions.invoke("chat-transfer-coins"');
-    expect(source("src/hooks/useChatGifts.ts")).toContain('supabase.functions.invoke("chat-send-gift"');
-    expect(source("src/components/chat/ChatGiftPanel.tsx")).toContain('supabase.functions.invoke("chat-send-premium-gift"');
-    expect(source("src/components/chat/GroupChat.tsx")).not.toContain('supabase.functions.invoke("chat-unlock-group-media"');
+    expect(source("src/hooks/useCoinTransfer.ts")).toContain(
+      'supabase.functions.invoke("chat-transfer-coins"',
+    );
+    expect(source("src/hooks/useChatGifts.ts")).toContain(
+      'supabase.functions.invoke("chat-send-gift"',
+    );
+    expect(source("src/components/chat/ChatGiftPanel.tsx")).toContain(
+      'supabase.functions.invoke("chat-send-premium-gift"',
+    );
+    expect(source("src/components/chat/GroupChat.tsx")).not.toContain(
+      'supabase.functions.invoke("chat-unlock-group-media"',
+    );
   });
 
   it("keeps salon payment settings writes behind server-side ownership checks", () => {
-    const manage = source("supabase/functions/store-payment-settings-update/index.ts");
-    const gate = source("supabase/migrations/20260601150000_store_payment_settings_server_gate.sql");
+    const manage = source(
+      "supabase/functions/store-payment-settings-update/index.ts",
+    );
+    const gate = source(
+      "supabase/migrations/20260601150000_store_payment_settings_server_gate.sql",
+    );
     const hook = source("src/hooks/salon/useSalonPaymentSettings.ts");
 
     expect(manage).toContain('withSecurity("store-payment-settings-update"');
@@ -469,24 +590,40 @@ describe("payments, refunds, and webhook workflow", () => {
     expect(manage).not.toMatch(/stripe_account_id:\s*input/);
     expect(manage).not.toMatch(/stripe_status:\s*input/);
 
-    expect(gate).toContain("Store payment settings inserts require trusted server-side validation");
-    expect(gate).toContain("Store payment settings updates require trusted server-side validation");
-    expect(gate).toContain("Store payment settings deletes require trusted server-side validation");
-    expect(gate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.store_payment_settings FROM authenticated");
-    expect(gate).toContain("GRANT SELECT ON TABLE public.store_payment_settings TO authenticated");
+    expect(gate).toContain(
+      "Store payment settings inserts require trusted server-side validation",
+    );
+    expect(gate).toContain(
+      "Store payment settings updates require trusted server-side validation",
+    );
+    expect(gate).toContain(
+      "Store payment settings deletes require trusted server-side validation",
+    );
+    expect(gate).toContain(
+      "REVOKE INSERT, UPDATE, DELETE ON TABLE public.store_payment_settings FROM authenticated",
+    );
+    expect(gate).toContain(
+      "GRANT SELECT ON TABLE public.store_payment_settings TO authenticated",
+    );
 
     expect(hook).toContain('functions.invoke("store-payment-settings-update"');
-    expect(hook).not.toMatch(/from\("store_payment_settings"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
+    expect(hook).not.toMatch(
+      /from\("store_payment_settings"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/,
+    );
     expect(hook).not.toContain("stripe_account_id: merged.stripe_account_id");
     expect(hook).not.toContain("stripe_status: merged.stripe_status");
   });
 
   it("keeps Eats payment status transitions behind trusted server-side checks", () => {
-    const statusFunction = source("supabase/functions/eats-payment-status-update/index.ts");
-    const statusGate = source("supabase/migrations/20260601123000_food_order_payment_status_server_gate.sql");
+    const statusFunction = source(
+      "supabase/functions/eats-payment-status-update/index.ts",
+    );
+    const statusGate = source(
+      "supabase/migrations/20260601123000_food_order_payment_status_server_gate.sql",
+    );
     const eatsOrder = source("src/hooks/useEatsOrder.ts");
 
-    expect(statusFunction).toContain('withSecurity("eats-payment-status-update"');
+    expectSecurityRoute(statusFunction, "eats-payment-status-update");
     expect(statusFunction).toContain("strictCors: true");
     expect(statusFunction).toContain('rateLimit: "payment"');
     expect(statusFunction).toContain('trackNetwork: "suspicious"');
@@ -494,28 +631,43 @@ describe("payments, refunds, and webhook workflow", () => {
     expect(statusFunction).toContain("admin.auth.getUser(token)");
     expect(statusFunction).toContain('.from("food_orders")');
     expect(statusFunction).toContain('.from("customer_wallet_transactions")');
-    expect(statusFunction).toContain("order.customer_id !== user.id && order.user_id !== user.id");
+    expect(statusFunction).toContain("order.customer_id !== user.id");
+    expect(statusFunction).not.toContain("order.user_id !== user.id");
     expect(statusFunction).toContain("Wallet payment ledger not found");
 
     expect(statusGate).toContain("food_order_payment_status_server_gate");
     expect(statusGate).toContain("auth.role() = 'service_role'");
-    expect(statusGate).toContain("NEW.payment_status IS DISTINCT FROM OLD.payment_status");
-    expect(statusGate).toContain("NEW.payment_provider IS DISTINCT FROM OLD.payment_provider");
-    expect(statusGate).toContain("food_order_payment_status_server_gate_required");
+    expect(statusGate).toContain(
+      "NEW.payment_status IS DISTINCT FROM OLD.payment_status",
+    );
+    expect(statusGate).toContain(
+      "NEW.payment_provider IS DISTINCT FROM OLD.payment_provider",
+    );
+    expect(statusGate).toContain(
+      "food_order_payment_status_server_gate_required",
+    );
     expect(statusGate).toContain("trusted server-side validation");
 
-    expect(eatsOrder).toContain('supabase.functions.invoke("eats-payment-status-update"');
-    expect(eatsOrder).not.toMatch(/from\("food_orders"\)[\s\S]{0,220}\.update\(\{[^}]*payment_status/);
+    expect(eatsOrder).toContain(
+      'supabase.functions.invoke("eats-payment-status-update"',
+    );
+    expect(eatsOrder).not.toMatch(
+      /from\("food_orders"\)[\s\S]{0,220}\.update\(\{[^}]*payment_status/,
+    );
   });
 
   it("keeps Eats delivery lifecycle and ratings behind trusted server-side checks", () => {
-    const stateFunction = source("supabase/functions/eats-order-state-update/index.ts");
-    const stateGate = source("supabase/migrations/20260601124500_food_order_state_server_gate.sql");
+    const stateFunction = source(
+      "supabase/functions/eats-order-state-update/index.ts",
+    );
+    const stateGate = source(
+      "supabase/migrations/20260601124500_food_order_state_server_gate.sql",
+    );
     const driverPage = source("src/pages/EatsDriverDeliveryPage.tsx");
     const ordersPage = source("src/pages/EatsOrdersPage.tsx");
     const trackingPage = source("src/pages/EatsTrackingPage.tsx");
 
-    expect(stateFunction).toContain('withSecurity("eats-order-state-update"');
+    expectSecurityRoute(stateFunction, "eats-order-state-update");
     expect(stateFunction).toContain("strictCors: true");
     expect(stateFunction).toContain('rateLimit: "api_general"');
     expect(stateFunction).toContain('trackNetwork: "suspicious"');
@@ -535,22 +687,28 @@ describe("payments, refunds, and webhook workflow", () => {
     expect(stateGate).toContain("trusted server-side validation");
 
     for (const sourceText of [driverPage, ordersPage, trackingPage]) {
-      expect(sourceText).toContain('supabase.functions.invoke("eats-order-state-update"');
-      expect(sourceText).not.toMatch(/from\("food_orders"\)[\s\S]{0,240}\.update\(/);
+      expectFunctionInvocation(sourceText, "eats-order-state-update");
+      expect(sourceText).not.toMatch(
+        /from\("food_orders"\)[\s\S]{0,240}\.update\(/,
+      );
     }
   });
 
   it("keeps Eats and Grocery cancellation refund routes POST-gated", () => {
     const eatsCancel = source("supabase/functions/cancel-eats-order/index.ts");
-    const groceryCancel = source("supabase/functions/cancel-grocery-order/index.ts");
+    const groceryCancel = source(
+      "supabase/functions/cancel-grocery-order/index.ts",
+    );
     const eatsTracking = source("src/pages/EatsTrackingPage.tsx");
-    const groceryTracking = source("src/pages/grocery/GroceryOrderTracking.tsx");
+    const groceryTracking = source(
+      "src/pages/grocery/GroceryOrderTracking.tsx",
+    );
 
     for (const [route, fn] of Object.entries({
       "cancel-eats-order": eatsCancel,
       "cancel-grocery-order": groceryCancel,
     })) {
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('allowedMethods: ["POST"]');
       expect(fn).toContain('rateLimit: "payment"');
@@ -560,21 +718,31 @@ describe("payments, refunds, and webhook workflow", () => {
       expect(fn).toContain("cascadeCancellationToDriver");
     }
 
-    expect(eatsTracking).toContain('supabase.functions.invoke("cancel-eats-order"');
-    expect(groceryTracking).toContain('supabase.functions.invoke("cancel-grocery-order"');
+    expect(eatsTracking).toContain(
+      'supabase.functions.invoke("cancel-eats-order"',
+    );
+    expect(groceryTracking).toContain(
+      'supabase.functions.invoke("cancel-grocery-order"',
+    );
   });
 
   it("keeps lodging and ride cancellation refund routes POST-gated", () => {
-    const lodgingCancel = source("supabase/functions/cancel-lodging-reservation/index.ts");
-    const rideCancel = source("supabase/functions/cancel-ride-request/index.ts");
-    const cancelSheet = source("src/components/lodging/guest/CancelReservationSheet.tsx");
+    const lodgingCancel = source(
+      "supabase/functions/cancel-lodging-reservation/index.ts",
+    );
+    const rideCancel = source(
+      "supabase/functions/cancel-ride-request/index.ts",
+    );
+    const cancelSheet = source(
+      "src/components/lodging/guest/CancelReservationSheet.tsx",
+    );
     const canonicalRideFrame = source("src/pages/app/CanonicalRidePage.tsx");
 
     for (const [route, fn] of Object.entries({
       "cancel-lodging-reservation": lodgingCancel,
       "cancel-ride-request": rideCancel,
     })) {
-      expect(fn).toContain(`withSecurity("${route}"`);
+      expectSecurityRoute(fn, route);
       expect(fn).toContain("strictCors: true");
       expect(fn).toContain('allowedMethods: ["POST"]');
       expect(fn).toContain('rateLimit: "payment"');
@@ -582,23 +750,39 @@ describe("payments, refunds, and webhook workflow", () => {
       expect(fn).not.toContain('"Access-Control-Allow-Origin": "*"');
     }
 
-    expect(cancelSheet).toContain('supabase.functions.invoke("cancel-lodging-reservation"');
+    expect(cancelSheet).toContain(
+      'supabase.functions.invoke("cancel-lodging-reservation"',
+    );
     expect(canonicalRideFrame).not.toContain("cancel-ride-request");
-    expect(existsSync(path.join(root, "src/components/rides/RideBookingHome.tsx"))).toBe(false);
+    expect(
+      existsSync(path.join(root, "src/components/rides/RideBookingHome.tsx")),
+    ).toBe(false);
   });
 
   it("renders cancel, refund, dispute, and live payment states for customers and hosts", () => {
-    const cancelSheet = source("src/components/lodging/guest/CancelReservationSheet.tsx");
-    const disputeCard = source("src/components/lodging/guest/RefundDisputeCard.tsx");
-    const disputeSheet = source("src/components/lodging/guest/RefundDisputeSheet.tsx");
+    const cancelSheet = source(
+      "src/components/lodging/guest/CancelReservationSheet.tsx",
+    );
+    const disputeCard = source(
+      "src/components/lodging/guest/RefundDisputeCard.tsx",
+    );
+    const disputeSheet = source(
+      "src/components/lodging/guest/RefundDisputeSheet.tsx",
+    );
     const disputeHook = source("src/hooks/lodging/useLodgingRefundDisputes.ts");
     const liveHook = source("src/hooks/lodging/useReservationLive.ts");
     const tripToasts = source("src/hooks/lodging/useLodgingTripToasts.ts");
     const hostToasts = source("src/hooks/lodging/useHostLodgingOpsToasts.ts");
-    const paymentBadge = source("src/components/lodging/LodgingPaymentBadge.tsx");
-    const opsSummary = source("src/components/lodging/host/HostReservationOpsSummary.tsx");
+    const paymentBadge = source(
+      "src/components/lodging/LodgingPaymentBadge.tsx",
+    );
+    const opsSummary = source(
+      "src/components/lodging/host/HostReservationOpsSummary.tsx",
+    );
 
-    expect(cancelSheet).toContain('supabase.functions.invoke("cancel-lodging-reservation"');
+    expect(cancelSheet).toContain(
+      'supabase.functions.invoke("cancel-lodging-reservation"',
+    );
     expect(cancelSheet).toContain("preview: true");
     expect(cancelSheet).toContain("payment_method_outcome");
     expect(cancelSheet).toContain("Refundable");
@@ -610,8 +794,12 @@ describe("payments, refunds, and webhook workflow", () => {
     expect(disputeCard).toContain("Resolution amount");
     expect(disputeSheet).toContain("confirmContentSafe");
     expect(disputeHook).toContain('.from("lodge_refund_disputes"');
-    expect(disputeHook).toContain('supabase.functions.invoke("submit-lodging-refund-dispute"');
-    expect(disputeHook).toContain('queryKey: ["lodge-refund-disputes", reservationId]');
+    expect(disputeHook).toContain(
+      'supabase.functions.invoke("submit-lodging-refund-dispute"',
+    );
+    expect(disputeHook).toContain(
+      'queryKey: ["lodge-refund-disputes", reservationId]',
+    );
 
     expect(liveHook).toContain("payment_status");
     expect(liveHook).toContain("stripe_payment_intent_id");
@@ -626,35 +814,77 @@ describe("payments, refunds, and webhook workflow", () => {
   });
 
   it("keeps RLS, audit tables, and webhook event ledgers available through migrations", () => {
-    const rideRefunds = source("supabase/migrations/20260421190154_a493c5f5-dc62-44c8-8b79-b5e5cd56670d.sql");
-    const lodgeAudit = source("supabase/migrations/20260422050619_8f163271-e8eb-4475-b3da-298872286d4e.sql");
-    const lodgeAuditFix = source("supabase/migrations/20260422164931_4a75586f-2751-4663-bbc2-98c075d7e297.sql");
-    const lodgeRealtimeCheck = source("supabase/migrations/20260422170713_20446c7d-eb8c-434b-b7ad-52d20fe52cdf.sql");
-    const carSecureAccess = source("supabase/migrations/20260529170001_car_rental_secure_reservation_access.sql");
-    const grants = source("supabase/migrations/20260531142721_data_api_grants_recent_public_tables.sql");
+    const rideRefunds = source(
+      "supabase/migrations/20260421190154_a493c5f5-dc62-44c8-8b79-b5e5cd56670d.sql",
+    );
+    const lodgeAudit = source(
+      "supabase/migrations/20260422050619_8f163271-e8eb-4475-b3da-298872286d4e.sql",
+    );
+    const lodgeAuditFix = source(
+      "supabase/migrations/20260422164931_4a75586f-2751-4663-bbc2-98c075d7e297.sql",
+    );
+    const lodgeRealtimeCheck = source(
+      "supabase/migrations/20260422170713_20446c7d-eb8c-434b-b7ad-52d20fe52cdf.sql",
+    );
+    const carSecureAccess = source(
+      "supabase/migrations/20260529170001_car_rental_secure_reservation_access.sql",
+    );
+    const grants = source(
+      "supabase/migrations/20260531142721_data_api_grants_recent_public_tables.sql",
+    );
 
-    expect(rideRefunds).toContain("CREATE TABLE IF NOT EXISTS public.ride_refund_requests");
-    expect(rideRefunds).toContain("ALTER TABLE public.ride_refund_requests ENABLE ROW LEVEL SECURITY");
+    expect(rideRefunds).toContain(
+      "CREATE TABLE IF NOT EXISTS public.ride_refund_requests",
+    );
+    expect(rideRefunds).toContain(
+      "ALTER TABLE public.ride_refund_requests ENABLE ROW LEVEL SECURITY",
+    );
     expect(rideRefunds).toContain("Users create own ride refunds");
     expect(rideRefunds).toContain("Users view own ride refunds");
     expect(rideRefunds).toContain("Admins manage ride refunds");
-    expect(rideRefunds).toContain("CREATE TABLE IF NOT EXISTS public.financial_ledger");
+    expect(rideRefunds).toContain(
+      "CREATE TABLE IF NOT EXISTS public.financial_ledger",
+    );
     expect(rideRefunds).toContain("Users view own ledger");
 
-    expect(lodgeAudit).toContain("CREATE TABLE IF NOT EXISTS public.lodge_reservation_audit");
-    expect(lodgeAudit).toContain("ALTER TABLE public.lodge_reservation_audit ENABLE ROW LEVEL SECURITY");
-    expect(lodgeAuditFix).toContain("lodge_reservation_audit_reservation_id_fkey");
-    expect(lodgeRealtimeCheck).toContain("lodge_reservation_audit in supabase_realtime");
+    expect(lodgeAudit).toContain(
+      "CREATE TABLE IF NOT EXISTS public.lodge_reservation_audit",
+    );
+    expect(lodgeAudit).toContain(
+      "ALTER TABLE public.lodge_reservation_audit ENABLE ROW LEVEL SECURITY",
+    );
+    expect(lodgeAuditFix).toContain(
+      "lodge_reservation_audit_reservation_id_fkey",
+    );
+    expect(lodgeRealtimeCheck).toContain(
+      "lodge_reservation_audit in supabase_realtime",
+    );
 
-    expect(carSecureAccess).toContain("get_car_rental_reservation_payment_status");
-    expect(carSecureAccess).toContain("GRANT EXECUTE ON FUNCTION public.get_car_rental_reservation_payment_status(uuid) TO anon, authenticated, service_role");
+    expect(carSecureAccess).toContain(
+      "get_car_rental_reservation_payment_status",
+    );
+    expect(carSecureAccess).toContain(
+      "GRANT EXECUTE ON FUNCTION public.get_car_rental_reservation_payment_status(uuid) TO anon, authenticated, service_role",
+    );
 
-    const paymentSettingsGate = source("supabase/migrations/20260601150000_store_payment_settings_server_gate.sql");
+    const paymentSettingsGate = source(
+      "supabase/migrations/20260601150000_store_payment_settings_server_gate.sql",
+    );
 
-    expect(paymentSettingsGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.store_payment_settings FROM authenticated");
-    expect(paymentSettingsGate).toContain("GRANT SELECT ON TABLE public.store_payment_settings TO authenticated");
-    const storePromotionsGate = source("supabase/migrations/20260601161500_store_promotions_server_gate.sql");
-    expect(storePromotionsGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.store_promotions FROM authenticated");
-    expect(storePromotionsGate).toContain("GRANT SELECT ON TABLE public.store_promotions TO authenticated");
+    expect(paymentSettingsGate).toContain(
+      "REVOKE INSERT, UPDATE, DELETE ON TABLE public.store_payment_settings FROM authenticated",
+    );
+    expect(paymentSettingsGate).toContain(
+      "GRANT SELECT ON TABLE public.store_payment_settings TO authenticated",
+    );
+    const storePromotionsGate = source(
+      "supabase/migrations/20260601161500_store_promotions_server_gate.sql",
+    );
+    expect(storePromotionsGate).toContain(
+      "REVOKE INSERT, UPDATE, DELETE ON TABLE public.store_promotions FROM authenticated",
+    );
+    expect(storePromotionsGate).toContain(
+      "GRANT SELECT ON TABLE public.store_promotions TO authenticated",
+    );
   });
 });

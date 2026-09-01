@@ -34,14 +34,17 @@ test.describe("account takeover protection contract", () => {
     expect(login).toContain("Forgot password?");
     expect(login).toContain("supabase.auth.signInWithOtp");
     expectAll(authContext, [
-      "auth_precheck_login",
-      "auth_record_login_attempt",
+      "signInWithPassword",
       "getMfaChallenge",
       "setMfaPending(challenge)",
       'supabase.functions.invoke("log-login"',
       'supabase.auth.signOut({ scope: "local" })',
       "remove_trusted_device",
     ]);
+    expect(authContext).not.toContain('rpc("auth_precheck_login"');
+    expect(authContext).not.toContain('rpc("auth_record_login_attempt"');
+    expect(login).toContain("Email or password is incorrect.");
+    expect(login).not.toContain("No account found for this email.");
 
     expect(verifyNewDevice).toContain('supabase.functions.invoke("verify-otp-code"');
     expect(verifyNewDevice).toContain('supabase.functions.invoke("send-otp-email"');
@@ -126,6 +129,7 @@ test.describe("account takeover protection contract", () => {
 
   test("keeps lockout, new-device alerts, and country-change alerts backed by database workflows", () => {
     const lockout = source("supabase/migrations/20260411170000_auth_shield_lockout.sql");
+    const loginBoundary = source("supabase/migrations/20260831000449_harden_auth_login_attempt_boundary.sql");
     const newDevice = source("supabase/migrations/20260501150000_new_device_login_alert.sql");
     const country = source("supabase/migrations/20260501180000_login_country_tracking.sql");
     const trustedDevices = source("supabase/migrations/20260415015212_c5a25c0f-eb2c-4e0c-b585-004ff757eca1.sql");
@@ -137,6 +141,13 @@ test.describe("account takeover protection contract", () => {
     expect(lockout.toLowerCase()).toContain("create table if not exists public.auth_login_protection");
     expect(lockout).toContain("failed_streak");
     expect(lockout).toContain("blocked_until");
+    expect(loginBoundary).toContain(
+      "REVOKE EXECUTE ON FUNCTION public.auth_precheck_login(TEXT, TEXT)",
+    );
+    expect(loginBoundary).toContain(
+      "REVOKE EXECUTE ON FUNCTION public.auth_record_login_attempt(TEXT, BOOLEAN, TEXT)",
+    );
+    expect(loginBoundary).toContain("FROM PUBLIC, anon, authenticated");
 
     expect(newDevice).toContain("CREATE TRIGGER auth_login_events_new_device");
     expect(newDevice).toContain("new_device_login");

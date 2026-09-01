@@ -565,7 +565,18 @@ serve(withSecurity("notifications-cron", async (req, ctx) => {
             first_name: firstNameOf((b as any).client_name ?? ""),
             full_name: (b as any).client_name ?? "",
           };
-          const reviewUrl = `${appUrl}/review/${row.booking_id}`;
+          const { data: accessRows, error: accessError } = await supabase.rpc(
+            "salon_issue_booking_access",
+            { p_booking_id: row.booking_id, p_scope: "review" },
+          );
+          if (accessError) throw new Error("review_access_issue_failed");
+          const reviewAccess = Array.isArray(accessRows) ? accessRows[0] : null;
+          const reviewToken = typeof reviewAccess?.access_token === "string"
+            ? reviewAccess.access_token
+            : null;
+          const reviewUrl = reviewToken
+            ? `${appUrl}/review/${row.booking_id}#cap=${encodeURIComponent(reviewToken)}`
+            : `${appUrl}/review/${row.booking_id}`;
           templateData = {
             client_first_name: recipient.first_name,
             client_name: recipient.full_name,

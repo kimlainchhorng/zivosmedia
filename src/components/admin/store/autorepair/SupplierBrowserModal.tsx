@@ -1,47 +1,47 @@
 /**
  * SupplierBrowserModal
  *
- * The supplier tool uses a credential-launcher flow:
- *
- * - It opens the allow-listed supplier portal in a real
- *    browser tab and walks the user through copying username then password.
- *
- * - Legacy EMBED mode is intentionally disabled. Supplier HTML is untrusted code;
- *    rendering it as a same-origin blob alongside the Admin app would give a compromised
- *    supplier page an unnecessary path to the Admin DOM and browser APIs.
+ * Supplier portals run only in their own HTTPS tab. Third-party HTML is never
+ * fetched through ZIVO or executed inside the Admin application.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { copyText } from "@/lib/native/clipboard";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import Check from "lucide-react/dist/esm/icons/check";
+import Copy from "lucide-react/dist/esm/icons/copy";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link";
-import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw";
-import KeyRound from "lucide-react/dist/esm/icons/key-round";
-import ShieldAlert from "lucide-react/dist/esm/icons/shield-alert";
 import Eye from "lucide-react/dist/esm/icons/eye";
 import EyeOff from "lucide-react/dist/esm/icons/eye-off";
-import Copy from "lucide-react/dist/esm/icons/copy";
-import Check from "lucide-react/dist/esm/icons/check";
-import Wand2 from "lucide-react/dist/esm/icons/wand-2";
-import Info from "lucide-react/dist/esm/icons/info";
-import Loader2 from "lucide-react/dist/esm/icons/loader-2";
-import AlertCircle from "lucide-react/dist/esm/icons/alert-circle";
-import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
-import ChevronUp from "lucide-react/dist/esm/icons/chevron-up";
-import Search from "lucide-react/dist/esm/icons/search";
 import Globe from "lucide-react/dist/esm/icons/globe";
+import Info from "lucide-react/dist/esm/icons/info";
+import KeyRound from "lucide-react/dist/esm/icons/key-round";
 import PlusCircle from "lucide-react/dist/esm/icons/plus-circle";
+import Search from "lucide-react/dist/esm/icons/search";
+import ShieldAlert from "lucide-react/dist/esm/icons/shield-alert";
 import PartsSupplierLogo from "./PartsSupplierLogo";
-import { type PartsSupplier, getSupplierSearchUrl } from "@/config/partsSuppliers";
-import { SUPABASE_URL } from "@/integrations/supabase/client";
+import {
+  type PartsSupplier,
+  getSupplierSearchUrl,
+} from "@/config/partsSuppliers";
 import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 
-/** A part the user captured from a supplier portal, to drop onto the R.O. as a line. */
-export type CapturedPart = { description: string; sku: string; brand: string; price: number; qty: number };
+/** A part the user captured from a supplier portal, to add to the open R.O. */
+export type CapturedPart = {
+  description: string;
+  sku: string;
+  brand: string;
+  price: number;
+  qty: number;
+};
 
 interface Props {
   storeId: string;
@@ -49,280 +49,166 @@ interface Props {
   query?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** When provided, shows an "Add part to R.O." capture bar that feeds the open R.O. */
-  onAddPart?: (p: CapturedPart) => void;
+  onAddPart?: (part: CapturedPart) => void;
 }
 
-type SavedCreds = { email: string; password: string; updatedAt: string };
-type BrowserStoredCreds = Pick<SavedCreds, "email" | "updatedAt">;
-type LoadState = "loading" | "ready" | "failed";
+type SavedCreds = { email: string; updatedAt: string };
 type LaunchStep = "idle" | "tab_opened";
-
-const PROXY_BASE = `${SUPABASE_URL}/functions/v1/supplier-proxy?u=`;
-const LOAD_TIMEOUT_MS = 8_000;
-// Do not execute third-party supplier HTML inside the Admin origin. Keep the old
-// embed implementation dormant so the safer external-tab flow is the only active path.
-const SUPPLIER_EMBED_ENABLED = false;
 
 const credKey = (storeId: string, supplierId: string) =>
   `zivo.supplierCreds.${storeId}.${supplierId}`;
 
-function loadCreds(storeId: string, supplierId: string): BrowserStoredCreds | null {
+function loadCreds(storeId: string, supplierId: string): SavedCreds | null {
   const key = credKey(storeId, supplierId);
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Record<string, unknown>;
-    if (!parsed || typeof parsed !== "object" || typeof parsed.email !== "string" || !parsed.email) {
+    if (typeof parsed.email !== "string" || !parsed.email.trim()) {
       localStorage.removeItem(key);
       return null;
     }
-    const safe: BrowserStoredCreds = {
-      email: parsed.email,
+
+    const safe: SavedCreds = {
+      email: parsed.email.trim(),
       updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : "",
     };
-    // Migrate legacy entries by removing any password previously cached here.
-    try { localStorage.setItem(key, JSON.stringify(safe)); } catch { /* storage may be read-only */ }
+    // Migrate old entries by replacing them with account metadata only. Passwords
+    // are entered for the current session and never synced to the application database.
+    localStorage.setItem(key, JSON.stringify(safe));
     return safe;
   } catch {
-    try { localStorage.removeItem(key); } catch { /* ignore malformed storage */ }
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Storage may be unavailable in a hardened browser.
+    }
     return null;
   }
 }
-function saveCreds(storeId: string, supplierId: string, c: SavedCreds) {
-  const safe: BrowserStoredCreds = { email: c.email, updatedAt: c.updatedAt };
-  localStorage.setItem(credKey(storeId, supplierId), JSON.stringify(safe));
-}
-function clearCreds(storeId: string, supplierId: string) {
-  localStorage.removeItem(credKey(storeId, supplierId));
-}
 
-/** Fetch the proxied HTML as JSON and create a local blob URL.
- *  Supabase/Cloudflare overrides text/html content-type → text/plain and adds
- *  a sandbox CSP, breaking script execution.  Fetching as JSON bypasses this:
- *  the browser creates a same-origin blob URL (localhost) so no CSP applies. */
-async function fetchBlobUrl(
-  proxyUrl: string,
-  method = "GET",
-  body?: string,
-  contentType?: string,
-): Promise<string> {
-  const sep = proxyUrl.includes("?") ? "&" : "?";
-  const jsonUrl = `${proxyUrl}${sep}format=json`;
-  const res = await fetch(jsonUrl, {
-    method,
-    headers: contentType ? { "Content-Type": contentType } : undefined,
-    body: method !== "GET" ? body : undefined,
-  });
-  if (!res.ok) throw new Error(`Proxy ${res.status}`);
-  const { html } = await res.json() as { html: string };
-  const blob = new Blob([html], { type: "text/html" });
-  return URL.createObjectURL(blob);
+function saveCreds(
+  storeId: string,
+  supplierId: string,
+  email: string,
+): boolean {
+  try {
+    localStorage.setItem(
+      credKey(storeId, supplierId),
+      JSON.stringify({
+        email,
+        updatedAt: new Date().toISOString(),
+      } satisfies SavedCreds),
+    );
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-export default function SupplierBrowserModal({ storeId, supplier, query, open, onOpenChange, onAddPart }: Props) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const blobUrlRef = useRef<string | null>(null);
+function clearCreds(storeId: string, supplierId: string): boolean {
+  try {
+    localStorage.removeItem(credKey(storeId, supplierId));
+    return true;
+  } catch {
+    return false;
+  }
+}
 
-  // Embed state
-  const [loadState, setLoadState] = useState<LoadState>("loading");
-  const [iframeSrc, setIframeSrc] = useState<string | null>(null);
-  const [frameKey, setFrameKey] = useState(0);
+function safeHttpsUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
 
-  // Revoke blob URL on unmount to prevent memory leaks
-  useEffect(() => () => { if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current); }, []);
-
-  // Creds
+export default function SupplierBrowserModal({
+  storeId,
+  supplier,
+  query,
+  open,
+  onOpenChange,
+  onAddPart,
+}: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPwd, setShowPwd] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [copied, setCopied] = useState<"email" | "password" | null>(null);
-  const [showCreds, setShowCreds] = useState(false);
-  const [editCreds, setEditCreds] = useState(false);
   const [saved, setSaved] = useState<SavedCreds | null>(null);
-
-  // Launcher mode state
+  const [editing, setEditing] = useState(true);
   const [launchStep, setLaunchStep] = useState<LaunchStep>("idle");
-
-  // Set when the embedded portal appears to have blocked the in-app login
-  // (e.g. Akamai/Cloudflare bot wall). Drives a "log in via new tab" nudge.
-  const [loginBlocked, setLoginBlocked] = useState(false);
-
-  // Search
-  const [searchQ, setSearchQ] = useState(query ?? "");
-
-  // "Add part to R.O." capture form (shown when onAddPart is provided)
-  const [partDesc, setPartDesc] = useState("");
+  const [searchQuery, setSearchQuery] = useState(query ?? "");
+  const [partDescription, setPartDescription] = useState("");
   const [partSku, setPartSku] = useState("");
   const [partPrice, setPartPrice] = useState("");
-  const [partQty, setPartQty] = useState("1");
-
-  const isSkipEmbed = !SUPPLIER_EMBED_ENABLED || !!supplier?.skipEmbed;
+  const [partQuantity, setPartQuantity] = useState("1");
 
   const portalUrl = useMemo(() => {
     if (!supplier) return null;
-    return supplier.portalUrl || (supplier.domain ? `https://${supplier.domain}` : null);
+    return safeHttpsUrl(
+      supplier.portalUrl ||
+        (supplier.domain ? `https://${supplier.domain}` : null),
+    );
   }, [supplier]);
 
-  const targetUrl = useMemo(() => {
-    if (!supplier) return null;
-    const searchUrl = searchQ.trim() ? getSupplierSearchUrl(supplier, searchQ.trim()) : null;
-    return searchUrl || portalUrl;
-  }, [supplier, searchQ, portalUrl]);
-
-  const proxiedUrl = useMemo(() =>
-    targetUrl ? `${PROXY_BASE}${encodeURIComponent(targetUrl)}` : null,
-    [targetUrl]
+  const consumerUrl = useMemo(
+    () =>
+      safeHttpsUrl(
+        supplier?.consumerDomain ? `https://${supplier.consumerDomain}` : null,
+      ),
+    [supplier?.consumerDomain],
   );
 
-  // Reset when supplier / open changes
   useEffect(() => {
     if (!open || !supplier) return;
     const existing = loadCreds(storeId, supplier.id);
-    const localSaved = existing ? { ...existing, password: "" } : null;
-    setSaved(localSaved);
+    setSaved(existing);
     setEmail(existing?.email ?? "");
     setPassword("");
-    setShowPwd(false);
-    setShowCreds(!!existing);
-     // The localStorage above caches only the account metadata; it never contains
-     // the password. Passwords are entered for
-    // this session only and are never synced to the application database.
-    setEditCreds(true);
-    setSearchQ(query ?? "");
+    setShowPassword(false);
+    setEditing(!existing);
+    setCopied(null);
     setLaunchStep("idle");
-    setLoginBlocked(false);
-
-    if (isSkipEmbed) {
-      setLoadState("failed");
-      setIframeSrc(null);
-    } else if (proxiedUrl) {
-      setLoadState("loading");
-      // Use blob URL to bypass Supabase's text/html → text/plain override + sandbox CSP
-      fetchBlobUrl(proxiedUrl).then(blob => {
-        if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
-        blobUrlRef.current = blob;
-        setIframeSrc(blob);
-        setFrameKey(k => k + 1);
-      }).catch(() => setLoadState("failed"));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, supplier, storeId]);
-
-  const navigateTo = useCallback((proxyUrl: string, method = "GET", body?: string, contentType?: string) => {
-    if (isSkipEmbed) return;
-    setLoadState("loading");
-    fetchBlobUrl(proxyUrl, method, body, contentType).then(blob => {
-      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
-      blobUrlRef.current = blob;
-      setIframeSrc(blob);
-      setFrameKey(k => k + 1);
-    }).catch(() => setLoadState("failed"));
-  }, [isSkipEmbed]);
-
-  // Listen for messages from proxy page
-  useEffect(() => {
-    if (!open || isSkipEmbed) return;
-    const handler = (ev: MessageEvent) => {
-      // The legacy embed path is disabled. Keep both source and origin checks in case
-      // an engineer temporarily enables it while debugging a supplier integration.
-      if (ev.origin !== window.location.origin) return;
-      if (ev.source !== iframeRef.current?.contentWindow) return;
-      const d = ev.data as { type?: string; url?: string; method?: string; body?: string; contentType?: string; filled?: boolean };
-      if (d?.type === "zivo-proxy-ready") {
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        setLoadState("ready");
-        const win = iframeRef.current?.contentWindow;
-        if (win && (email || password)) {
-          setTimeout(() => win.postMessage({ type: "zivo-autofill", username: email, password, autoSubmit: true }, window.location.origin), 400);
-        }
-        return;
-      }
-      if (d?.type === "zivo-autofill-result") {
-        if (d.filled) toast.success("Credentials filled in form");
-        return;
-      }
-      if (d?.type === "zivo-supplier-navigate" && d.url) {
-        try {
-          const next = new URL(d.url);
-          const allowed = new URL(`${SUPABASE_URL}/functions/v1/supplier-proxy`);
-          if (next.host !== allowed.host || !next.pathname.includes("supplier-proxy")) return;
-        } catch { return; }
-        navigateTo(d.url, d.method ?? "GET", d.body, d.contentType);
-      }
-    };
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, [open, isSkipEmbed, email, password, navigateTo]);
-
-  // Timeout for failed load
-  useEffect(() => {
-    if (isSkipEmbed || loadState !== "loading" || !iframeSrc) return;
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => setLoadState("failed"), LOAD_TIMEOUT_MS);
-    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
-  }, [iframeSrc, loadState, isSkipEmbed]);
-
-  // Bot-wall / error detection. Many supplier portals (Akamai/Cloudflare) let the
-  // page load but block the actual login, showing a generic error. We poll the
-  // embedded doc (same-origin blob, so readable) for those markers and nudge the
-  // user to finish login in a real browser tab where the portal trusts the session.
-  useEffect(() => {
-    if (isSkipEmbed || loadState !== "ready") return;
-    const MARKERS = [
-      "technical issues", "access denied", "pardon the interruption",
-      "unusual traffic", "unusual activity", "request unsuccessful",
-      "reference #", "verify you are a human", "are you a robot",
-      "couldn't complete your request", "could not complete your request",
-    ];
-    const check = () => {
-      try {
-        const doc = iframeRef.current?.contentDocument;
-        const text = (doc?.body?.innerText || "").toLowerCase();
-        if (text && MARKERS.some(m => text.includes(m))) setLoginBlocked(true);
-      } catch { /* cross-origin / not ready — ignore */ }
-    };
-    check();
-    const id = setInterval(check, 1500);
-    return () => clearInterval(id);
-  }, [loadState, isSkipEmbed, frameKey]);
+    setSearchQuery(query ?? "");
+  }, [open, query, storeId, supplier]);
 
   if (!supplier) return null;
 
-  const consumerUrl = supplier.consumerDomain ? `https://${supplier.consumerDomain}` : null;
   const displayName = supplier.shortName ?? supplier.name;
   const isAutoRepairSoftwareDomain =
-    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
-  const accountSavedMessage = isAutoRepairSoftwareDomain ? "Account saved for the business" : "Account saved for the shop";
-  const accountRemovedMessage = isAutoRepairSoftwareDomain ? "Account removed for the business" : "Account removed for the shop";
+    typeof window !== "undefined" &&
+    isAutoRepairSoftwareHost(window.location.hostname);
+  const workspaceName = isAutoRepairSoftwareDomain ? "business" : "shop";
 
-  const handleSaveCreds = () => {
-    if (!email.trim()) { toast.error("Email is required"); return; }
-    const c: SavedCreds = { email: email.trim(), password, updatedAt: new Date().toISOString() };
-    saveCreds(storeId, supplier.id, c);
-    setSaved(c);
-    const win = iframeRef.current?.contentWindow;
-    if (win && loadState === "ready") {
-      setTimeout(() => win.postMessage({ type: "zivo-autofill", username: email, password, autoSubmit: true }, window.location.origin), 200);
+  const openExternal = (value: string | null): boolean => {
+    if (!value) {
+      toast.error(`${displayName} does not have a valid secure portal URL.`);
+      return false;
     }
-    setEditCreds(false);
-    toast.success(accountSavedMessage);
+    try {
+      const opened = window.open(value, "_blank", "noopener,noreferrer");
+      if (opened) {
+        opened.opener = null;
+        return true;
+      }
+    } catch {
+      // Keep the Admin workspace in place when the browser blocks the new tab.
+    }
+    toast.error(
+      `Allow pop-ups for ZIVO, then try opening ${displayName} again.`,
+    );
+    return false;
   };
 
-  const handleClearCreds = () => {
-    clearCreds(storeId, supplier.id);
-    setSaved(null); setEmail(""); setPassword("");
-    setEditCreds(true);
-    toast.success(accountRemovedMessage);
-  };
-
-  const copyToClipboard = async (value: string, kind: "email" | "password") => {
+  const copyCredential = async (value: string, kind: "email" | "password") => {
     if (!value) return false;
     try {
       await copyText(value);
       setCopied(kind);
-      setTimeout(() => setCopied(null), 2000);
+      window.setTimeout(() => setCopied(null), 2_000);
       return true;
     } catch {
       toast.error("Could not copy");
@@ -330,528 +216,382 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
     }
   };
 
-  const sendAutofill = () => {
-    const win = iframeRef.current?.contentWindow;
-    if (!win || loadState !== "ready") { toast.error("Portal not ready yet"); return; }
-    win.postMessage({ type: "zivo-autofill", username: email, password, autoSubmit: true }, window.location.origin);
-  };
-
-  const reload = () => {
-    if (!proxiedUrl) return;
-    setLoadState("loading");
-    fetchBlobUrl(proxiedUrl).then(blob => {
-      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
-      blobUrlRef.current = blob;
-      setIframeSrc(blob);
-      setFrameKey(k => k + 1);
-    }).catch(() => setLoadState("failed"));
-  };
-
-  const signInUrl = portalUrl || targetUrl || "#";
-
-  const openWindow = (url: string) => {
-    try {
-      const opened = window.open(url, "_blank");
-      if (opened) {
-        opened.opener = null;
-        return true;
-      }
-    } catch {
-      // Fall through to same-tab navigation below.
+  const handleSave = () => {
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) {
+      toast.error("Email is required");
+      return;
     }
-    return false;
+    if (!saveCreds(storeId, supplier.id, normalizedEmail)) {
+      toast.error("This browser could not save the account name.");
+      return;
+    }
+    const nextSaved = {
+      email: normalizedEmail,
+      updatedAt: new Date().toISOString(),
+    };
+    setSaved(nextSaved);
+    setEmail(normalizedEmail);
+    setEditing(false);
+    toast.success(`Account saved for the ${workspaceName}`);
   };
 
-  const openInCurrentTab = (url: string) => {
-    if (url && url !== "#") window.location.assign(url);
+  const handleClear = () => {
+    if (!clearCreds(storeId, supplier.id)) {
+      toast.error("This browser could not remove the saved account.");
+      return;
+    }
+    setSaved(null);
+    setEmail("");
+    setPassword("");
+    setEditing(true);
+    toast.success(`Account removed for the ${workspaceName}`);
   };
 
-  // Copy username, then send blocked suppliers to a real sign-in page.
   const launchAndCopyUsername = async () => {
-    const opened = isSkipEmbed ? false : openWindow(signInUrl);
+    if (!openExternal(portalUrl)) return;
     if (email) {
-      const didCopy = await copyToClipboard(email, "email");
-      toast.success(didCopy
-        ? "Sign-in page opened - username copied. Paste it in the login field."
-        : "Sign-in page opened. Use the copy button if the username did not copy."
+      const didCopy = await copyCredential(email, "email");
+      toast.success(
+        didCopy
+          ? "Sign-in page opened — username copied. Paste it in the login field."
+          : "Sign-in page opened. Use the copy button for your username.",
       );
     } else {
       toast.success("Sign-in page opened.");
     }
     setLaunchStep("tab_opened");
-    if (!opened) openInCurrentTab(signInUrl);
   };
 
-  const openNewTab = () => targetUrl && window.open(targetUrl, "_blank", "noopener,noreferrer");
-  const openLoginTab = () => {
-    const url = portalUrl || targetUrl;
-    if (!url) return;
-    if (isSkipEmbed || !openWindow(url)) openInCurrentTab(url);
+  const launchSearch = () => {
+    const value = searchQuery.trim();
+    if (!value) return;
+    openExternal(safeHttpsUrl(getSupplierSearchUrl(supplier, value)));
   };
 
-  // Open the real portal in a new tab and copy the username if we have one — used
-  // by the "blocked login" nudge so the user can finish signing in where it works.
-  const openNewTabWithUsername = async () => {
-    const url = portalUrl || targetUrl;
-    if (!url) return;
-    const opened = isSkipEmbed ? false : openWindow(url);
-    if (email) {
-      const didCopy = await copyToClipboard(email, "email");
-      toast.success(didCopy
-        ? `Opened ${displayName} sign-in - username copied. Paste it to sign in.`
-        : `Opened ${displayName} sign-in. Use the copy button if the username did not copy.`
-      );
-    } else {
-      toast.success(`Opened ${displayName} sign-in.`);
+  const handleAddPart = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!onAddPart) return;
+    const description = partDescription.trim();
+    if (!description) {
+      toast.error("Enter the part description first");
+      return;
     }
-    if (!opened) openInCurrentTab(url);
-  };
-
-  const handleAddPart = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!onAddPart || !supplier) return;
-    const desc = partDesc.trim();
-    if (!desc) { toast.error("Enter the part description first"); return; }
     onAddPart({
-      description: desc,
+      description,
       sku: partSku.trim(),
-      brand: supplier.shortName ?? supplier.name,
+      brand: displayName,
       price: Number(partPrice) || 0,
-      qty: Math.max(1, Number(partQty) || 1),
+      qty: Math.max(1, Number(partQuantity) || 1),
     });
-    setPartDesc(""); setPartSku(""); setPartPrice(""); setPartQty("1");
+    setPartDescription("");
+    setPartSku("");
+    setPartPrice("");
+    setPartQuantity("1");
   };
 
-  // Slim capture bar: type what you found on the portal and it lands on the R.O.
-  const addPartBar = onAddPart ? (
-    <form onSubmit={handleAddPart} className="shrink-0 border-t bg-card px-4 py-2.5">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-          <PlusCircle className="h-4 w-4" /> Add to R.O.
-        </span>
-        <Input
-          className="h-8 text-xs flex-1 min-w-[160px]"
-          placeholder={`Part found on ${displayName}…`}
-          value={partDesc}
-          onChange={(e) => setPartDesc(e.target.value)}
-        />
-        <Input
-          className="h-8 text-xs w-28"
-          placeholder="Part #"
-          value={partSku}
-          onChange={(e) => setPartSku(e.target.value)}
-        />
-        <div className="relative w-24">
-          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-          <Input
-            className="h-8 text-xs pl-5"
-            type="number" min="0" step="0.01" inputMode="decimal"
-            placeholder="Price"
-            value={partPrice}
-            onChange={(e) => setPartPrice(e.target.value)}
-          />
-        </div>
-        <Input
-          className="h-8 text-xs w-16"
-          type="number" min="1" step="1" inputMode="numeric"
-          placeholder="Qty"
-          value={partQty}
-          onChange={(e) => setPartQty(e.target.value)}
-        />
-        <Button type="submit" size="sm" className="h-8 gap-1.5 text-xs shrink-0" disabled={!partDesc.trim()}>
-          <PlusCircle className="h-3.5 w-3.5" /> Add line
-        </Button>
-      </div>
-    </form>
-  ) : null;
-
-  // ──────────────────────────────────────────────
-  // CREDENTIAL LAUNCHER (skipEmbed or failed embed)
-  // ──────────────────────────────────────────────
-  const credentialLauncher = (
-    <div className="flex-1 overflow-y-auto p-6 flex items-start justify-center">
-      <div className="w-full max-w-lg space-y-5">
-
-        {/* Hero */}
-        <div className="text-center space-y-2">
-          <PartsSupplierLogo supplier={supplier} size="lg" className="mx-auto" />
-          <h2 className="text-base font-bold">{supplier.name}</h2>
-          <p className="text-xs text-muted-foreground">{supplier.domain} · {supplier.category}</p>
-        </div>
-
-        {/* Credential form */}
-        <div className="rounded-2xl border bg-card p-4 space-y-3 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <KeyRound className="w-4 h-4 text-primary" />
-            <p className="text-sm font-semibold">Your {displayName} account</p>
-          </div>
-
-          <div className="flex items-start gap-2 text-[11px] text-muted-foreground">
-            <ShieldAlert className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-600" />
-            <p>Only account metadata is cached in this browser. The password stays in memory for this session and is not written to browser storage. {displayName} blocks embedded sign-in, so open its secure login tab and use the copy buttons here.</p>
-          </div>
-
-          {supplier.loginFlow === "two-step" && (
-            <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 px-3 py-2">
-              <Info className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-amber-800 dark:text-amber-200">
-                <strong>2-step login:</strong> paste username → Continue → come back here and copy password → paste it.
-              </p>
-            </div>
-          )}
-
-          <div className="space-y-2.5">
-            <div className="space-y-1">
-              <Label className="text-[11px]">Email / username</Label>
-              <div className="flex gap-1.5">
-                <Input
-                  className="h-9 text-sm flex-1"
-                  type={editCreds ? "email" : "text"}
-                  autoComplete="off"
-                  readOnly={!editCreds}
-                  placeholder={`your@${supplier.domain ?? "email.com"}`}
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                />
-                <Button
-                  size="sm" variant="outline" className="h-9 w-9 p-0 shrink-0"
-                  onClick={async () => {
-                    if (await copyToClipboard(email, "email")) toast.success("Username copied!");
-                  }}
-                  disabled={!email}
-                  title="Copy username"
-                >
-                  {copied === "email" ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-[11px]">Password</Label>
-              <div className="flex gap-1.5">
-                <div className="relative flex-1">
-                  <Input
-                    className="h-9 text-sm pr-9"
-                    type={showPwd ? "text" : "password"}
-                    autoComplete="new-password"
-                    readOnly={!editCreds}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPwd(s => !s)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                <Button
-                  size="sm"
-                  variant={launchStep === "tab_opened" ? "default" : "outline"}
-                  className={`h-9 w-9 p-0 shrink-0 ${launchStep === "tab_opened" ? "animate-pulse" : ""}`}
-                  onClick={async () => {
-                    if (await copyToClipboard(password, "password")) toast.success("Password copied! Paste it in the portal.");
-                  }}
-                  disabled={!password}
-                  title="Copy password"
-                >
-                  {copied === "password" ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                </Button>
-              </div>
-              {launchStep === "tab_opened" && password && (
-                <p className="text-[11px] text-primary font-medium animate-pulse">
-                  ↑ Click the copy button above to copy your password
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-1">
-            {saved && !editCreds ? (
-              <>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditCreds(true)}>Edit</Button>
-                <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={handleClearCreds}>Remove</Button>
-              </>
-            ) : (
-              <>
-                {saved && <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditCreds(false)}>Cancel</Button>}
-                <Button size="sm" className="h-7 text-xs gap-1.5" onClick={handleSaveCreds}>
-                  <KeyRound className="w-3.5 h-3.5" /> Save account
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Launch button */}
-        <div className="space-y-2">
-          {launchStep === "idle" ? (
-            <Button
-              size="lg"
-              className="w-full gap-2 text-sm h-12"
-              onClick={launchAndCopyUsername}
-            >
-              <ExternalLink className="w-4 h-4" />
-              {email ? `Go to ${displayName} login & copy username` : `Go to ${displayName} login`}
-            </Button>
-          ) : (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-700 px-4 py-3">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">Sign-in page opened</p>
-                  <p className="text-[11px] text-emerald-700 dark:text-emerald-300">Paste it in {displayName}'s login field{supplier.loginFlow === "two-step" ? ", click Continue, then come back and copy your password." : ", then copy your password below."}</p>
-                </div>
-              </div>
-              <Button size="sm" variant="outline" className="w-full gap-2 h-9 text-xs" onClick={openLoginTab}>
-                <ExternalLink className="w-3.5 h-3.5" /> Go to {displayName} sign-in
-              </Button>
-            </div>
-          )}
-
-          {consumerUrl && (
-            <Button variant="ghost" size="sm" className="w-full gap-2 h-8 text-xs text-muted-foreground" onClick={() => window.open(consumerUrl, "_blank", "noopener,noreferrer")}>
-              <Globe className="w-3.5 h-3.5" /> Open consumer site ({supplier.consumerDomain})
-            </Button>
-          )}
-        </div>
-
-        {/* Search */}
-        {supplier.searchUrlTemplate && (
-          <div className="rounded-xl border bg-muted/30 p-3 space-y-2">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Search a part directly</p>
-            <div className="flex gap-2">
-              <Input
-                className="h-8 text-xs flex-1"
-                placeholder={`Search on ${displayName}…`}
-                value={searchQ}
-                onChange={e => setSearchQ(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === "Enter" && searchQ.trim()) {
-                    const url = getSupplierSearchUrl(supplier, searchQ.trim());
-                    if (url) window.open(url, "_blank", "noopener,noreferrer");
-                  }
-                }}
-              />
-              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs shrink-0"
-                onClick={() => { const url = getSupplierSearchUrl(supplier, searchQ.trim()); if (url) window.open(url, "_blank", "noopener,noreferrer"); }}>
-                <Search className="w-3.5 h-3.5" /> Search
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  // ──────────────────────────────────────────────
-  // EMBED MODE — full iframe
-  // ──────────────────────────────────────────────
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`p-0 overflow-hidden flex flex-col gap-0 ${isSkipEmbed || loadState === "failed" ? "max-w-lg w-[95vw]" : "max-w-6xl w-[98vw] h-[92vh]"}`}>
-
-        {/* Top bar */}
-        <DialogHeader className="px-4 py-2.5 border-b bg-card shrink-0">
-          <DialogTitle className="flex items-center gap-2.5 flex-wrap">
+      <DialogContent className="flex max-h-[92vh] w-[95vw] max-w-lg flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="shrink-0 border-b bg-card px-4 py-3">
+          <DialogTitle className="flex items-center gap-2.5">
             <PartsSupplierLogo supplier={supplier} size="md" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold truncate">{supplier.name}</p>
-              <p className="text-[10px] text-muted-foreground">{supplier.domain} · {supplier.category}</p>
+            <div className="min-w-0 flex-1 text-left">
+              <p className="truncate text-sm font-bold">{supplier.name}</p>
+              <p className="text-[10px] font-normal text-muted-foreground">
+                {supplier.domain} · {supplier.category}
+              </p>
             </div>
-
-            {!isSkipEmbed && (
-              <>
-                {loadState === "loading" && (
-                  <Badge variant="outline" className="gap-1 text-[10px]"><Loader2 className="w-3 h-3 animate-spin" /> Loading…</Badge>
-                )}
-                {loadState === "ready" && (
-                  <Badge variant="outline" className="gap-1 text-[10px] border-emerald-400 text-emerald-600"><Check className="w-3 h-3" /> Live</Badge>
-                )}
-                {loadState === "failed" && (
-                  <Badge variant="outline" className="gap-1 text-[10px] border-amber-400 text-amber-600"><AlertCircle className="w-3 h-3" /> Blocked</Badge>
-                )}
-                {(email || password) && loadState === "ready" && (
-                  <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={sendAutofill}>
-                    <Wand2 className="w-3.5 h-3.5" /> Auto-fill login
-                  </Button>
-                )}
-                {!isSkipEmbed && loadState !== "failed" && (
-                  <>
-                    <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={() => setShowCreds(s => !s)}>
-                      <KeyRound className="w-3.5 h-3.5" /> Account
-                      {showCreds ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={reload} title="Reload">
-                      <RefreshCw className="w-3.5 h-3.5" />
-                    </Button>
-                  </>
-                )}
-              </>
-            )}
-
-            <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={isSkipEmbed ? openLoginTab : openNewTab}>
-              <ExternalLink className="w-3.5 h-3.5" /> New tab
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => openExternal(portalUrl)}
+            >
+              <ExternalLink className="h-3.5 w-3.5" /> Open site
             </Button>
           </DialogTitle>
         </DialogHeader>
 
-        {/* Credential panel for embed mode */}
-        {!isSkipEmbed && showCreds && loadState !== "failed" && (
-          <div className="px-4 py-3 border-b bg-muted/20 shrink-0 space-y-2.5">
-            <div className="flex items-start gap-2 text-[11px] text-muted-foreground">
-              <ShieldAlert className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-600" />
-              <p>Only account metadata is cached in this browser. The password stays in memory for this session and is not written to browser storage. Click <strong>Auto-fill login</strong> after the portal loads.</p>
+        <div className="flex-1 space-y-5 overflow-y-auto p-6">
+          <div className="space-y-2 text-center">
+            <PartsSupplierLogo
+              supplier={supplier}
+              size="lg"
+              className="mx-auto"
+            />
+            <h2 className="text-base font-bold">{supplier.name}</h2>
+            <p className="text-xs text-muted-foreground">
+              Opens securely on {supplier.domain}. Supplier pages are not
+              embedded in ZIVO.
+            </p>
+          </div>
+
+          <section className="space-y-3 rounded-2xl border bg-card p-4 shadow-sm">
+            <div className="flex items-center gap-2">
+              <KeyRound className="h-4 w-4 text-primary" />
+              <p className="text-sm font-semibold">
+                Your {displayName} account
+              </p>
             </div>
+            <div className="flex items-start gap-2 text-[11px] text-muted-foreground">
+              <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+              <p>
+                ZIVO saves only the account name in this browser. Your password
+                stays in memory for this session and is never sent to the
+                application database.
+              </p>
+            </div>
+
             {supplier.loginFlow === "two-step" && (
-              <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 px-3 py-2">
-                <Info className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-700 dark:bg-amber-950/30">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
                 <p className="text-[11px] text-amber-800 dark:text-amber-200">
-                  <strong>2-step login:</strong> enter email → click Continue → then click Auto-fill again for the password screen.
+                  <strong>Two-step login:</strong> paste the username, continue,
+                  then return here to copy the password.
                 </p>
               </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+
+            <div className="space-y-2.5">
               <div className="space-y-1">
                 <Label className="text-[11px]">Email / username</Label>
                 <div className="flex gap-1.5">
-                  <Input className="h-8 text-xs flex-1" type={editCreds ? "email" : "text"} autoComplete="off"
-                    readOnly={!editCreds} placeholder={`your@${supplier.domain ?? "email.com"}`}
-                    value={email} onChange={e => setEmail(e.target.value)} />
-                  <Button size="sm" variant="outline" className="h-8 w-8 p-0 shrink-0" onClick={() => copyToClipboard(email, "email")} disabled={!email}>
-                    {copied === "email" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <Input
+                    className="h-9 flex-1 text-sm"
+                    autoComplete="off"
+                    readOnly={!editing}
+                    placeholder={`your@${supplier.domain ?? "email.com"}`}
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9 w-9 shrink-0 p-0"
+                    onClick={async () => {
+                      if (await copyCredential(email, "email"))
+                        toast.success("Username copied");
+                    }}
+                    disabled={!email}
+                    title="Copy username"
+                  >
+                    {copied === "email" ? (
+                      <Check className="h-4 w-4 text-emerald-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>
+
               <div className="space-y-1">
-                <Label className="text-[11px]">Password</Label>
+                <Label className="text-[11px]">Password for this session</Label>
                 <div className="flex gap-1.5">
                   <div className="relative flex-1">
-                    <Input className="h-8 text-xs pr-8" type={showPwd ? "text" : "password"} autoComplete="new-password"
-                      readOnly={!editCreds} placeholder="••••••••"
-                      value={password} onChange={e => setPassword(e.target.value)} />
-                    <button type="button" onClick={() => setShowPwd(s => !s)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                      {showPwd ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    <Input
+                      className="h-9 pr-9 text-sm"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((value) => !value)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
-                  <Button size="sm" variant="outline" className="h-8 w-8 p-0 shrink-0" onClick={() => copyToClipboard(password, "password")} disabled={!password}>
-                    {copied === "password" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <Button
+                    size="sm"
+                    variant={
+                      launchStep === "tab_opened" ? "default" : "outline"
+                    }
+                    className="h-9 w-9 shrink-0 p-0"
+                    onClick={async () => {
+                      if (await copyCredential(password, "password"))
+                        toast.success("Password copied");
+                    }}
+                    disabled={!password}
+                    title="Copy password"
+                  >
+                    {copied === "password" ? (
+                      <Check className="h-4 w-4 text-emerald-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2">
-              {saved && !editCreds ? (
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              {saved && !editing ? (
                 <>
-                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditCreds(true)}>Edit</Button>
-                  <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={handleClearCreds}>Remove</Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs"
+                    onClick={() => setEditing(true)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs text-destructive"
+                    onClick={handleClear}
+                  >
+                    Remove
+                  </Button>
                 </>
               ) : (
                 <>
-                  {saved && <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditCreds(false)}>Cancel</Button>}
-                  <Button size="sm" className="h-7 text-xs gap-1.5" onClick={handleSaveCreds}>
-                    <KeyRound className="w-3.5 h-3.5" /> Save &amp; auto-fill
+                  {saved && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs"
+                      onClick={() => {
+                        setEmail(saved.email);
+                        setEditing(false);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    className="h-7 gap-1.5 text-xs"
+                    onClick={handleSave}
+                  >
+                    <KeyRound className="h-3.5 w-3.5" /> Save account name
                   </Button>
                 </>
               )}
             </div>
-          </div>
-        )}
+          </section>
 
-        {/* Search bar (embed mode only) */}
-        {!isSkipEmbed && supplier.searchUrlTemplate && loadState !== "failed" && (
-          <div className="px-4 py-2 border-b bg-muted/10 shrink-0 flex items-center gap-2">
-            <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-            <input
-              className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
-              placeholder={`Search on ${displayName}…`}
-              value={searchQ}
-              onChange={e => setSearchQ(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter" && searchQ.trim()) {
-                  const url = getSupplierSearchUrl(supplier, searchQ.trim());
-                  if (url) navigateTo(`${PROXY_BASE}${encodeURIComponent(url)}`);
-                }
-              }}
-            />
-            <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs shrink-0"
-              onClick={() => { const url = getSupplierSearchUrl(supplier, searchQ.trim()); if (url) navigateTo(`${PROXY_BASE}${encodeURIComponent(url)}`); }}>
-              <Search className="w-3.5 h-3.5" /> Search
+          <div className="space-y-2">
+            <Button
+              size="lg"
+              className="h-12 w-full gap-2 text-sm"
+              onClick={launchAndCopyUsername}
+            >
+              <ExternalLink className="h-4 w-4" />
+              {email
+                ? `Open ${displayName} and copy username`
+                : `Open ${displayName}`}
             </Button>
+            {launchStep === "tab_opened" && (
+              <p className="text-center text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                Supplier site opened in its own secure tab.
+              </p>
+            )}
             {consumerUrl && (
-              <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-xs shrink-0" onClick={() => window.open(consumerUrl, "_blank", "noopener,noreferrer")}>
-                <Globe className="w-3.5 h-3.5" /> Consumer site
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-full gap-2 text-xs text-muted-foreground"
+                onClick={() => openExternal(consumerUrl)}
+              >
+                <Globe className="h-3.5 w-3.5" /> Open consumer site
               </Button>
             )}
           </div>
-        )}
 
-        {/* Main content */}
-        {isSkipEmbed || loadState === "failed" ? (
-          credentialLauncher
-        ) : (
-          <div className="flex-1 relative min-h-0 bg-muted/10">
-            {loadState === "loading" && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm z-10 pointer-events-none">
-                <div className="flex flex-col items-center gap-3 bg-background border rounded-2xl px-8 py-6 shadow-lg">
-                  <PartsSupplierLogo supplier={supplier} size="lg" />
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Loading {displayName}…
-                  </div>
-                  <p className="text-[11px] text-muted-foreground max-w-[240px] text-center">
-                    Connecting through the secure proxy. This may take a few seconds.
-                  </p>
-                  <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs mt-1" onClick={() => setLoadState("failed")}>
-                    Skip — show options
-                  </Button>
-                </div>
+          {supplier.searchUrlTemplate && (
+            <section className="space-y-2 rounded-xl border bg-muted/30 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Search a part directly
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  className="h-8 flex-1 text-xs"
+                  placeholder={`Search on ${displayName}…`}
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") launchSearch();
+                  }}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 shrink-0 gap-1.5 text-xs"
+                  onClick={launchSearch}
+                  disabled={!searchQuery.trim()}
+                >
+                  <Search className="h-3.5 w-3.5" /> Search
+                </Button>
               </div>
-            )}
+            </section>
+          )}
 
-            {/* Blocked-login nudge — the portal loaded but won't let us sign in in-frame */}
-            {loginBlocked && (
-              <div className="absolute top-0 inset-x-0 z-20 m-3 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/50 shadow-lg px-4 py-3 flex items-start gap-3">
-                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">Sign-in won't complete inside the app</p>
-                  <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-snug">
-                    {displayName} blocks logging in through the in-app browser. Finish signing in a real browser tab{email ? " — your username will be copied automatically." : "."}
-                  </p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={openNewTabWithUsername}>
-                      <ExternalLink className="w-3.5 h-3.5" /> {email ? "Open in new tab & copy username" : `Open ${displayName} in new tab`}
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-8 text-xs text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40" onClick={() => setLoginBlocked(false)}>
-                      Dismiss
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {iframeSrc && (
-              <iframe
-                key={frameKey}
-                ref={iframeRef}
-                src={iframeSrc}
-                title={supplier.name}
-                className="absolute inset-0 w-full h-full bg-white border-none"
-                sandbox="allow-forms allow-popups allow-scripts allow-top-navigation-by-user-activation allow-downloads"
-                referrerPolicy="no-referrer"
-                onLoad={() => {
-                  if (timeoutRef.current) clearTimeout(timeoutRef.current);
-                  setLoadState("ready");
-                }}
-                onError={() => setLoadState("failed")}
+          {onAddPart && (
+            <form
+              onSubmit={handleAddPart}
+              className="space-y-3 rounded-xl border bg-card p-3"
+            >
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+                <PlusCircle className="h-4 w-4" /> Add the selected part to the
+                R.O.
+              </p>
+              <Input
+                className="h-8 text-xs"
+                placeholder={`Part found on ${displayName}…`}
+                value={partDescription}
+                onChange={(event) => setPartDescription(event.target.value)}
               />
-            )}
-          </div>
-        )}
-        {addPartBar}
+              <div className="grid grid-cols-3 gap-2">
+                <Input
+                  className="h-8 text-xs"
+                  placeholder="Part #"
+                  value={partSku}
+                  onChange={(event) => setPartSku(event.target.value)}
+                />
+                <Input
+                  className="h-8 text-xs"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  placeholder="Price"
+                  value={partPrice}
+                  onChange={(event) => setPartPrice(event.target.value)}
+                />
+                <Input
+                  className="h-8 text-xs"
+                  type="number"
+                  min="1"
+                  step="1"
+                  inputMode="numeric"
+                  placeholder="Qty"
+                  value={partQuantity}
+                  onChange={(event) => setPartQuantity(event.target.value)}
+                />
+              </div>
+              <Button
+                type="submit"
+                size="sm"
+                className="h-8 w-full gap-1.5 text-xs"
+                disabled={!partDescription.trim()}
+              >
+                <PlusCircle className="h-3.5 w-3.5" /> Add line
+              </Button>
+            </form>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

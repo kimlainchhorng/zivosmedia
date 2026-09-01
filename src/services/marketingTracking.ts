@@ -1,5 +1,6 @@
 import { isMarketingConsentGranted } from "@/lib/privacy/cookieConsent";
 import { supabase } from "@/integrations/supabase/client";
+import { Capacitor } from "@capacitor/core";
 
 type MarketingEventName =
   | "PageView"
@@ -66,6 +67,7 @@ const X_EVENT_MAP: Record<MarketingEventName, string> = {
 
 function enabled(): boolean {
   if (typeof window === "undefined") return false;
+  if (Capacitor.isNativePlatform()) return false;
   return isMarketingConsentGranted();
 }
 
@@ -96,12 +98,18 @@ function cookieValue(name: string): string | null {
 function clickIds(): Record<string, string> {
   try {
     const params = new URLSearchParams(window.location.search);
-    const ids = ["gclid", "gbraid", "wbraid", "fbclid", "ttclid", "twclid"]
-      .reduce<Record<string, string>>((acc, key) => {
-        const value = params.get(key);
-        if (value) acc[key] = value;
-        return acc;
-      }, {});
+    const ids = [
+      "gclid",
+      "gbraid",
+      "wbraid",
+      "fbclid",
+      "ttclid",
+      "twclid",
+    ].reduce<Record<string, string>>((acc, key) => {
+      const value = params.get(key);
+      if (value) acc[key] = value;
+      return acc;
+    }, {});
     const storedGclid = window.localStorage.getItem("zivo_gclid");
     if (!ids.gclid && storedGclid) ids.gclid = storedGclid;
     return ids;
@@ -120,15 +128,20 @@ function mirrorServerMarketingEvent(
       body: {
         event_name: eventName,
         event_id: payload.eventId,
-        page: typeof window !== "undefined" ? window.location.pathname : undefined,
+        page:
+          typeof window !== "undefined" ? window.location.pathname : undefined,
         value: payload.value,
         currency: payload.currency ?? "USD",
         content_type: payload.contentType,
         content_id: payload.contentId,
         content_name: payload.contentName,
         source: payload.source,
-        order_id: typeof payload.orderId === "string" ? payload.orderId : undefined,
-        external_id: typeof payload.externalId === "string" ? payload.externalId : undefined,
+        order_id:
+          typeof payload.orderId === "string" ? payload.orderId : undefined,
+        external_id:
+          typeof payload.externalId === "string"
+            ? payload.externalId
+            : undefined,
         click_ids: clickIds(),
         fbc: cookieValue("_fbc"),
         fbp: cookieValue("_fbp"),
@@ -156,12 +169,18 @@ export function trackMarketingEvent(
       window.ttq?.page?.();
       window.twq?.("track", "PageView");
       window.gtag?.("event", "page_view", {
-        page_path: typeof window !== "undefined" ? window.location.pathname : undefined,
+        page_path:
+          typeof window !== "undefined" ? window.location.pathname : undefined,
       });
       return;
     }
 
-    window.fbq?.("track", eventName, shared, payload.eventId ? { eventID: payload.eventId } : undefined);
+    window.fbq?.(
+      "track",
+      eventName,
+      shared,
+      payload.eventId ? { eventID: payload.eventId } : undefined,
+    );
     window.ttq?.track?.(TIKTOK_EVENT_MAP[eventName], shared);
     window.twq?.("track", X_EVENT_MAP[eventName], shared);
     window.gtag?.("event", GOOGLE_EVENT_MAP[eventName], {

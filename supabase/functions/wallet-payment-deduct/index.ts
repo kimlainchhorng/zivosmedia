@@ -45,17 +45,57 @@ serve(withSecurity("wallet-payment-deduct", async (req, ctx) => {
     return json({ error: "Invalid wallet payment request" }, 400);
   }
 
+  const { data: order, error: orderError } = await admin
+    .from("food_orders")
+    .select("id, customer_id, status, payment_type, payment_status, total_amount")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (orderError) {
+    console.error("[wallet-payment-deduct:order]", orderError.message);
+    return json({ error: "Could not verify order" }, 500);
+  }
+  if (!order) return json({ error: "Order not found", not_charged: true }, 404);
+  if (order.customer_id !== user.id) return json({ error: "Forbidden" }, 403);
+  if (order.payment_type !== "wallet") {
+    return json({ error: "Order is not a wallet payment", not_charged: true }, 400);
+  }
+  if (order.status === "cancelled" || ["refunded", "refund_pending"].includes(order.payment_status ?? "")) {
+    return json({ error: "Order can no longer be charged", not_charged: true }, 409);
+  }
+
+  const expectedAmountCents = Math.round(Number(order.total_amount) * 100);
+  if (!Number.isSafeInteger(expectedAmountCents) || expectedAmountCents <= 0) {
+    return json({ error: "Order total is unavailable", not_charged: true }, 409);
+  }
+  if (expectedAmountCents !== amountCents) {
+    return json({ error: "Wallet amount does not match the order", not_charged: true }, 409);
+  }
+
   const { data, error } = await admin.rpc("process_customer_wallet_payment", {
     p_user_id: user.id,
-    p_amount_cents: amountCents,
+    p_amount_cents: expectedAmountCents,
     p_description: description,
     p_reference_id: orderId,
   });
 
   if (error) {
     const message = String(error.message ?? "");
-    if (message.includes("wallet_not_found")) return json({ error: "Wallet not found" }, 404);
-    if (message.includes("insufficient_funds")) return json({ error: "Insufficient wallet balance" }, 400);
+    if (message.includes("wallet_not_found")) {
+      return json({ ok: false, error: "Wallet not found", not_charged: true });
+    }
+    if (message.includes("insufficient_funds")) {
+      return json({ ok: false, error: "Insufficient wallet balance", not_charged: true });
+    }
+    if (message.includes("wallet_payment_reference_amount_mismatch")) {
+      return json(
+        {
+          ok: false,
+          error: "Existing wallet payment needs reconciliation",
+          reconciliation_required: true,
+        },
+        409,
+      );
+    }
     if (message.includes("invalid_amount")) return json({ error: "Invalid amount" }, 400);
     console.error("[wallet-payment-deduct]", error.message);
     return json({ error: "Wallet payment failed" }, 500);
@@ -64,6 +104,7 @@ serve(withSecurity("wallet-payment-deduct", async (req, ctx) => {
   const result = Array.isArray(data) ? data[0] : data;
   return json({
     ok: true,
+    charged: true,
     transactionId: result?.transaction_id ?? null,
     newBalance: Number(result?.new_balance_cents ?? 0),
   });

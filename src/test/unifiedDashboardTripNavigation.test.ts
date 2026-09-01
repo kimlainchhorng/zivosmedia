@@ -29,6 +29,8 @@ describe("Unified Dashboard trip navigation", () => {
     const app = source("src/App.tsx");
 
     expect(trips).toContain("detailPath: `/trip-status/${t.id}`");
-    expect(app).toContain('<Route path="/trip-status/:id"');
+    expect(app).toMatch(
+      /<Route\s+path="\/trip-status\/:id"\s+element=\{\s*<ProtectedRoute>\s*<PhoneRequiredGate>\s*<CambodiaOnlyGate>\s*<TripStatusPage\s*\/>\s*<\/CambodiaOnlyGate>\s*<\/PhoneRequiredGate>\s*<\/ProtectedRoute>\s*\}\s*\/>/,
+    );
   });
 });

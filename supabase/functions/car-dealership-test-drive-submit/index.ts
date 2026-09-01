@@ -5,11 +5,18 @@
  * supplies contact intent only; the database derives every CRM relationship
  * and writes the lead/test drive atomically behind a service-only RPC.
  */
+<<<<<<< Updated upstream
 import { serve } from "../_shared/deps.ts";
 import {
   cleanCarDealershipCapability,
   cleanCarDealershipUuid,
   createCarDealershipServiceClient,
+=======
+import { createClient, serve } from "../_shared/deps.ts";
+import {
+  cleanCarDealershipCapability,
+  cleanCarDealershipUuid,
+>>>>>>> Stashed changes
   resolveCarDealershipUserId,
 } from "../_shared/carDealershipCustomerAccess.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
@@ -48,6 +55,7 @@ serve(
       const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
       if (!supabaseUrl || !anonKey || !serviceKey) {
+<<<<<<< Updated upstream
         return json(
           { error: "Dealership requests are temporarily unavailable" },
           503,
@@ -57,6 +65,15 @@ serve(
       const body = (await req.json().catch(() => ({}))) as Body;
       const mode =
         body.mode === "info" || body.mode === "test_drive" ? body.mode : null;
+=======
+        return json({ error: "Dealership requests are temporarily unavailable" }, 503);
+      }
+
+      const body = (await req.json().catch(() => ({}))) as Body;
+      const mode = body.mode === "info" || body.mode === "test_drive"
+        ? body.mode
+        : null;
+>>>>>>> Stashed changes
       const storeId = cleanCarDealershipUuid(body.store_id);
       const vehicleId = cleanCarDealershipUuid(body.vehicle_id);
       const requestId = cleanCarDealershipUuid(body.request_id);
@@ -69,6 +86,7 @@ serve(
       const tradeInInterested = body.trade_in_interested === true;
       const financingNeeded = body.financing_needed === true;
 
+<<<<<<< Updated upstream
       const suppliedEmail =
         typeof body.customer_email === "string"
           ? body.customer_email.trim()
@@ -79,6 +97,14 @@ serve(
         !storeId ||
         !requestId ||
         !customerName ||
+=======
+      const suppliedEmail = typeof body.customer_email === "string"
+        ? body.customer_email.trim()
+        : "";
+
+      if (
+        !mode || !storeId || !requestId || !customerName ||
+>>>>>>> Stashed changes
         (mode === "test_drive" && !vehicleId)
       ) {
         return json({ error: "Invalid dealership request" }, 400);
@@ -105,7 +131,13 @@ serve(
         }
       }
 
+<<<<<<< Updated upstream
       const admin = createCarDealershipServiceClient(supabaseUrl, serviceKey);
+=======
+      const admin = createClient(supabaseUrl, serviceKey, {
+        auth: { persistSession: false },
+      }) as any;
+>>>>>>> Stashed changes
       const userId = await resolveCarDealershipUserId(
         req,
         supabaseUrl,
@@ -139,10 +171,14 @@ serve(
           return json({ error: "Vehicle is not available" }, 404);
         }
         if (error.code === "23P01" || error.code === "40001") {
+<<<<<<< Updated upstream
           return json(
             { error: "That test-drive time is no longer available" },
             409,
           );
+=======
+          return json({ error: "That test-drive time is no longer available" }, 409);
+>>>>>>> Stashed changes
         }
         console.error("[car-dealership-test-drive-submit:rpc]", error.message);
         return json({ error: "Could not save dealership request" }, 500);
@@ -157,6 +193,7 @@ serve(
       const accountOwned = row?.account_owned === true;
 
       if (!leadId) {
+<<<<<<< Updated upstream
         console.error(
           "[car-dealership-test-drive-submit:shape] missing lead id",
         );
@@ -181,6 +218,21 @@ serve(
           { error: "Could not create secure test-drive access" },
           500,
         );
+=======
+        console.error("[car-dealership-test-drive-submit:shape] missing lead id");
+        return json({ error: "Could not confirm dealership request" }, 500);
+      }
+      if (testDriveScheduled && !testDriveId) {
+        console.error("[car-dealership-test-drive-submit:shape] missing test drive id");
+        return json({ error: "Could not confirm test drive" }, 500);
+      }
+      if (
+        testDriveScheduled && !accountOwned && !alreadyProcessed &&
+        !accessToken
+      ) {
+        console.error("[car-dealership-test-drive-submit:shape] missing guest capability");
+        return json({ error: "Could not create secure test-drive access" }, 500);
+>>>>>>> Stashed changes
       }
 
       return json({
@@ -191,10 +243,16 @@ serve(
           already_processed: alreadyProcessed,
           account_owned: accountOwned,
           access_token: accessToken,
+<<<<<<< Updated upstream
           access_expires_at:
             typeof row?.access_expires_at === "string"
               ? row.access_expires_at
               : null,
+=======
+          access_expires_at: typeof row?.access_expires_at === "string"
+            ? row.access_expires_at
+            : null,
+>>>>>>> Stashed changes
         },
       });
     },
@@ -211,7 +269,11 @@ serve(
 function firstRow(data: unknown): Record<string, unknown> | null {
   const value = Array.isArray(data) ? data[0] : data;
   return value && typeof value === "object"
+<<<<<<< Updated upstream
     ? (value as Record<string, unknown>)
+=======
+    ? value as Record<string, unknown>
+>>>>>>> Stashed changes
     : null;
 }
 
