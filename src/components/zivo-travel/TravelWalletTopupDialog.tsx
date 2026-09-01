@@ -6,6 +6,11 @@ import { Loader2, ShieldCheck, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getStripe, STRIPE_PUBLISHABLE_KEY } from "@/lib/stripe";
+import {
+  isNativeDigitalPurchaseRestricted,
+  requireWebDigitalPurchase,
+} from "@/lib/nativeDigitalPurchasePolicy";
+import NativeDigitalPurchaseNotice from "@/components/payments/NativeDigitalPurchaseNotice";
 
 const QUICK_AMOUNTS = [10, 25, 50, 100, 250];
 
@@ -141,6 +146,9 @@ export function TravelWalletTopupDialog({
 }) {
   const queryClient = useQueryClient();
   const dragControls = useDragControls();
+  // Wallet top-ups are digital purchases — native builds must not offer
+  // non-Play-Billing checkout.
+  const nativeDigitalPurchasesDisabled = isNativeDigitalPurchaseRestricted();
   const [amount, setAmount] = useState("25");
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState<"amount" | "payment">("amount");
@@ -173,6 +181,7 @@ export function TravelWalletTopupDialog({
     setBusy(true);
     setError(null);
     try {
+      requireWebDigitalPurchase();
       const { data, error: fnError } = await supabase.functions.invoke("create-user-wallet-topup", {
         body: {
           amount_cents: amountCents,
@@ -217,7 +226,33 @@ export function TravelWalletTopupDialog({
 
   return (
     <AnimatePresence>
-      {open && (
+      {open && nativeDigitalPurchasesDisabled && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[1450] flex items-end justify-center bg-slate-950/55 backdrop-blur-sm sm:items-center"
+          onClick={close}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl bg-white p-4 shadow-2xl"
+          >
+            <NativeDigitalPurchaseNotice
+              title="Top-up is unavailable in the app"
+              description="Wallet top-ups are a digital purchase and can't be completed in the installed app. Add funds from zivosmedia.com in a browser instead."
+            />
+            <button
+              type="button"
+              onClick={close}
+              className="mt-3 w-full rounded-2xl bg-slate-950 py-3 text-sm font-black text-white"
+            >
+              Got it
+            </button>
+          </div>
+        </motion.div>
+      )}
+      {open && !nativeDigitalPurchasesDisabled && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

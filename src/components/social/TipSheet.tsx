@@ -9,6 +9,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { getStripe } from "@/lib/stripe";
+import { isNativeDigitalPurchaseRestricted } from "@/lib/nativeDigitalPurchasePolicy";
+import NativeDigitalPurchaseNotice from "@/components/payments/NativeDigitalPurchaseNotice";
 import { isAllowedPayPalCheckoutUrl, isAllowedSquareCheckoutUrl } from "@/lib/urlSafety";
 
 interface TipSheetProps {
@@ -473,6 +475,9 @@ function TipForm({
 
 /* ── Outer wrapper with Elements provider ── */
 export default function TipSheet({ open, onClose, creatorId, creatorName, creatorAvatar }: TipSheetProps) {
+  // Tips are digital purchases — Google Play forbids non-Play-Billing digital
+  // checkout inside the installed app, so native builds show the notice instead.
+  const nativeDigitalPurchasesDisabled = isNativeDigitalPurchaseRestricted();
   return (
     <AnimatePresence>
       {open && (
@@ -490,9 +495,18 @@ export default function TipSheet({ open, onClose, creatorId, creatorName, creato
             <div className="flex justify-center py-3">
               <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
             </div>
-            <Elements stripe={getStripe()}>
-              <TipForm creatorId={creatorId} creatorName={creatorName} creatorAvatar={creatorAvatar} onClose={onClose} />
-            </Elements>
+            {nativeDigitalPurchasesDisabled ? (
+              <div className="px-4 pb-2">
+                <NativeDigitalPurchaseNotice
+                  title="Tipping is unavailable in the app"
+                  description="Tips are a digital purchase and can't be completed in the installed app. Open ZIVO in a browser at zivosmedia.com to send this tip."
+                />
+              </div>
+            ) : (
+              <Elements stripe={getStripe()}>
+                <TipForm creatorId={creatorId} creatorName={creatorName} creatorAvatar={creatorAvatar} onClose={onClose} />
+              </Elements>
+            )}
           </motion.div>
         </motion.div>
       )}

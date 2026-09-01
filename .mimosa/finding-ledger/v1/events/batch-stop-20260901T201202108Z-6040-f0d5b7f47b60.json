@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20260901T201202108Z-6040-f0d5b7f47b60",
+  "runId": "20260901T201202108Z-6040-f0d5b7f47b60",
+  "runStatus": "completed",
+  "coverage": {
+    "status": "complete",
+    "reasons": []
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "16b4243755c46e83699f2856c07db5d236fb107f",
+  "diffHash": "970fd568b959812071d4358ab351db9f686ec2b086c2d3f2314e3ef2ea25eeca",
+  "rulesVersion": "unavailable",
+  "sessionHash": "b31651ff016c06e78da66688a44a91c98c1dd34452ee3052ae808c6686af0bc1",
+  "reportRef": ".mimosa/reports/task-review-sess_37a8d0b9-f548-49d9-82d0-4f52efe7d345-20260901T201202108Z-6040-f0d5b7f47b60.json",
+  "events": [],
+  "observedFindingIds": [],
+  "verifiedFiles": [
+    {
+      "file": "src/components/social/TipSheet.tsx",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/components/creator/SubscribeInAppSheet.tsx",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/components/live/CoinRechargeSheet.tsx",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/pages/account/WalletPage.tsx",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/components/zivo-travel/TravelWalletTopupDialog.tsx",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/test/nativeDigitalPurchaseBoundary.test.ts",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-09-01T20:12:02.626Z"
+}

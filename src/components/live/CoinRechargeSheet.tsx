@@ -19,6 +19,8 @@ import goldCoinIcon from "@/assets/gifts/gold-coin.png";
 import { coinPackages, type CoinPackage } from "@/config/coinPackages";
 import { supabase } from "@/integrations/supabase/client";
 import { getStripe } from "@/lib/stripe";
+import { isNativeDigitalPurchaseRestricted } from "@/lib/nativeDigitalPurchasePolicy";
+import NativeDigitalPurchaseNotice from "@/components/payments/NativeDigitalPurchaseNotice";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface CoinRechargeSheetProps {
@@ -219,6 +221,9 @@ function PayForm({
 
 export default function CoinRechargeSheet({ open, onClose, currentBalance, onPurchase }: CoinRechargeSheetProps) {
   const { user } = useAuth();
+  // Z Coins are in-app currency — digital purchases must not use non-Play-Billing
+  // checkout in the installed app, so native builds get the notice instead.
+  const nativeDigitalPurchasesDisabled = isNativeDigitalPurchaseRestricted();
   const [selected, setSelected] = useState<CoinPackage | null>(null);
   const [intent, setIntent] = useState<IntentInfo | null>(null);
   const [step, setStep] = useState<"select" | "loading" | "pay">("select");
@@ -295,6 +300,15 @@ export default function CoinRechargeSheet({ open, onClose, currentBalance, onPur
               <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
 
+            {nativeDigitalPurchasesDisabled ? (
+              <div className="px-4 pb-8">
+                <NativeDigitalPurchaseNotice
+                  title="Coin purchases are unavailable in the app"
+                  description="Z Coins are a digital purchase and can't be bought in the installed app. Open ZIVO in a browser at zivosmedia.com to recharge your coins."
+                />
+              </div>
+            ) : (
+            <>
             {step === "select" && (
               <div className="px-4 pb-6">
                 <div className="flex items-center justify-between mb-4">
@@ -407,6 +421,8 @@ export default function CoinRechargeSheet({ open, onClose, currentBalance, onPur
                   }}
                 />
               </Elements>
+            )}
+            </>
             )}
           </motion.div>
         </>

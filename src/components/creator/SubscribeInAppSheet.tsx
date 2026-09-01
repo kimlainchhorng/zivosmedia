@@ -8,6 +8,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { getStripe } from "@/lib/stripe";
+import { isNativeDigitalPurchaseRestricted } from "@/lib/nativeDigitalPurchasePolicy";
+import NativeDigitalPurchaseNotice from "@/components/payments/NativeDigitalPurchaseNotice";
 
 interface Props {
   open: boolean;
@@ -209,6 +211,9 @@ function SubscribeForm({ creatorId, creatorName, tier, onClose }: Omit<Props, "o
 }
 
 export default function SubscribeInAppSheet({ open, onClose, creatorId, creatorName, tier }: Props) {
+  // Creator subscriptions are digital purchases — native builds must not offer
+  // non-Play-Billing checkout, so they get the web-redirect notice instead.
+  const nativeDigitalPurchasesDisabled = isNativeDigitalPurchaseRestricted();
   return (
     <AnimatePresence>
       {open && (
@@ -226,14 +231,23 @@ export default function SubscribeInAppSheet({ open, onClose, creatorId, creatorN
             <div className="flex justify-center py-3 sticky top-0 bg-background z-10">
               <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
             </div>
-            <Elements stripe={getStripe()}>
-              <SubscribeForm
-                creatorId={creatorId}
-                creatorName={creatorName}
-                tier={tier}
-                onClose={onClose}
-              />
-            </Elements>
+            {nativeDigitalPurchasesDisabled ? (
+              <div className="px-4 pb-2">
+                <NativeDigitalPurchaseNotice
+                  title="Subscriptions are unavailable in the app"
+                  description="Creator subscriptions are a digital purchase and can't be completed in the installed app. Sign in at zivosmedia.com in a browser to subscribe."
+                />
+              </div>
+            ) : (
+              <Elements stripe={getStripe()}>
+                <SubscribeForm
+                  creatorId={creatorId}
+                  creatorName={creatorName}
+                  tier={tier}
+                  onClose={onClose}
+                />
+              </Elements>
+            )}
           </motion.div>
         </motion.div>
       )}

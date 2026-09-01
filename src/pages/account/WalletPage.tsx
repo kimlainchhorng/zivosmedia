@@ -63,6 +63,11 @@ import { useLoyaltyPoints } from "@/hooks/useLoyaltyPoints";
 import AddCardForm from "@/components/wallet/AddCardForm";
 import EatsManualPayoutHistory from "@/components/admin/store/restaurant/EatsManualPayoutHistory";
 import { getStripe } from "@/lib/stripe";
+import {
+  isNativeDigitalPurchaseRestricted,
+  NATIVE_DIGITAL_PURCHASE_MESSAGE,
+} from "@/lib/nativeDigitalPurchasePolicy";
+import NativeDigitalPurchaseNotice from "@/components/payments/NativeDigitalPurchaseNotice";
 import { loadOwnPayoutMethods } from "@/lib/payoutMethods";
 import { useStepUpMfa } from "@/hooks/useStepUpMfa";
 import SEOHead from "@/components/SEOHead";
@@ -373,6 +378,7 @@ export default function WalletPage() {
   >(null);
   const [topupError, setTopupError] = useState<string | null>(null);
   const topupDragControls = useDragControls();
+  const nativeDigitalPurchasesDisabled = isNativeDigitalPurchaseRestricted();
   const TOPUP_QUICK = [10, 25, 50, 100, 250];
   const parsedTopupAmount = Number.parseFloat(topupAmount || "0");
   const topupAmountCents = Number.isFinite(parsedTopupAmount)
@@ -380,6 +386,12 @@ export default function WalletPage() {
     : 0;
 
   const openTopup = () => {
+    // Wallet top-ups are digital purchases — not allowed via non-Play-Billing
+    // checkout inside the installed app.
+    if (isNativeDigitalPurchaseRestricted()) {
+      toast.error(NATIVE_DIGITAL_PURCHASE_MESSAGE);
+      return;
+    }
     setTopupAmount((current) => current || "25");
     setTopupStep("amount");
     setTopupClientSecret(null);
@@ -428,7 +440,7 @@ export default function WalletPage() {
     const deepAmountCents = url.searchParams.get("topup_amount");
     if (deepAmountCents) {
       const cents = Number(deepAmountCents);
-      if (Number.isFinite(cents) && cents > 0) {
+      if (Number.isFinite(cents) && cents > 0 && !isNativeDigitalPurchaseRestricted()) {
         // Round up to the nearest dollar so the input shows a clean value.
         const dollars = Math.ceil(cents / 100).toFixed(2);
         setTopupAmount(dollars);
@@ -1681,9 +1693,35 @@ export default function WalletPage() {
       </div>
       {mfaDialog}
 
-      {/* Wallet topup modal */}
+      {/* Wallet topup modal — native builds show the digital-purchase notice */}
       <AnimatePresence>
-        {topupOpen && (
+        {topupOpen && nativeDigitalPurchasesDisabled && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[1450] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
+            onClick={closeTopup}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="w-full sm:max-w-md bg-background rounded-t-2xl sm:rounded-2xl p-4"
+            >
+              <NativeDigitalPurchaseNotice
+                title="Wallet top-up is unavailable in the app"
+                description="Top-ups are a digital purchase and can't be completed in the installed app. Add funds from zivosmedia.com in a browser instead."
+              />
+              <button
+                type="button"
+                onClick={closeTopup}
+                className="mt-3 w-full rounded-2xl bg-primary py-3 text-sm font-black text-primary-foreground"
+              >
+                Got it
+              </button>
+            </div>
+          </motion.div>
+        )}
+        {topupOpen && !nativeDigitalPurchasesDisabled && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

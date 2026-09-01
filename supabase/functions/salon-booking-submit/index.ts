@@ -41,9 +41,7 @@ type Caller =
   | { mode: "invalid"; userId: null };
 
 serve(
-  withSecurity(
-    "salon-booking-submit",
-    async (req, ctx) => {
+  withSecurity("salon-booking-submit", async (req, ctx) => {
       const corsHeaders = ctx.corsHeaders;
       const json = (body: unknown, status = 200) =>
         new Response(JSON.stringify(body), {

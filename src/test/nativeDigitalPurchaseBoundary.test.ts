@@ -62,6 +62,33 @@ describe("installed-app digital purchase boundary", () => {
     }
   });
 
+  it("blocks creator subs, tips, coins, and wallet top-ups in native UI", () => {
+    for (const [relativePath, purchaseCall] of [
+      [
+        "src/components/creator/SubscribeInAppSheet.tsx",
+        '"subscribe-to-tier-intent"',
+      ],
+      ["src/components/social/TipSheet.tsx", '"create-tip-payment-intent"'],
+      ["src/components/live/CoinRechargeSheet.tsx", '"create-coin-payment-intent"'],
+      ["src/pages/account/WalletPage.tsx", '"create-user-wallet-topup"'],
+    ] as const) {
+      expectGuardBefore(
+        relativePath,
+        "isNativeDigitalPurchaseRestricted",
+        purchaseCall,
+      );
+      expect(source(relativePath)).toContain("NativeDigitalPurchaseNotice");
+    }
+    expectGuardBefore(
+      "src/components/zivo-travel/TravelWalletTopupDialog.tsx",
+      "requireWebDigitalPurchase();",
+      '"create-user-wallet-topup"',
+    );
+    expect(
+      source("src/components/zivo-travel/TravelWalletTopupDialog.tsx"),
+    ).toContain("NativeDigitalPurchaseNotice");
+  });
+
   it("preserves physical-service checkout and labels the native candidate accurately", () => {
     for (const physicalSurface of [
       "src/pages/EatsLanding.tsx",
