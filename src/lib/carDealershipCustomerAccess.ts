@@ -89,7 +89,6 @@ export const buildCarDealershipTestDriveAccessPath = (
   storeSlug: string,
   testDriveId: string,
   token: string | null,
-<<<<<<< Updated upstream
 ) =>
   buildCarDealershipCustomerAccessPath(
     storeSlug,
@@ -97,46 +96,21 @@ export const buildCarDealershipTestDriveAccessPath = (
     testDriveId,
     token,
   );
-=======
-) => buildCarDealershipCustomerAccessPath(
-  storeSlug,
-  "test-drive",
-  testDriveId,
-  token,
-);
->>>>>>> Stashed changes
 
 export const buildCarDealershipSaleReviewAccessPath = (
   storeSlug: string,
   saleId: string,
   token: string | null,
-<<<<<<< Updated upstream
 ) => buildCarDealershipCustomerAccessPath(storeSlug, "review", saleId, token);
-=======
-) => buildCarDealershipCustomerAccessPath(
-  storeSlug,
-  "review",
-  saleId,
-  token,
-);
->>>>>>> Stashed changes
 
 const firstRow = (data: unknown) => {
   const row = Array.isArray(data) ? data[0] : data;
   return row && typeof row === "object"
-<<<<<<< Updated upstream
     ? (row as {
         access_token?: unknown;
         expires_at?: unknown;
         account_owned?: unknown;
       })
-=======
-    ? row as {
-        access_token?: unknown;
-        expires_at?: unknown;
-        account_owned?: unknown;
-      }
->>>>>>> Stashed changes
     : null;
 };
 
@@ -154,7 +128,6 @@ const issueAccess = async (
   };
 };
 
-<<<<<<< Updated upstream
 export const issueCarDealershipTestDriveAccess = (testDriveId: string) =>
   issueAccess("car_dealership_issue_test_drive_access", {
     p_test_drive_id: testDriveId,
@@ -164,16 +137,3 @@ export const issueCarDealershipSaleReviewAccess = (saleId: string) =>
   issueAccess("car_dealership_issue_sale_review_access", {
     p_sale_id: saleId,
   });
-=======
-export const issueCarDealershipTestDriveAccess = (
-  testDriveId: string,
-) => issueAccess("car_dealership_issue_test_drive_access", {
-  p_test_drive_id: testDriveId,
-});
-
-export const issueCarDealershipSaleReviewAccess = (
-  saleId: string,
-) => issueAccess("car_dealership_issue_sale_review_access", {
-  p_sale_id: saleId,
-});
->>>>>>> Stashed changes

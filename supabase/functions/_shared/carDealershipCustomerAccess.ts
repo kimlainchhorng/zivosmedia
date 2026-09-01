@@ -4,7 +4,6 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CAPABILITY_RE = /^[0-9a-f]{64}$/;
 
-<<<<<<< Updated upstream
 export const createCarDealershipServiceClient = (
   supabaseUrl: string,
   serviceKey: string,
@@ -17,8 +16,6 @@ type CarDealershipServiceClient = ReturnType<
   typeof createCarDealershipServiceClient
 >;
 
-=======
->>>>>>> Stashed changes
 export type CarDealershipSaleReviewAuthorization = {
   accessToken: string | null;
   userId: string | null;
@@ -30,13 +27,7 @@ export const cleanCarDealershipUuid = (value: unknown): string | null => {
   return UUID_RE.test(id) ? id : null;
 };
 
-<<<<<<< Updated upstream
 export const cleanCarDealershipCapability = (value: unknown): string | null => {
-=======
-export const cleanCarDealershipCapability = (
-  value: unknown,
-): string | null => {
->>>>>>> Stashed changes
   if (typeof value !== "string") return null;
   const token = value.trim().toLowerCase();
   return CAPABILITY_RE.test(token) ? token : null;
@@ -54,11 +45,7 @@ export const resolveCarDealershipUserId = async (
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authorization } },
       auth: { persistSession: false },
-<<<<<<< Updated upstream
     });
-=======
-    }) as any;
->>>>>>> Stashed changes
     const { data, error } = await userClient.auth.getUser();
     if (error) return null;
     return cleanCarDealershipUuid(data?.user?.id);
@@ -68,11 +55,7 @@ export const resolveCarDealershipUserId = async (
 };
 
 export const authorizeCarDealershipSaleReviewAccess = async (input: {
-<<<<<<< Updated upstream
   admin: CarDealershipServiceClient;
-=======
-  admin: any;
->>>>>>> Stashed changes
   req: Request;
   supabaseUrl: string;
   anonKey: string;
@@ -82,7 +65,6 @@ export const authorizeCarDealershipSaleReviewAccess = async (input: {
   const saleId = cleanCarDealershipUuid(input.saleId);
   if (!saleId) return null;
 
-<<<<<<< Updated upstream
   const rawAccessToken =
     typeof input.accessToken === "string"
       ? input.accessToken.trim()
@@ -93,15 +75,6 @@ export const authorizeCarDealershipSaleReviewAccess = async (input: {
     rawAccessToken !== undefined &&
     rawAccessToken !== "" &&
     !accessToken
-=======
-  const rawAccessToken = typeof input.accessToken === "string"
-    ? input.accessToken.trim()
-    : input.accessToken;
-  const accessToken = cleanCarDealershipCapability(rawAccessToken);
-  if (
-    rawAccessToken !== null && rawAccessToken !== undefined &&
-    rawAccessToken !== "" && !accessToken
->>>>>>> Stashed changes
   ) {
     return null;
   }

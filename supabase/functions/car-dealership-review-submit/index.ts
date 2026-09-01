@@ -3,18 +3,11 @@
  * ----------------------------
  * Public, sale-linked dealership review submission.
  */
-<<<<<<< Updated upstream
 import { serve } from "../_shared/deps.ts";
 import {
   authorizeCarDealershipSaleReviewAccess,
   cleanCarDealershipUuid,
   createCarDealershipServiceClient,
-=======
-import { createClient, serve } from "../_shared/deps.ts";
-import {
-  authorizeCarDealershipSaleReviewAccess,
-  cleanCarDealershipUuid,
->>>>>>> Stashed changes
 } from "../_shared/carDealershipCustomerAccess.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
@@ -42,11 +35,7 @@ serve(withSecurity("car-dealership-review-submit", async (req, ctx) => {
   if (!supabaseUrl || !anonKey || !serviceKey) {
     return json({ error: "Review access is temporarily unavailable" }, 503);
   }
-<<<<<<< Updated upstream
   const admin = createCarDealershipServiceClient(supabaseUrl, serviceKey);
-=======
-  const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } }) as any;
->>>>>>> Stashed changes
 
   const body = await req.json().catch(() => ({})) as Body;
   const saleId = cleanCarDealershipUuid(body.sale_id);

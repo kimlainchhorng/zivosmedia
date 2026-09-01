@@ -44,10 +44,7 @@ const drivesAdmin = read(
   "src/components/admin/store/car-dealership/CarDealershipTestDrivesSection.tsx",
 );
 const app = read("src/App.tsx");
-<<<<<<< Updated upstream
 const supabaseConfig = read("supabase/config.toml");
-=======
->>>>>>> Stashed changes
 
 describe("car-dealership customer capability boundary", () => {
   it("fails before changing schema when the live dealership prerequisites are absent", () => {
@@ -267,7 +264,6 @@ describe("car-dealership customer capability boundary", () => {
     expect(reviewSubmit).toContain("already_processed:");
   });
 
-<<<<<<< Updated upstream
   it("preserves public dealership form access on later Edge redeploys", () => {
     for (const functionName of [
       "car-dealership-test-drive-submit",
@@ -281,8 +277,6 @@ describe("car-dealership customer capability boundary", () => {
     }
   });
 
-=======
->>>>>>> Stashed changes
   it("issues owner links before copying and never falls back to raw UUID authority", () => {
     expect(salesAdmin).toContain("issueCarDealershipSaleReviewAccess");
     expect(salesAdmin).toContain("buildCarDealershipSaleReviewAccessPath");

@@ -963,27 +963,11 @@ describe("shop owner workflow", () => {
     expect(dealershipReviewManage).toContain('.from("car_dealership_reviews")');
     expect(dealershipReviewManage).toContain('.from("store_profiles")');
     expect(dealershipReviewManage).toContain('rpc("has_role"');
-<<<<<<< Updated upstream
     expect(dealershipReviewSubmit).toMatch(/withSecurity\(\s*["']car-dealership-review-submit["']/);
     expect(dealershipReviewSubmit).toContain("authorizeCarDealershipSaleReviewAccess");
     expect(dealershipReviewSubmit).toContain('"car_dealership_submit_review"');
     expect(dealershipReviewSubmit).not.toContain('.from("car_dealership_sales")');
     expect(dealershipReviewSubmit).not.toContain('.from("car_dealership_reviews")');
-=======
-    expect(dealershipReviewSubmit).toContain('withSecurity("car-dealership-review-submit"');
-    expect(dealershipReviewSubmit).toContain(
-      "authorizeCarDealershipSaleReviewAccess",
-    );
-    expect(dealershipReviewSubmit).toContain(
-      '"car_dealership_submit_review"',
-    );
-    expect(dealershipReviewSubmit).not.toContain(
-      '.from("car_dealership_sales")',
-    );
-    expect(dealershipReviewSubmit).not.toContain(
-      '.from("car_dealership_reviews")',
-    );
->>>>>>> Stashed changes
     expect(dealershipReviewGate).toContain("Car dealership review inserts require trusted server-side validation");
     expect(dealershipReviewGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.car_dealership_reviews FROM anon, authenticated");
     expect(dealershipTradeInsHook).toContain('functions.invoke("car-dealership-trade-in-manage"');
