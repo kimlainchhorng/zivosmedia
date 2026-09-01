@@ -70,6 +70,7 @@ export default function ChatHeaderProfileSheet({
   const [lastSeen, setLastSeen] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(false);
   const [reportReason, setReportReason] = useState<string | null>(null);
+  const [submittingReport, setSubmittingReport] = useState(false);
 
   const REPORT_REASONS = ["Spam", "Harassment", "Fake profile", "Inappropriate content", "Scam", "Other"];
 
@@ -117,6 +118,33 @@ export default function ChatHeaderProfileSheet({
     else { toast.success("User blocked"); onClose(); }
   };
 
+  const submitReport = async () => {
+    if (!user?.id || !reportReason || submittingReport) return;
+    setSubmittingReport(true);
+    const { error } = await dbFrom("user_reports").insert({
+      reporter_id: user.id,
+      reported_id: partner.id,
+      reason: reportReason,
+    });
+    setSubmittingReport(false);
+    if (error) {
+      console.error("[ChatHeaderProfileSheet] report submit failed", error);
+      toast.error("Couldn't submit report — please try again.");
+      return;
+    }
+    toast.success("Report submitted. Our team will review it.");
+    setShowReport(false);
+    setReportReason(null);
+  };
+
+  // last_seen_at can be missing or malformed; only show the line for a valid
+  // date so we never render "last seen Invalid Date" to the user.
+  const lastSeenLabel = (() => {
+    if (!lastSeen) return null;
+    const d = new Date(lastSeen);
+    return Number.isNaN(d.getTime()) ? null : d.toLocaleString();
+  })();
+
   const QuickBtn = ({ icon: Icon, label, onClick, active }: QuickBtnProps) => (
     <button type="button"
       onClick={onClick}
@@ -161,9 +189,9 @@ export default function ChatHeaderProfileSheet({
           {partner.username && (
             <div className="mt-1 text-xs font-semibold text-muted-foreground">@{partner.username}</div>
           )}
-          {lastSeen && (
+          {lastSeenLabel && (
             <div className="mt-1 text-[11px] font-semibold text-muted-foreground">
-              last seen {new Date(lastSeen).toLocaleString()}
+              last seen {lastSeenLabel}
             </div>
           )}
           {bio && (
@@ -216,18 +244,11 @@ export default function ChatHeaderProfileSheet({
                     ))}
                   </div>
                   <button type="button"
-                    disabled={!reportReason}
-                    onClick={async () => {
-                      if (user?.id) {
-                        await dbFrom("user_reports").insert({ reporter_id: user.id, reported_id: partner.id, reason: reportReason });
-                      }
-                      toast.success("Report submitted. Our team will review it.");
-                      setShowReport(false);
-                      setReportReason(null);
-                    }}
+                    disabled={!reportReason || submittingReport}
+                    onClick={() => { void submitReport(); }}
                     className="w-full rounded-2xl bg-destructive py-2.5 text-xs font-black text-destructive-foreground transition-opacity disabled:opacity-40"
                   >
-                    Submit Report
+                    {submittingReport ? "Submitting…" : "Submit Report"}
                   </button>
                 </motion.div>
               )}

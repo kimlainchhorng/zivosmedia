@@ -49,11 +49,19 @@ export default function ChatFolders({ activeFolder, onSelectFolder }: ChatFolder
 
   const createFolder = async () => {
     if (!user || !newName.trim()) return;
-    await (supabase as any).from("chat_folders").insert({
+    // A Supabase insert resolves even when the DB rejects (RLS / offline), so
+    // without an { error } check this toasted "Folder created" and closed the
+    // modal on a write that never persisted — the refetch then silently dropped
+    // the phantom folder. Surface the failure and keep the modal open for retry.
+    const { error } = await (supabase as any).from("chat_folders").insert({
       user_id: user.id,
       name: newName.trim(),
       icon: newIcon,
     });
+    if (error) {
+      toast.error("Couldn't create folder");
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["chat-folders"] });
     setNewName("");
     setShowCreate(false);
@@ -61,7 +69,11 @@ export default function ChatFolders({ activeFolder, onSelectFolder }: ChatFolder
   };
 
   const deleteFolder = async (id: string) => {
-    await (supabase as any).from("chat_folders").delete().eq("id", id);
+    const { error } = await (supabase as any).from("chat_folders").delete().eq("id", id);
+    if (error) {
+      toast.error("Couldn't delete folder");
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["chat-folders"] });
     if (activeFolder === id) onSelectFolder(null);
     toast.success("Folder deleted");
@@ -74,6 +86,7 @@ export default function ChatFolders({ activeFolder, onSelectFolder }: ChatFolder
       {/* All chats */}
       <button type="button"
         onClick={() => onSelectFolder(null)}
+        aria-pressed={!activeFolder}
         className={cn(
           "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
           !activeFolder ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
@@ -87,6 +100,7 @@ export default function ChatFolders({ activeFolder, onSelectFolder }: ChatFolder
           key={f.id}
           onClick={() => onSelectFolder(f.id)}
           onDoubleClick={() => deleteFolder(f.id)}
+          aria-pressed={activeFolder === f.id}
           className={cn(
             "shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
             activeFolder === f.id ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
