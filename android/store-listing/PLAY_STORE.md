@@ -50,7 +50,7 @@ ACCOUNT & PRIVACY
 Feature availability varies by location, provider, account, and internet connection. Prices and inventory appear only when returned by the relevant travel provider. ZIVO does not guarantee that every service is available to every user.
 
 —
-ZIVO LLC is a registered booking agent. Airlines, hotels, and car suppliers are the merchants of record for their inventory. Some premium features and creator subscriptions may have a price.
+ZIVO LLC is a registered booking agent. Airlines, hotels, and car suppliers are the merchants of record for their inventory.
 
 Support:  support@zivosmedia.com
 Website:  https://zivosmedia.com
@@ -61,9 +61,9 @@ Terms:    https://zivosmedia.com/legal/terms
 ## 4. What's New / Release Notes (max 500 characters — UPDATE EVERY RELEASE)
 
 ```
-• Improved Android startup reliability
-• Aligned the installed app name and icon with the Play listing
-• Updated account privacy and deletion guidance
+• Improved account privacy isolation on shared devices
+• Hardened installed-app purchase and tracking boundaries
+• Improved travel, ride, and navigation reliability
 • Performance and stability improvements
 
 Feedback? support@zivosmedia.com
@@ -78,9 +78,9 @@ Play-track build on a supported Android device.
 ```
 App category:    Lifestyle
 Tags:            Travel, Social, Shopping, Communication
-Target audience: 13+
-Contains ads:    No (UGC + commerce)
-In-app purchases: Yes (creator subscriptions, premium features)
+Target audience: Adults 18+ (do not select child or teen age groups)
+Contains ads:    Yes (sponsored posts may appear in Reels)
+In-app purchases: No
 ```
 
 ## 6. Contact Details
@@ -150,7 +150,7 @@ through a Play test track on a real supported Android device.
 
 ```
 Version: 1.3.0
-Version code: 2026082601
+Version code: 2026083001
 Package name: com.hizovo.app
 Target SDK: 36 (Android 16)
 ```

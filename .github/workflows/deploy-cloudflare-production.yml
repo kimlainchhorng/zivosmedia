@@ -9,8 +9,14 @@ on:
     workflows: ["CI"]
     types: [completed]
   workflow_dispatch:
+    inputs:
+      ci_run_id:
+        description: "Successful push CI run ID for the main commit to deploy"
+        required: true
+        type: string
 
 permissions:
+  actions: read
   contents: read
   deployments: write
 
@@ -19,14 +25,63 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    name: Cloudflare Worker production
+  authorize:
+    name: Authorize tested main commit
     if: |
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (
         github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.head_branch == 'main'
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository
       )
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.ci.outputs.sha }}
+
+    steps:
+      - name: Resolve successful CI authority
+        id: ci
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.ci_run_id }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$CI_RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "ci_run_id must be a numeric GitHub Actions run ID."
+            exit 1
+          fi
+
+          ci_run="$RUNNER_TEMP/ci-run.json"
+          gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID" > "$ci_run"
+
+          ci_workflow_id="$(jq -r '.workflow_id // ""' "$ci_run")"
+          ci_event="$(jq -r '.event // ""' "$ci_run")"
+          ci_status="$(jq -r '.status // ""' "$ci_run")"
+          ci_conclusion="$(jq -r '.conclusion // ""' "$ci_run")"
+          ci_branch="$(jq -r '.head_branch // ""' "$ci_run")"
+          ci_sha="$(jq -r '.head_sha // ""' "$ci_run")"
+
+          expected_ci_workflow_id="$(gh api "/repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml" --jq '.id')"
+          if [ "$ci_workflow_id" != "$expected_ci_workflow_id" ]; then
+            echo "Run $CI_RUN_ID is not the repository CI workflow."
+            exit 1
+          fi
+          if [ "$ci_event" != "push" ] || [ "$ci_status" != "completed" ] || [ "$ci_conclusion" != "success" ] || [ "$ci_branch" != "main" ]; then
+            echo "Run $CI_RUN_ID must be a completed, successful push CI run on main."
+            exit 1
+          fi
+          if [[ ! "$ci_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Run $CI_RUN_ID returned an invalid head SHA."
+            exit 1
+          fi
+
+          printf 'sha=%s\n' "$ci_sha" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Cloudflare Worker production
+    needs: authorize
     runs-on: ubuntu-latest
     timeout-minutes: 25
     environment:
@@ -38,17 +93,17 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ needs.authorize.outputs.sha }}
           fetch-depth: 2
 
       - name: Detect deploy-relevant changes
         id: changes
         run: |
-          if git rev-parse HEAD^ >/dev/null 2>&1; then
-            git diff --name-only HEAD^ HEAD | node scripts/deploy/production-deploy-relevance.mjs --github-output "$GITHUB_OUTPUT"
-          else
-            echo "relevant=true" >> "$GITHUB_OUTPUT"
-          fi
+          # workflow_run does not expose a trustworthy before-SHA for every
+          # multi-commit push. Always deploy the exact main commit that passed
+          # CI so an earlier Worker/config change can never be skipped merely
+          # because the final commit touched only docs or tests.
+          echo "relevant=true" >> "$GITHUB_OUTPUT"
 
       - name: Skip deploy (no runtime-affecting changes)
         if: steps.changes.outputs.relevant != 'true'
@@ -65,6 +120,59 @@ jobs:
         if: steps.changes.outputs.relevant == 'true'
         run: npm ci --no-audit --no-fund
 
+      - name: Verify Wallet cash-out tombstones
+        if: steps.changes.outputs.relevant == 'true'
+        run: |
+          set -euo pipefail
+          cashout_base_url="https://slirphzzwcogdbkeicff.supabase.co/functions/v1"
+          cashout_functions=(
+            process-withdrawal
+            connect-instant-payout
+            paypal-payout
+            wallet-instant-payout
+            stripe-instant-payout
+          )
+
+          for slug in "${cashout_functions[@]}"; do
+            response_file="$RUNNER_TEMP/${slug}-tombstone.json"
+            http_status="$(
+              curl --silent --show-error \
+                --proto '=https' \
+                --tlsv1.2 \
+                --connect-timeout 10 \
+                --max-time 30 \
+                --request POST \
+                --header 'user-agent: ZIVO-Release-Gate/1.0' \
+                --header 'accept: application/json' \
+                --header 'content-type: application/json' \
+                --data-binary '' \
+                --output "$response_file" \
+                --write-out '%{http_code}' \
+                "$cashout_base_url/$slug"
+            )"
+
+            if [ "$http_status" != "503" ]; then
+              echo "$slug must return HTTP 503 from the Wallet cash-out tombstone; received $http_status."
+              exit 1
+            fi
+
+            node - "$response_file" "$slug" <<'NODE'
+          const { readFileSync } = require("node:fs");
+          const [responseFile, slug] = process.argv.slice(2);
+          let payload;
+          try {
+            payload = JSON.parse(readFileSync(responseFile, "utf8"));
+          } catch {
+            console.error(`${slug} returned a non-JSON Wallet cash-out tombstone response.`);
+            process.exit(1);
+          }
+          if (payload?.code !== "wallet_cashout_authority_unavailable") {
+            console.error(`${slug} returned the wrong Wallet cash-out tombstone code.`);
+            process.exit(1);
+          }
+          NODE
+          done
+
       - name: Verify ZIVO Ride production boundary
         if: steps.changes.outputs.relevant == 'true'
         run: npm run qa:zivo-ride-production-boundary
@@ -73,7 +181,7 @@ jobs:
         if: steps.changes.outputs.relevant == 'true'
         run: |
           missing=0
-          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID SUPABASE_ACCESS_TOKEN SUPABASE_URL SUPABASE_ANON_KEY VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY VITE_SUPABASE_PROJECT_ID VITE_ZIVO_RIDE_APP_URL VITE_ZIVO_SOFTWARE_SUPABASE_URL VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY; do
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID SUPABASE_ACCESS_TOKEN SUPABASE_URL SUPABASE_ANON_KEY VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY VITE_SUPABASE_PROJECT_ID VITE_STRIPE_PUBLISHABLE_KEY VITE_ZIVO_RIDE_APP_URL VITE_ZIVO_SOFTWARE_SUPABASE_URL VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY; do
             if [ -z "${!name}" ]; then
               echo "$name is required for Cloudflare production deploy."
               missing=1
@@ -81,6 +189,10 @@ jobs:
           done
           if [ "$VITE_ZIVO_RIDE_APP_URL" != "https://ride.zivosmedia.com" ]; then
             echo "VITE_ZIVO_RIDE_APP_URL must equal https://ride.zivosmedia.com exactly."
+            missing=1
+          fi
+          if [[ "$VITE_STRIPE_PUBLISHABLE_KEY" != pk_* ]]; then
+            echo "VITE_STRIPE_PUBLISHABLE_KEY must be a browser-safe publishable key (pk_...); secret keys are forbidden."
             missing=1
           fi
           exit "$missing"
@@ -93,12 +205,24 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
           VITE_ZIVO_RIDE_APP_URL: ${{ secrets.VITE_ZIVO_RIDE_APP_URL }}
           VITE_ZIVO_SOFTWARE_SUPABASE_URL: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_URL }}
           VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY }}
           ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY }}
           ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY }}
           ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY }}
+
+      - name: Capture live Edge Function auth policies
+        if: steps.changes.outputs.relevant == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+        run: |
+          edge_snapshot="$RUNNER_TEMP/zivo-edge-functions.json"
+          npx supabase functions list --project-ref "$SUPABASE_PROJECT_REF" --output-format json > "$edge_snapshot"
+          edge_snapshot_json="$(node -e 'process.stdout.write(JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))))' "$edge_snapshot")"
+          printf 'ZIVO_EDGE_FUNCTIONS_LIVE_SNAPSHOT=%s\n' "$edge_snapshot_json" >> "$GITHUB_ENV"
 
       - name: Production preflight
         id: production-preflight
@@ -122,7 +246,7 @@ jobs:
         if: steps.changes.outputs.relevant == 'true' && always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: cloudflare-production-preflight-${{ github.event.workflow_run.head_sha || github.sha }}
+          name: cloudflare-production-preflight-${{ needs.authorize.outputs.sha }}
           path: |
             docs/production-preflight-report.md
             docs/production-preflight-summary.json
@@ -153,10 +277,19 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
           VITE_ZIVO_RIDE_APP_URL: ${{ secrets.VITE_ZIVO_RIDE_APP_URL }}
           VITE_ZIVO_SOFTWARE_SUPABASE_URL: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_URL }}
           VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY }}
         run: npm run build
+
+      - name: Provision Worker AI auth key
+        if: steps.changes.outputs.relevant == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: printf '%s' "$SUPABASE_PUBLISHABLE_KEY" | npx wrangler secret put SUPABASE_PUBLISHABLE_KEY
 
       - name: Deploy Worker to Cloudflare
         if: steps.changes.outputs.relevant == 'true'

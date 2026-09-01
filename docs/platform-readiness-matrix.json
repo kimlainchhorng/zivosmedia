@@ -1,13 +1,13 @@
 {
-  "generated": "2026-08-29T15:51:34.202Z",
+  "generated": "2026-08-30T23:42:59.000Z",
   "totals": {
-    "pageFiles": 717,
-    "componentFiles": 1335,
-    "sourceFiles": 2772,
-    "edgeFunctions": 477,
-    "migrations": 1147,
-    "testFiles": 267,
-    "docsFiles": 1591
+    "pageFiles": 720,
+    "componentFiles": 1341,
+    "sourceFiles": 2791,
+    "edgeFunctions": 482,
+    "migrations": 1166,
+    "testFiles": 315,
+    "docsFiles": 1593
   },
   "currentGate": {
     "mode": "strict",
@@ -33,21 +33,21 @@
     {
       "id": "release-safety",
       "label": "Release Safety Foundation",
-      "evidenceCount": 1627,
+      "evidenceCount": 1680,
       "evidenceBreakdown": {
         "pages": 19,
         "components": 20,
         "otherSource": 18,
-        "edgeFunctions": 203,
-        "migrations": 1147,
-        "tests": 100,
-        "docs": 120
+        "edgeFunctions": 206,
+        "migrations": 1166,
+        "tests": 129,
+        "docs": 122
       },
       "testGap": {
-        "implementationEvidence": 1407,
-        "testEvidence": 100,
-        "testCoverageRatio": 0.0615,
-        "targetTestEvidence": 33,
+        "implementationEvidence": 1429,
+        "testEvidence": 129,
+        "testCoverageRatio": 0.0768,
+        "targetTestEvidence": 34,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -84,21 +84,21 @@
     {
       "id": "auth-sso-sessions",
       "label": "Auth, SSO, Sessions, and Account Protection",
-      "evidenceCount": 3300,
+      "evidenceCount": 3393,
       "evidenceBreakdown": {
-        "pages": 484,
-        "components": 375,
-        "otherSource": 264,
-        "edgeFunctions": 417,
-        "migrations": 843,
-        "tests": 163,
-        "docs": 754
+        "pages": 490,
+        "components": 385,
+        "otherSource": 275,
+        "edgeFunctions": 422,
+        "migrations": 862,
+        "tests": 202,
+        "docs": 757
       },
       "testGap": {
-        "implementationEvidence": 2383,
-        "testEvidence": 163,
-        "testCoverageRatio": 0.0494,
-        "targetTestEvidence": 66,
+        "implementationEvidence": 2434,
+        "testEvidence": 202,
+        "testCoverageRatio": 0.0595,
+        "targetTestEvidence": 68,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -107,13 +107,13 @@
         "src/pages/AMAPage.tsx",
         "src/pages/About.tsx",
         "src/pages/ActivityFeedPage.tsx",
+        "src/pages/AdminContentReportsPage.tsx",
+        "src/pages/AdminModerationPage.tsx",
         "src/pages/AffiliateHubPage.tsx",
         "src/pages/AffiliateLinksPage.tsx",
         "src/pages/AppSettingsPage.tsx",
         "src/pages/AudioSpacesPage.tsx",
-        "src/pages/AuthCallback.tsx",
-        "src/pages/AuthHandoff.tsx",
-        "src/pages/AutoMessagesLogPage.tsx"
+        "src/pages/AuthCallback.tsx"
       ],
       "suggestedTestFiles": [
         "tests/e2e/auth-sso-role-matrix.spec.ts",
@@ -131,21 +131,21 @@
     {
       "id": "role-workflows",
       "label": "Customer, Shop Owner, Staff, Driver, Support, Admin Workflows",
-      "evidenceCount": 5424,
+      "evidenceCount": 5497,
       "evidenceBreakdown": {
-        "pages": 699,
-        "components": 1170,
-        "otherSource": 524,
+        "pages": 702,
+        "components": 1175,
+        "otherSource": 535,
         "edgeFunctions": 454,
-        "migrations": 850,
-        "tests": 168,
-        "docs": 1559
+        "migrations": 867,
+        "tests": 203,
+        "docs": 1561
       },
       "testGap": {
-        "implementationEvidence": 3697,
-        "testEvidence": 168,
-        "testCoverageRatio": 0.031,
-        "targetTestEvidence": 109,
+        "implementationEvidence": 3733,
+        "testEvidence": 203,
+        "testCoverageRatio": 0.0369,
+        "targetTestEvidence": 110,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -185,21 +185,21 @@
     {
       "id": "payments-payouts",
       "label": "Payments, Payouts, Refunds, and Webhooks",
-      "evidenceCount": 2033,
+      "evidenceCount": 2094,
       "evidenceBreakdown": {
-        "pages": 348,
-        "components": 409,
-        "otherSource": 144,
-        "edgeFunctions": 229,
-        "migrations": 274,
-        "tests": 119,
-        "docs": 510
+        "pages": 351,
+        "components": 414,
+        "otherSource": 151,
+        "edgeFunctions": 236,
+        "migrations": 283,
+        "tests": 147,
+        "docs": 512
       },
       "testGap": {
-        "implementationEvidence": 1404,
-        "testEvidence": 119,
-        "testCoverageRatio": 0.0585,
-        "targetTestEvidence": 41,
+        "implementationEvidence": 1435,
+        "testEvidence": 147,
+        "testCoverageRatio": 0.0702,
+        "targetTestEvidence": 42,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -233,20 +233,20 @@
     {
       "id": "email-push-marketing",
       "label": "Email, Push, SMS, and Marketing",
-      "evidenceCount": 1814,
+      "evidenceCount": 1849,
       "evidenceBreakdown": {
-        "pages": 303,
-        "components": 343,
-        "otherSource": 238,
-        "edgeFunctions": 230,
-        "migrations": 267,
-        "tests": 90,
-        "docs": 343
+        "pages": 305,
+        "components": 345,
+        "otherSource": 244,
+        "edgeFunctions": 229,
+        "migrations": 272,
+        "tests": 109,
+        "docs": 345
       },
       "testGap": {
-        "implementationEvidence": 1381,
-        "testEvidence": 90,
-        "testCoverageRatio": 0.0496,
+        "implementationEvidence": 1395,
+        "testEvidence": 109,
+        "testCoverageRatio": 0.059,
         "targetTestEvidence": 37,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
@@ -281,21 +281,21 @@
     {
       "id": "database-storage-media",
       "label": "Database, Storage, and Media",
-      "evidenceCount": 4182,
+      "evidenceCount": 4255,
       "evidenceBreakdown": {
-        "pages": 540,
-        "components": 560,
-        "otherSource": 300,
-        "edgeFunctions": 477,
-        "migrations": 904,
-        "tests": 201,
-        "docs": 1200
+        "pages": 543,
+        "components": 564,
+        "otherSource": 303,
+        "edgeFunctions": 482,
+        "migrations": 919,
+        "tests": 243,
+        "docs": 1201
       },
       "testGap": {
-        "implementationEvidence": 2781,
-        "testEvidence": 201,
-        "testCoverageRatio": 0.0481,
-        "targetTestEvidence": 84,
+        "implementationEvidence": 2811,
+        "testEvidence": 243,
+        "testCoverageRatio": 0.0571,
+        "targetTestEvidence": 86,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -331,21 +331,21 @@
     {
       "id": "security-anti-abuse",
       "label": "Security, Anti-Abuse, and Hacker Protection",
-      "evidenceCount": 3396,
+      "evidenceCount": 3462,
       "evidenceBreakdown": {
-        "pages": 328,
-        "components": 440,
-        "otherSource": 117,
-        "edgeFunctions": 460,
-        "migrations": 747,
-        "tests": 129,
-        "docs": 1175
+        "pages": 334,
+        "components": 447,
+        "otherSource": 125,
+        "edgeFunctions": 465,
+        "migrations": 762,
+        "tests": 152,
+        "docs": 1177
       },
       "testGap": {
-        "implementationEvidence": 2092,
-        "testEvidence": 129,
-        "testCoverageRatio": 0.038,
-        "targetTestEvidence": 68,
+        "implementationEvidence": 2133,
+        "testEvidence": 152,
+        "testCoverageRatio": 0.0439,
+        "targetTestEvidence": 70,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -358,9 +358,9 @@
         "src/pages/AccountDeletionInfo.tsx",
         "src/pages/ActivityFeedPage.tsx",
         "src/pages/AdminContentReportsPage.tsx",
+        "src/pages/AdminModerationPage.tsx",
         "src/pages/AdultDiscoveryPage.tsx",
-        "src/pages/AppSettingsPage.tsx",
-        "src/pages/AudioSpacesPage.tsx"
+        "src/pages/AppSettingsPage.tsx"
       ],
       "suggestedTestFiles": [
         "src/test/securityAttackDrills.test.ts",
@@ -380,21 +380,21 @@
     {
       "id": "legal-policy-compliance",
       "label": "Law, Policy, Compliance, and Trust",
-      "evidenceCount": 4653,
+      "evidenceCount": 4706,
       "evidenceBreakdown": {
-        "pages": 705,
-        "components": 1290,
-        "otherSource": 649,
+        "pages": 707,
+        "components": 1294,
+        "otherSource": 656,
         "edgeFunctions": 224,
-        "migrations": 774,
-        "tests": 135,
-        "docs": 876
+        "migrations": 788,
+        "tests": 159,
+        "docs": 878
       },
       "testGap": {
-        "implementationEvidence": 3642,
-        "testEvidence": 135,
-        "testCoverageRatio": 0.029,
-        "targetTestEvidence": 94,
+        "implementationEvidence": 3669,
+        "testEvidence": 159,
+        "testCoverageRatio": 0.0338,
+        "targetTestEvidence": 95,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -452,21 +452,21 @@
     {
       "id": "frontend-graphics-speed",
       "label": "Frontend, Graphics, Design, and Speed",
-      "evidenceCount": 4063,
+      "evidenceCount": 4128,
       "evidenceBreakdown": {
-        "pages": 637,
-        "components": 789,
-        "otherSource": 459,
-        "edgeFunctions": 435,
-        "migrations": 213,
-        "tests": 97,
-        "docs": 1433
+        "pages": 640,
+        "components": 791,
+        "otherSource": 469,
+        "edgeFunctions": 440,
+        "migrations": 223,
+        "tests": 131,
+        "docs": 1434
       },
       "testGap": {
-        "implementationEvidence": 2533,
-        "testEvidence": 97,
-        "testCoverageRatio": 0.0239,
-        "targetTestEvidence": 82,
+        "implementationEvidence": 2563,
+        "testEvidence": 131,
+        "testCoverageRatio": 0.0317,
+        "targetTestEvidence": 83,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -510,21 +510,21 @@
     {
       "id": "native-mobile-release",
       "label": "Native iOS, Android, OTA, and Store Release",
-      "evidenceCount": 2600,
+      "evidenceCount": 2643,
       "evidenceBreakdown": {
         "pages": 507,
-        "components": 522,
-        "otherSource": 236,
-        "edgeFunctions": 110,
-        "migrations": 165,
-        "tests": 78,
-        "docs": 982
+        "components": 529,
+        "otherSource": 242,
+        "edgeFunctions": 112,
+        "migrations": 175,
+        "tests": 95,
+        "docs": 983
       },
       "testGap": {
-        "implementationEvidence": 1540,
-        "testEvidence": 78,
-        "testCoverageRatio": 0.03,
-        "targetTestEvidence": 52,
+        "implementationEvidence": 1565,
+        "testEvidence": 95,
+        "testCoverageRatio": 0.0359,
+        "targetTestEvidence": 53,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -568,21 +568,21 @@
     {
       "id": "api-server-operations",
       "label": "API, Server Speed, Observability, and Operations",
-      "evidenceCount": 5071,
+      "evidenceCount": 5156,
       "evidenceBreakdown": {
-        "pages": 689,
-        "components": 1151,
-        "otherSource": 632,
-        "edgeFunctions": 477,
-        "migrations": 637,
-        "tests": 173,
-        "docs": 1312
+        "pages": 692,
+        "components": 1156,
+        "otherSource": 641,
+        "edgeFunctions": 482,
+        "migrations": 656,
+        "tests": 215,
+        "docs": 1314
       },
       "testGap": {
-        "implementationEvidence": 3586,
-        "testEvidence": 173,
-        "testCoverageRatio": 0.0341,
-        "targetTestEvidence": 102,
+        "implementationEvidence": 3627,
+        "testEvidence": 215,
+        "testCoverageRatio": 0.0417,
+        "targetTestEvidence": 104,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"

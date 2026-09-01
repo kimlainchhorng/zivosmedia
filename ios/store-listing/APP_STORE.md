@@ -1,81 +1,74 @@
-# 🍎 APP STORE LISTING — iOS (ZIVO)
+# APP STORE LISTING — iOS (ZIVO)
 
-**Edit only the text inside the boxes. Character limits are enforced by Apple.**
+This file is a conservative source draft for App Store Connect. It does not
+change the live listing, submit a build, or prove that the listed behavior is
+present in a signed candidate.
 
 App Store Connect → My Apps → ZIVO → App Information / Version Information
 
-Bundle ID: `com.hizovo.app`  ·  App ID: `6759480121`
+Bundle ID: `com.hizovo.app` · App ID: `6759480121`
 
----
+## Identity preflight — resolve before submission
 
-## 1. App Name  (max 30 characters)
+The cross-platform brand, Capacitor config, Android app, Info.plist, and iOS
+Debug/Release build settings now use `ZIVO`. The public App Store listing may
+still show `ZIVOS`; editing source does not change App Store Connect. Confirm
+and update that owner-controlled listing before submission so the store and
+signed candidate show the same identity.
 
-```
-ZIVO – Travel, Social, Shop
-```
+## 1. App Name (max 30 characters)
 
-## 2. Subtitle  (max 30 characters)
-
-```
-Flights, Reels, Jobs & Chat
-```
-
-## 3. Promotional Text  (max 170 characters — can update without resubmission)
-
-```
-New: free flight, hotel & car search, share reels, open a shop, post jobs, chat & video call — all in one app. Join free today.
+```text
+ZIVO
 ```
 
-## 4. Keywords  (max 100 characters, comma-separated, NO spaces after commas)
+## 2. Subtitle (max 30 characters)
 
+```text
+Social, Messaging & Travel
 ```
-flights,hotels,cars,reels,social,creator,shop,jobs,chat,video call,delivery,rides,super app,travel
+
+## 3. Promotional Text (max 170 characters)
+
+```text
+Explore social content, manage conversations, and search supported travel options with one ZIVO account. Availability varies by provider and location.
 ```
 
-## 5. Description  (max 4000 characters)
+## 4. Keywords (max 100 characters, comma-separated)
 
+```text
+social,messaging,travel,flights,hotels,cars,bus,profile,chat,video,shopping,trips
 ```
-ZIVO is the free all-in-one super-app for travel, social, shopping, and work.
 
-✈️ TRAVEL
-• Compare flights, hotels, and car rentals from 500+ trusted partners
-• Book rides and order food or groceries — in one app
-• AI trip planner builds your itinerary in seconds
+## 5. Description (max 4000 characters)
 
-📱 SOCIAL
-• Share short videos and reels with the world
-• Follow creators, subscribe to your favorites, watch live streams
-• Chat with voice notes, photos, and HD video calls
+```text
+ZIVO brings social discovery, messaging, and travel search into one app.
 
-🛒 SHOP & SELL
-• Open your own online shop in minutes
-• Built-in POS, orders, and payouts via Stripe
-• Reach buyers worldwide — no monthly fees
+SOCIAL
+• Browse posts and short videos
+• Follow accounts and manage your profile
+• Create and share supported content after signing in
 
-💼 JOBS
-• Browse and apply to jobs in one tap
-• Businesses post unlimited listings and review applicants
-• Built for both side hustles and full-time hires
+MESSAGING
+• Start and manage conversations
+• Share supported photos, videos, files, and voice messages
+• Manage chat notification and privacy settings
 
-💬 CHAT & CALL
-• End-to-end messaging
-• Free voice and HD video calls
-• Group chats, channels, and audio spaces
+TRAVEL
+• Search flights, hotels, car rentals, and bus options
+• Review available prices, schedules, and provider details before continuing
+• View and manage supported trips from your account
 
-🌍 WORKS EVERYWHERE
-• English, Khmer, Arabic, French
-• Works on iPhone and iPad
-• Sign in with Apple
+ACCOUNT & PRIVACY
+• Manage sign-in, profile, and security settings
+• Request account deletion in the app or on the ZIVO website
+• Access ZIVO's privacy, terms, and support resources
 
-Why ZIVO?
-• One app instead of ten
-• No booking fees on travel searches
-• Free to join, free to post, free to chat
-
-Download ZIVO and start your day in one app.
+Feature availability varies by location, provider, account, and internet connection. Prices and inventory appear only when returned by the relevant travel provider. ZIVO does not guarantee that every service is available to every user.
 
 —
-ZIVO LLC is a registered booking agent. Airlines, hotels, and car suppliers remain the merchants of record for their inventory. Some premium features and creator subscriptions may have a price.
+ZIVO LLC is a registered booking agent. Airlines, hotels, and car suppliers are the merchants of record for their inventory.
 
 Support: support@zivosmedia.com
 Website: https://zivosmedia.com
@@ -83,20 +76,28 @@ Privacy: https://zivosmedia.com/legal/privacy
 Terms: https://zivosmedia.com/legal/terms
 ```
 
-## 6. What's New in This Version  (max 4000 characters — UPDATE EVERY RELEASE)
+Keep this description aligned with `android/store-listing/PLAY_STORE.md`.
+Do not add a partner count, price, availability, encryption, AI, payout,
+language, calling-quality, or “free” claim until that exact behavior has been
+verified in the signed candidate and is reflected in the privacy disclosures.
 
-```
-• Faster flight search
-• New AI trip planner
-• Smoother video calls
-• Bug fixes and performance improvements
+## 6. What's New in This Version (max 4000 characters)
 
-Thanks for using ZIVO! Email support@zivosmedia.com with any feedback.
+```text
+• Improved account privacy isolation on shared devices
+• Hardened installed-app purchase and tracking boundaries
+• Improved travel, ride, and navigation reliability
+• Performance and stability improvements
+
+Thanks for using ZIVO. Email support@zivosmedia.com with feedback.
 ```
+
+This is draft release text. Reconcile it with the final frozen diff and exact
+signed-candidate QA before pasting it into App Store Connect.
 
 ## 7. Support / Marketing URLs
 
-```
+```text
 Support URL:    https://zivosmedia.com/support
 Marketing URL:  https://zivosmedia.com
 Privacy URL:    https://zivosmedia.com/legal/privacy
@@ -104,53 +105,88 @@ Privacy URL:    https://zivosmedia.com/legal/privacy
 
 ## 8. Category
 
-```
+```text
 Primary:    Lifestyle
 Secondary:  Travel
 ```
 
 ## 9. Age Rating
 
-```
-12+ (Infrequent/Mild Mature Suggestive Themes — user-generated content)
-```
+Do not paste the obsolete `12+` note or force a rating from this document.
+Complete Apple's current age-rating questionnaire truthfully for the exact
+candidate, including:
+
+- user-generated content and moderation;
+- social networking and direct/group messaging;
+- advertising, commerce, and access to existing subscriptions; installed-app
+  cross-app tracking is disabled in build 5 and must be answered **No** unless
+  the signed candidate changes;
+- unrestricted web access or external links;
+- mature, violent, sexual, or medical content exposure;
+- age assurance, parental controls, reporting, and blocking.
+
+Use the rating calculated by App Store Connect and record it here after the
+owner confirms the answers. Keep the selected age range compatible with the
+Play target-audience declaration; do not claim they match until both consoles
+have been reviewed.
+
+The build 5 privacy manifest declares no tracking domains and no data used for
+tracking or third-party advertising. App Store Connect privacy answers must
+match that exact candidate while still disclosing linked account, contact,
+location, purchase, and app-functionality data collected by the enabled
+features.
 
 ## 10. Copyright
 
-```
+```text
 © 2026 ZIVO LLC
 ```
 
 ## 11. Release Metadata
 
-```
+```text
 Version: 1.3.0
-Build: 4
+Build: 5
 Bundle ID: com.hizovo.app
 ```
 
+App Store Connect already processed build 4 on August 27, 2026. Build 5 is the
+next source candidate; confirm it remains unused immediately before upload.
+
 ## 12. Screenshot Assets
 
-Upload at least 6 iPhone screenshots for the current release review. Use fresh
-captures from the production web bundle or Simulator build, and keep the first
-six focused on the home/feed, profile, travel, chat, creator, and shop flows.
+Upload at least 6 iPhone screenshots from the exact signed release candidate.
+The first six should truthfully cover Home/Feed, Account, Travel, Messaging,
+Rides, and Shop only when those exact flows pass candidate QA.
 
-Current upload-ready files:
+The repository currently contains these reference captures:
 
-```
+```text
 ios/store-listing/sim-home-now.png
 ios/store-listing/sim-profile-now.png
 ios/store-listing/simulator-feed-fix-v2.png
 ios/store-listing/simulator-test-flights.png
 ios/store-listing/simulator-profile-compact.png
-ios/store-listing/simulator-live-now.png
+ios/store-listing/simulator-current-review.png
 ```
 
----
+Their presence is not upload readiness. Re-capture after the final web bundle
+is synchronized into iOS, the archive is signed, and the exact candidate is
+replayed at current App Store screenshot sizes. Reject duplicate images,
+browser-only captures, stale simulator builds, debug overlays, unavailable
+content, and screens whose visible behavior does not match the listing.
 
-### How to publish
-1. Open Xcode → bump version & build in `ios/App/App.xcodeproj`
-2. App Store Connect → ZIVO → **+ Version**
-3. Paste fields above into matching boxes
-4. Upload build via Xcode → Organizer → Distribute App
-5. Submit for review
+## How to publish
+
+1. Confirm the signed iOS candidate displays `ZIVO`, then align App Store Connect if it still shows `ZIVOS`.
+2. Confirm Apple's calculated age rating and privacy answers for current features.
+3. Build and synchronize the frozen web payload; verify archive payload parity.
+4. Install both App Store profiles: the app and `NotificationServiceExtension`.
+5. Open Xcode, choose the next unused build number, and create the archive.
+6. Replay the exact signed candidate and capture fresh screenshots.
+7. Paste the reviewed fields above into App Store Connect.
+8. Upload build via Xcode → Organizer → Distribute App.
+9. Review TestFlight processing, signing, metadata, and screenshots before any submission.
+
+Uploading a build does not submit it for review. The owner must approve the
+final App Store Connect submission.

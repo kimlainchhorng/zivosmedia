@@ -8,6 +8,7 @@ const root = path.resolve(new URL("../..", import.meta.url).pathname);
 const app = {
   name: "Zivosmedia",
   bundleId: "com.hizovo.app",
+  extensionBundleId: "com.hizovo.app.NotificationServiceExtension",
   teamId: "9KWY67J6LX",
 };
 
@@ -61,8 +62,16 @@ if (exists("android/keystore.properties")) {
 
 const iosP12Path = resolveInputPath(process.env.IOS_P12_PATH || "");
 const iosProfilePath = resolveInputPath(process.env.IOS_PROVISIONING_PROFILE_PATH || "");
+const iosExtensionProfilePath = resolveInputPath(
+  process.env.IOS_NOTIFICATION_SERVICE_PROVISIONING_PROFILE_PATH || "",
+);
 mark(Boolean(iosP12Path && fs.existsSync(iosP12Path)), "iOS Distribution .p12 path", "set IOS_P12_PATH=/path/to/cert.p12");
 mark(Boolean(iosProfilePath && fs.existsSync(iosProfilePath)), "iOS App Store profile path", "set IOS_PROVISIONING_PROFILE_PATH=/path/to/profile.mobileprovision");
+mark(
+  Boolean(iosExtensionProfilePath && fs.existsSync(iosExtensionProfilePath)),
+  "iOS notification-extension App Store profile path",
+  "set IOS_NOTIFICATION_SERVICE_PROVISIONING_PROFILE_PATH=/path/to/profile.mobileprovision",
+);
 mark(commandExists("gh"), "GitHub CLI available", "gh");
 mark(hasSupabaseCli || hasNpx, "Supabase CLI or npx available", hasSupabaseCli ? "supabase" : "npx supabase");
 
@@ -88,9 +97,11 @@ Android:
 iOS:
   export IOS_P12_PATH="/absolute/path/to/apple-distribution.p12"
   export IOS_PROVISIONING_PROFILE_PATH="/absolute/path/to/${app.bundleId}.mobileprovision"
+  export IOS_NOTIFICATION_SERVICE_PROVISIONING_PROFILE_PATH="/absolute/path/to/${app.extensionBundleId}.mobileprovision"
   node -e 'process.stdout.write(require("fs").readFileSync(process.env.IOS_P12_PATH).toString("base64"))' | gh secret set IOS_P12_BASE64
   gh secret set IOS_P12_PASSWORD
   node -e 'process.stdout.write(require("fs").readFileSync(process.env.IOS_PROVISIONING_PROFILE_PATH).toString("base64"))' | gh secret set IOS_PROVISIONING_PROFILE_B64
+  node -e 'process.stdout.write(require("fs").readFileSync(process.env.IOS_NOTIFICATION_SERVICE_PROVISIONING_PROFILE_PATH).toString("base64"))' | gh secret set IOS_NOTIFICATION_SERVICE_PROVISIONING_PROFILE_B64
   printf '${app.teamId}' | gh secret set IOS_TEAM_ID
 
 Supabase Edge push delivery secrets:

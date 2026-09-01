@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-07-28T17:29:24.387Z",
+  "generated": "2026-08-31T00:34:27.525Z",
   "mode": "strict",
   "options": {
     "strict": true,
@@ -11,13 +11,13 @@
   "readyForProductionGate": false,
   "counts": {
     "apiCritical": 0,
-    "apiWarnings": 0,
+    "apiWarnings": 1,
     "environmentCritical": 6,
     "environmentWarnings": 0,
     "databaseBlockers": 0,
     "databaseWarnings": 0,
     "edgeFunctionDeployFailures": 0,
-    "edgeFunctionMissingLiveCritical": 6,
+    "edgeFunctionMissingLiveCritical": 3,
     "edgeFunctionBrowserGateFailures": 0,
     "failedCommands": 2,
     "productionBlockers": 5,
@@ -28,20 +28,20 @@
     "driftAccessToken": false,
     "runtimeSettingsSqlInputs": false,
     "linkedHistoryDisconnected": false,
-    "remoteMigrationHistoryRead": false,
-    "remoteMigrationHistoryStatus": "unavailable",
-    "remoteMigrations": 0,
-    "matchedVersions": 0,
+    "remoteMigrationHistoryRead": true,
+    "remoteMigrationHistoryStatus": "read",
+    "remoteMigrations": 1622,
+    "matchedVersions": 11,
     "duplicateVersions": 6,
     "newDuplicateVersions": 0
   },
   "reconciliation": {
-    "candidates": 0,
-    "highConfidenceCandidates": 0,
-    "mediumConfidenceCandidates": 0,
-    "unmatchedLocalAfterCandidates": 1135,
-    "unmatchedRemoteAfterCandidates": 0,
-    "unmatchedLocalAfterRemoteRange": 0,
+    "candidates": 617,
+    "highConfidenceCandidates": 584,
+    "mediumConfidenceCandidates": 33,
+    "unmatchedLocalAfterCandidates": 541,
+    "unmatchedRemoteAfterCandidates": 994,
+    "unmatchedLocalAfterRemoteRange": 12,
     "reviewOrder": [
       "high-confidence candidate mappings",
       "medium-confidence candidate mappings",
@@ -53,27 +53,27 @@
       {
         "order": 1,
         "label": "high-confidence candidate mappings",
-        "count": 0
+        "count": 584
       },
       {
         "order": 2,
         "label": "medium-confidence candidate mappings",
-        "count": 0
+        "count": 33
       },
       {
         "order": 3,
         "label": "unmatched local migrations after candidates",
-        "count": 1135
+        "count": 541
       },
       {
         "order": 4,
         "label": "unmatched remote versions after candidates",
-        "count": 0
+        "count": 994
       },
       {
         "order": 5,
         "label": "likely pending local migrations after remote range",
-        "count": 0
+        "count": 12
       }
     ]
   },
@@ -91,9 +91,6 @@
     "slotReadinessMode": "local-plus-known-live-gap",
     "missingLiveCritical": [
       "analytics-event-track",
-      "notification-manage",
-      "social-notification-manage",
-      "push-device-manage",
       "talent-invite-notification",
       "admin-broadcast-notification"
     ],
@@ -108,14 +105,14 @@
       "Missing SUPABASE_URL for production backend cron/runtime settings.",
       "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
       "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
-      "Supabase remote migration history is unavailable (unavailable)."
+      "API readiness has 1 warning(s)."
     ],
     "currentGate": [
       "Environment readiness has 6 critical finding(s).",
       "Missing SUPABASE_URL for production backend cron/runtime settings.",
       "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
       "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
-      "Supabase remote migration history is unavailable (unavailable)."
+      "API readiness has 1 warning(s)."
     ],
     "failedCommands": [
       "Supabase deploy environment",
@@ -191,63 +188,63 @@
     "markdown": {
       "path": "docs/production-preflight-report.md",
       "exists": true,
-      "bytes": 24198
+      "bytes": 23610
     },
     "json": {
       "path": "docs/production-preflight-summary.json",
       "exists": true,
-      "bytes": 7375
+      "bytes": 7235
     },
     "migrationDrift": {
       "path": "docs/supabase-migration-drift-report.md",
       "exists": true,
-      "bytes": 12401
+      "bytes": 16901
     },
     "databaseReadiness": {
       "path": "docs/database-upgrade-readiness-report.md",
       "exists": true,
-      "bytes": 13078
+      "bytes": 13220
     },
     "apiReadiness": {
       "path": "docs/api-readiness-report.md",
       "exists": true,
-      "bytes": 2465
+      "bytes": 2454
     },
     "reconciliationPlan": {
       "path": "docs/supabase-migration-reconciliation-plan.md",
       "exists": true,
-      "bytes": 3427
+      "bytes": 4581
     },
     "reconciliationCandidates": {
       "path": "docs/supabase-migration-reconciliation-candidates.csv",
       "exists": true,
-      "bytes": 69
+      "bytes": 57433
     },
     "reconciliationRepairDraft": {
       "path": "docs/supabase-migration-reconciliation-repair-draft.sql",
       "exists": true,
-      "bytes": 748
+      "bytes": 212367
     },
     "pendingLocalReview": {
       "path": "docs/supabase-migration-pending-local-review.csv",
       "exists": true,
-      "bytes": 334
+      "bytes": 2516
     },
     "unmatchedLocal": {
       "path": "docs/supabase-migration-unmatched-local.csv",
       "exists": true,
-      "bytes": 122484
+      "bytes": 65980
     },
     "unmatchedRemote": {
       "path": "docs/supabase-migration-unmatched-remote.csv",
       "exists": true,
-      "bytes": 106
+      "bytes": 105376
     }
   },
   "artifactSummary": {
     "total": 11,
     "existing": 11,
     "missing": 0,
-    "bytes": 186685
+    "bytes": 511673
   }
 }

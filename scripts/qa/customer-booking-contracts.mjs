@@ -29,6 +29,12 @@ function requireContains(id, text, needle, relativePath) {
   }
 }
 
+function requireMatch(id, text, pattern, relativePath) {
+  if (!pattern.test(text)) {
+    failures.push(`${id}: ${relativePath} missing pattern ${pattern}`);
+  }
+}
+
 const contracts = [
   {
     id: "grocery-customer-route-surface",
@@ -58,25 +64,47 @@ const contracts = [
       ]) {
         requireContains(this.id, app, route, appPath);
       }
-      requireContains(this.id, source(storePath), "GroceryCheckoutDrawer", storePath);
+      requireContains(
+        this.id,
+        source(storePath),
+        "GroceryCheckoutDrawer",
+        storePath,
+      );
       for (const needle of [
-        'supabase.functions.invoke("create-grocery-payment-intent"',
-        'supabase.functions.invoke("confirm-grocery-payment"',
-        'returnUrl = `${window.location.origin}/grocery/orders?${returnParam}=${orderId}`',
-        'cancelUrl = `${window.location.origin}/grocery/orders?grocery_paypal_cancel=${orderId}`',
-        '<Link to="/grocery/returns"',
-        '<Link to="/grocery/fees"',
-        '<Link to="/grocery/terms"',
+        "returnUrl = `${window.location.origin}/grocery/orders?${returnParam}=${orderId}`",
+        "cancelUrl = `${window.location.origin}/grocery/orders?grocery_paypal_cancel=${orderId}`",
       ]) {
         requireContains(this.id, checkout, needle, checkoutPath);
       }
-      for (const needle of ['params.get("order_id")', '.eq("user_id", user.id)', 'navigate(`/grocery/track/${orderId}`)']) {
+      for (const pattern of [
+        /supabase\.functions\.invoke\(\s*["']create-grocery-payment-intent["']/,
+        /supabase\.functions\.invoke\(\s*["']confirm-grocery-payment["']/,
+        /<Link\s+to=["']\/grocery\/returns["']/,
+        /<Link\s+to=["']\/grocery\/fees["']/,
+        /<Link\s+to=["']\/grocery\/terms["']/,
+      ]) {
+        requireMatch(this.id, checkout, pattern, checkoutPath);
+      }
+      for (const needle of [
+        'params.get("order_id")',
+        '.eq("user_id", user.id)',
+        "navigate(`/grocery/track/${orderId}`)",
+      ]) {
         requireContains(this.id, confirmed, needle, confirmedPath);
       }
-      for (const needle of ['.from("shopping_orders")', '.eq("user_id", user.id)', '.eq("order_type", "shopping_delivery")', 'navigate(`/grocery/track/${orderId}`)']) {
+      for (const needle of [
+        '.from("shopping_orders")',
+        '.eq("user_id", user.id)',
+        '.eq("order_type", "shopping_delivery")',
+        "navigate(`/grocery/track/${orderId}`)",
+      ]) {
         requireContains(this.id, history, needle, historyPath);
       }
-      for (const needle of ['useParams<{ orderId: string }>()', '.from("shopping_orders")', '.eq("id", orderId)']) {
+      for (const needle of [
+        "useParams<{ orderId: string }>()",
+        '.from("shopping_orders")',
+        '.eq("id", orderId)',
+      ]) {
         requireContains(this.id, tracking, needle, trackingPath);
       }
     },
@@ -86,11 +114,14 @@ const contracts = [
     category: "backend",
     check() {
       const bookingPath = "src/pages/store/ServiceBookingPage.tsx";
-      const adminBookingsPath = "src/components/admin/store/AdminBookingsTab.tsx";
+      const adminBookingsPath =
+        "src/components/admin/store/AdminBookingsTab.tsx";
       const submitPath = "supabase/functions/service-booking-submit/index.ts";
       const managePath = "supabase/functions/service-booking-manage/index.ts";
-      const gatePath = "supabase/migrations/20260601224500_service_bookings_public_submit_gate.sql";
-      const ownerGatePath = "supabase/migrations/20260601230000_service_bookings_owner_manage_gate.sql";
+      const gatePath =
+        "supabase/migrations/20260601224500_service_bookings_public_submit_gate.sql";
+      const ownerGatePath =
+        "supabase/migrations/20260601230000_service_bookings_owner_manage_gate.sql";
       const booking = source(bookingPath);
       const adminBookings = source(adminBookingsPath);
       const submit = source(submitPath);
@@ -98,35 +129,86 @@ const contracts = [
       const gate = source(gatePath);
       const ownerGate = source(ownerGatePath);
 
-      requireContains(this.id, booking, 'functions.invoke("service-booking-submit"', bookingPath);
-      requireContains(this.id, adminBookings, 'functions.invoke("service-booking-manage"', adminBookingsPath);
-      requireContains(this.id, submit, 'withSecurity("service-booking-submit"', submitPath);
+      requireContains(
+        this.id,
+        booking,
+        'functions.invoke("service-booking-submit"',
+        bookingPath,
+      );
+      requireContains(
+        this.id,
+        adminBookings,
+        'functions.invoke("service-booking-manage"',
+        adminBookingsPath,
+      );
+      requireContains(
+        this.id,
+        submit,
+        'withSecurity("service-booking-submit"',
+        submitPath,
+      );
       requireContains(this.id, submit, 'allowedMethods: ["POST"]', submitPath);
       requireContains(this.id, submit, "strictCors: true", submitPath);
       requireContains(this.id, submit, "SUPABASE_SERVICE_ROLE_KEY", submitPath);
       requireContains(this.id, submit, '.from("store_profiles")', submitPath);
       requireContains(this.id, submit, '.from("store_products")', submitPath);
       requireContains(this.id, submit, '.from("service_bookings")', submitPath);
-      requireContains(this.id, manage, 'withSecurity("service-booking-manage"', managePath);
+      requireContains(
+        this.id,
+        manage,
+        'withSecurity("service-booking-manage"',
+        managePath,
+      );
       requireContains(this.id, manage, 'allowedMethods: ["POST"]', managePath);
       requireContains(this.id, manage, "admin.auth.getUser(token)", managePath);
       requireContains(this.id, manage, '.from("service_bookings")', managePath);
       requireContains(this.id, manage, '.from("store_profiles")', managePath);
       requireContains(this.id, manage, '.from("ar_work_orders")', managePath);
       requireContains(this.id, manage, 'rpc("has_role"', managePath);
-      requireContains(this.id, gate, "Service booking public inserts require trusted server-side validation", gatePath);
-      requireContains(this.id, gate, "REVOKE INSERT ON TABLE public.service_bookings FROM anon", gatePath);
-      requireContains(this.id, ownerGate, "Service booking owner inserts require trusted server-side validation", ownerGatePath);
-      requireContains(this.id, ownerGate, "Service booking owner updates require trusted server-side validation", ownerGatePath);
-      requireContains(this.id, ownerGate, "Service booking owner deletes require trusted server-side validation", ownerGatePath);
-      requireContains(this.id, ownerGate, "REVOKE INSERT, UPDATE, DELETE ON TABLE public.service_bookings FROM authenticated", ownerGatePath);
+      requireContains(
+        this.id,
+        gate,
+        "Service booking public inserts require trusted server-side validation",
+        gatePath,
+      );
+      requireContains(
+        this.id,
+        gate,
+        "REVOKE INSERT ON TABLE public.service_bookings FROM anon",
+        gatePath,
+      );
+      requireContains(
+        this.id,
+        ownerGate,
+        "Service booking owner inserts require trusted server-side validation",
+        ownerGatePath,
+      );
+      requireContains(
+        this.id,
+        ownerGate,
+        "Service booking owner updates require trusted server-side validation",
+        ownerGatePath,
+      );
+      requireContains(
+        this.id,
+        ownerGate,
+        "Service booking owner deletes require trusted server-side validation",
+        ownerGatePath,
+      );
+      requireContains(
+        this.id,
+        ownerGate,
+        "REVOKE INSERT, UPDATE, DELETE ON TABLE public.service_bookings FROM authenticated",
+        ownerGatePath,
+      );
     },
   },
   {
     id: "authenticated-grocery-checkout-confirmation",
     category: "backend",
     check() {
-      const createPath = "supabase/functions/create-grocery-payment-intent/index.ts";
+      const createPath =
+        "supabase/functions/create-grocery-payment-intent/index.ts";
       const confirmPath = "supabase/functions/confirm-grocery-payment/index.ts";
       const legacyPath = "supabase/functions/create-grocery-checkout/index.ts";
       const webhookPath = "supabase/functions/stripe-webhook/index.ts";
@@ -135,7 +217,11 @@ const contracts = [
       const legacy = source(legacyPath);
       const webhook = source(webhookPath);
 
-      for (const [relativePath, text] of [[createPath, create], [confirmPath, confirm], [legacyPath, legacy]]) {
+      for (const [relativePath, text] of [
+        [createPath, create],
+        [confirmPath, confirm],
+        [legacyPath, legacy],
+      ]) {
         requireContains(this.id, text, 'withSecurity("', relativePath);
         requireContains(this.id, text, "auth.getUser()", relativePath);
         requireContains(this.id, text, "rateLimit", relativePath);
@@ -162,7 +248,7 @@ const contracts = [
         "Order not found or access denied",
         'status: "pending"',
         'payment_status: "paid"',
-        'stripe_payment_intent_id: payment_intent_id',
+        "stripe_payment_intent_id: payment_intent_id",
         "notifyGroceryOrderConfirmed",
       ]) {
         requireContains(this.id, confirm, needle, confirmPath);
@@ -184,13 +270,18 @@ const contracts = [
       const orderActionsPath = "src/hooks/useOrderActions.ts";
       const historyPath = "src/pages/GroceryOrderHistory.tsx";
       const driverOrdersPath = "src/hooks/useDriverShoppingOrders.ts";
-      const paymentReturnPath = "src/components/lodging/PaymentReturnHandler.tsx";
+      const paymentReturnPath =
+        "src/components/lodging/PaymentReturnHandler.tsx";
       const orderActions = source(orderActionsPath);
       const history = source(historyPath);
       const driverOrders = source(driverOrdersPath);
       const paymentReturn = source(paymentReturnPath);
 
-      for (const needle of ["useAuth", '.eq("customer_id", user.id)', 'body: { order_id: orderId, customer_id: user.id }']) {
+      for (const needle of [
+        "useAuth",
+        '.eq("customer_id", user.id)',
+        "body: { order_id: orderId, customer_id: user.id }",
+      ]) {
         requireContains(this.id, orderActions, needle, orderActionsPath);
       }
       for (const needle of [
@@ -212,7 +303,11 @@ const contracts = [
       ]) {
         requireContains(this.id, driverOrders, needle, driverOrdersPath);
       }
-      for (const needle of ["grocery_paypal_return", "grocery_paypal_cancel", "grocery_square_return"]) {
+      for (const needle of [
+        "grocery_paypal_return",
+        "grocery_paypal_cancel",
+        "grocery_square_return",
+      ]) {
         requireContains(this.id, paymentReturn, needle, paymentReturnPath);
       }
     },
@@ -241,37 +336,66 @@ const contracts = [
           requireContains(this.id, text, needle, relativePath);
         }
         if (text.includes('"Access-Control-Allow-Origin": "*"')) {
-          failures.push(`${this.id}: ${relativePath} must not use wildcard CORS`);
+          failures.push(
+            `${this.id}: ${relativePath} must not use wildcard CORS`,
+          );
         }
       }
       const requestPath = "supabase/functions/request-lodging-change/index.ts";
       const approvePath = "supabase/functions/approve-lodging-change/index.ts";
       const addonsPath = "supabase/functions/purchase-lodging-addons/index.ts";
-      const eligibilityPath = "supabase/functions/lodging-addon-eligibility/index.ts";
+      const eligibilityPath =
+        "supabase/functions/lodging-addon-eligibility/index.ts";
       const requestChange = source(requestPath);
-      for (const needle of ["isLikelyMaliciousBot(req.headers)", "isIpAbuseThresholdExceeded(admin, ipHash)", "scanContentForLinks(reason)", "reservation.guest_id !== user.id"]) {
+      for (const needle of [
+        "isLikelyMaliciousBot(req.headers)",
+        "isIpAbuseThresholdExceeded(admin, ipHash)",
+        "scanContentForLinks(reason)",
+        "reservation.guest_id !== user.id",
+      ]) {
         requireContains(this.id, requestChange, needle, requestPath);
       }
       const approveChange = source(approvePath);
-      for (const needle of ["store?.owner_id !== user.id", 'r.role === "admin"', "paymentIntents.create"]) {
+      for (const needle of [
+        "store?.owner_id !== user.id",
+        'r.role === "admin"',
+        "paymentIntents.create",
+      ]) {
         requireContains(this.id, approveChange, needle, approvePath);
       }
       const purchaseAddons = source(addonsPath);
-      for (const needle of ["r.guest_id !== user.id", "recordFailed(admin, r, user.id", "paymentIntents.create"]) {
+      for (const needle of [
+        "r.guest_id !== user.id",
+        "recordFailed(admin, r, user.id",
+        "paymentIntents.create",
+      ]) {
         requireContains(this.id, purchaseAddons, needle, addonsPath);
       }
       const eligibility = source(eligibilityPath);
-      requireContains(this.id, eligibility, "r.guest_id !== user.id", eligibilityPath);
-      requireContains(this.id, eligibility, "catalog.map((addon) => evaluate(addon, ctx))", eligibilityPath);
+      requireContains(
+        this.id,
+        eligibility,
+        "r.guest_id !== user.id",
+        eligibilityPath,
+      );
+      requireContains(
+        this.id,
+        eligibility,
+        "catalog.map((addon) => evaluate(addon, ctx))",
+        eligibilityPath,
+      );
     },
   },
   {
     id: "shopping-orders-rls-and-grants",
     category: "database",
     check() {
-      const basePath = "supabase/migrations/20260312153908_64f6cd7e-6497-481d-b74a-3cbe36705b7f.sql";
-      const driverPath = "supabase/migrations/20260312154330_9b8149e4-0f6f-4115-828d-607b319bd493.sql";
-      const fixPath = "supabase/migrations/20260531194500_shopping_orders_customer_driver_policy.sql";
+      const basePath =
+        "supabase/migrations/20260312153908_64f6cd7e-6497-481d-b74a-3cbe36705b7f.sql";
+      const driverPath =
+        "supabase/migrations/20260312154330_9b8149e4-0f6f-4115-828d-607b319bd493.sql";
+      const fixPath =
+        "supabase/migrations/20260531194500_shopping_orders_customer_driver_policy.sql";
       const base = source(basePath);
       const driver = source(driverPath);
       const fix = source(fixPath);
@@ -311,15 +435,21 @@ const contracts = [
 
 for (const contract of contracts) contract.check();
 
-console.log(JSON.stringify({
-  generated: new Date().toISOString(),
-  counts: {
-    contracts: contracts.length,
-    failures: failures.length,
-  },
-  contracts: contracts.map(({ id, category }) => ({ id, category })),
-  failures,
-}, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      generated: new Date().toISOString(),
+      counts: {
+        contracts: contracts.length,
+        failures: failures.length,
+      },
+      contracts: contracts.map(({ id, category }) => ({ id, category })),
+      failures,
+    },
+    null,
+    2,
+  ),
+);
 
 if (failures.length > 0) {
   process.exitCode = 1;

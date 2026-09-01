@@ -6,6 +6,9 @@ This config adds Cloudflare hosting in two pieces:
 - A Cloudflare Worker serves R2 media/downloads and can also serve the built Vite app from `dist` with SPA fallback.
 - Serve R2 media through `/media/*` and large downloads through `/downloads/*`, with public `GET`/`HEAD` and secret-protected `PUT`/`DELETE`.
 - Proxy `/api/ai/chat` to DeepSeek or Claude from the Worker so browser code never sees provider API keys. The bridge accepts `provider: "auto" | "claude" | "deepseek"` and falls back to the other configured provider when the primary provider is busy or temporarily unavailable.
+  Calls require a current main-project Supabase user session and consume the
+  authenticated user's durable 40-request / 10-minute quota before a provider
+  credential is used.
 - Proxy `/share/c/:handle` to the existing Supabase `channel-og` Edge Function for link previews.
   Configure this with `SUPABASE_URL` or the more specific `CHANNEL_OG_FUNCTION_URL`.
 
@@ -53,6 +56,13 @@ Set the DeepSeek API key for the AI chat bridge:
 npx wrangler secret put DEEPSEEK_API_KEY
 ```
 
+Set the main-project publishable key used only to validate caller access tokens
+with Supabase Auth. Never configure a secret/service-role key here:
+
+```sh
+npx wrangler secret put SUPABASE_PUBLISHABLE_KEY
+```
+
 If a DeepSeek key was ever pasted into chat or committed locally, revoke it in the DeepSeek dashboard and create a fresh key before setting the Worker secret.
 
 Set the Claude API key for Claude-backed chat:
@@ -93,6 +103,7 @@ Test the local DeepSeek bridge after adding `DEEPSEEK_API_KEY` to `.dev.vars`:
 
 ```sh
 curl -X POST "http://localhost:8787/api/ai/chat" \
+  -H "Authorization: Bearer $ZIVO_TEST_USER_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   --data '{"provider":"deepseek","message":"Give me one short Cambodia travel tip.","mode":"travel","stream":false}'
 ```
@@ -101,6 +112,7 @@ Test Claude after adding `ANTHROPIC_API_KEY`:
 
 ```sh
 curl -X POST "http://localhost:8787/api/ai/chat" \
+  -H "Authorization: Bearer $ZIVO_TEST_USER_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   --data '{"provider":"claude","message":"Give me one short support greeting for ZIVO.","mode":"support","stream":false}'
 ```

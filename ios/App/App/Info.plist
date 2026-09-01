@@ -54,66 +54,27 @@
 		<false/>
 		<key>NSExceptionDomains</key>
 		<dict/>
-		<key>NSPinnedDomains</key>
-		<dict>
-			<key>stripe.com</key>
-			<dict>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-				<key>NSPinnedCAIdentities</key>
-				<array>
-					<dict>
-						<key>SPKI-SHA256-BASE64</key>
-						<string>xUUBOliw6Rgb7It2YbiSOg0ifTHlP3Lv6MXMkw//uLM=</string>
-					</dict>
-					<dict>
-						<key>SPKI-SHA256-BASE64</key>
-						<string>Ld64SpoeXjpLjc+/7Wahk6p5+KVyzVSUptciuWsyxeY=</string>
-					</dict>
-				</array>
-			</dict>
-			<key>supabase.co</key>
-			<dict>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-				<key>NSPinnedCAIdentities</key>
-				<array>
-					<dict>
-						<key>SPKI-SHA256-BASE64</key>
-						<string>GU2W4j1P24T3sqlI+o6YTnidzz0PI8fB/Gvd2ITfSZE=</string>
-					</dict>
-					<dict>
-						<key>SPKI-SHA256-BASE64</key>
-						<string>kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=</string>
-					</dict>
-				</array>
-			</dict>
-		</dict>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>ZIVO uses your camera for video calls and to capture a profile photo for your account.</string>
+	<string>ZIVO uses your camera for video calls, photos or videos you choose to share, and QR codes you choose to scan.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>ZIVO uses your location to support live trip, delivery, and driver navigation features while you are actively using the app.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>ZIVO uses your location while you use the app to find nearby airports, estimate pickups, improve delivery and ride tracking, and help drivers navigate to customers.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>ZIVO uses your microphone for voice and video calls between users.</string>
+	<string>ZIVO uses your microphone for voice and video calls and to record voice messages you choose to share.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>ZIVO needs permission to save photos and edited images you choose for your profile to your photo library.</string>
+	<string>ZIVO saves photos, videos, and edited media to your photo library only when you choose to save or export them.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>ZIVO accesses your photo library so you can select an existing photo to use as your profile picture on your account.</string>
+	<string>ZIVO accesses only the photos and videos you choose for your profile, posts, messages, reviews, or store content.</string>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>INSendMessageIntent</string>
 		<string>INStartCallIntent</string>
 	</array>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>ZIVO uses this permission to measure ad performance and personalize content you see across rides, eats, hotels, and flights. You can decline and still use ZIVO normally.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
-		<string>voip</string>
-		<string>audio</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

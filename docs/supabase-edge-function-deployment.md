@@ -6,8 +6,9 @@ Supabase Edge Function is visible in the live project.
 ## Current Blocker
 
 - `analytics-event-track` exists locally and is declared in `supabase/config.toml`.
-- The live project `slirphzzwcogdbkeicff` did not include the six critical
-  deploy-readiness functions when checked on 2026-06-03. See
+- A fresh read-only check on 2026-08-30 found `notification-manage`,
+  `social-notification-manage`, and `push-device-manage` active, while three
+  critical deploy-readiness functions remain absent. See
   `docs/qa/edge-function-live-gap-2026-06-03.json`.
 - A CLI deploy attempt failed with a hosted capacity response: max function count
   reached; upgrade the plan, disable the spend cap, or free a function slot before
@@ -17,16 +18,16 @@ Supabase Edge Function is visible in the live project.
 
 - Keep `VITE_ANALYTICS_EVENT_TRACK_ENABLED=false` in frontend deploy env until
   `analytics-event-track` is deployed and an OPTIONS/POST smoke succeeds.
-- Keep `VITE_NOTIFICATION_MANAGE_ENABLED=false` until `notification-manage` is
-  deployed and an authenticated POST smoke succeeds. While disabled, UI mutation
+- Keep `VITE_NOTIFICATION_MANAGE_ENABLED=false` until an authenticated production
+  POST smoke succeeds. While disabled, UI mutation
   controls show a temporary-unavailable message instead of calling the missing
   function.
-- Keep `VITE_SOCIAL_NOTIFICATION_MANAGE_ENABLED=false` until
-  `social-notification-manage` is deployed and authenticated mark-read/create
+- Keep `VITE_SOCIAL_NOTIFICATION_MANAGE_ENABLED=false` until authenticated
+  production mark-read/create
   smoke checks succeed. While disabled, social notification reads stay visible
   but write/read-state mutations do not call the missing function.
-- Keep `VITE_PUSH_DEVICE_MANAGE_ENABLED=false` until `push-device-manage` is
-  deployed and an authenticated revoke smoke succeeds. While disabled, device
+- Keep `VITE_PUSH_DEVICE_MANAGE_ENABLED=false` until an authenticated production
+  revoke smoke succeeds. While disabled, device
   lists still load but revoke actions are rolled back with a temporary message.
 - Keep `VITE_TALENT_INVITE_NOTIFICATION_ENABLED=false` until
   `talent-invite-notification` is deployed and an authenticated invite smoke

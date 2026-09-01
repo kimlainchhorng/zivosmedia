@@ -1,11 +1,11 @@
 {
-  "generated": "2026-07-22T19:38:01Z",
+  "generated": "2026-08-30T23:51:18Z",
   "projectRef": "slirphzzwcogdbkeicff",
   "source": "supabase-mcp",
-  "localMigrations": 1135,
-  "remoteMigrations": 1595,
+  "localMigrations": 1166,
+  "remoteMigrations": 1622,
   "firstRemoteVersion": "20260126182059",
-  "latestRemoteVersion": "20260722193446",
+  "latestRemoteVersion": "20260830180554",
   "verifiedAppliedMigrations": [
     {
       "version": "20260722192749",
@@ -18,6 +18,22 @@
     {
       "version": "20260722193446",
       "name": "channel_data_api_least_privilege"
+    },
+    {
+      "version": "20260830165252",
+      "name": "release_backend_security_reconciliation"
+    },
+    {
+      "version": "20260830165904",
+      "name": "harden_anonymous_security_definer_mutations"
+    },
+    {
+      "version": "20260830174518",
+      "name": "harden_internal_cron_auth"
+    },
+    {
+      "version": "20260830180554",
+      "name": "cutover_internal_cron_hmac_jobs"
     }
   ]
 }

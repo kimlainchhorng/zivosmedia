@@ -10,6 +10,9 @@ name: Release
 #
 # Required commit style: Conventional Commits (feat:, fix:, chore:, etc.).
 # Commits that don't match are still included but won't bump the version.
+#
+# Required repo secret:
+#   VITE_STRIPE_PUBLISHABLE_KEY  - browser-safe Stripe key (pk_...), never sk_*
 
 on:
   push:
@@ -26,10 +29,87 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release-please:
-    name: Release please
+  release-authority:
+    name: Verify production release authority
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Check browser-safe Stripe release key
+        env:
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$VITE_STRIPE_PUBLISHABLE_KEY" ]; then
+            echo "VITE_STRIPE_PUBLISHABLE_KEY is required before a GitHub tag or Release can be created."
+            exit 1
+          fi
+          if [[ "$VITE_STRIPE_PUBLISHABLE_KEY" != pk_* ]]; then
+            echo "VITE_STRIPE_PUBLISHABLE_KEY must be a browser-safe publishable key (pk_...); secret keys are forbidden."
+            exit 1
+          fi
+
+      - name: Verify Wallet cash-out tombstones
+        run: |
+          set -euo pipefail
+          cashout_base_url="https://slirphzzwcogdbkeicff.supabase.co/functions/v1"
+          cashout_functions=(
+            process-withdrawal
+            connect-instant-payout
+            paypal-payout
+            wallet-instant-payout
+            stripe-instant-payout
+          )
+
+          for slug in "${cashout_functions[@]}"; do
+            response_file="$RUNNER_TEMP/${slug}-tombstone.json"
+            http_status="$(
+              curl --silent --show-error \
+                --proto '=https' \
+                --tlsv1.2 \
+                --connect-timeout 10 \
+                --max-time 30 \
+                --request POST \
+                --header 'user-agent: ZIVO-Release-Gate/1.0' \
+                --header 'accept: application/json' \
+                --header 'content-type: application/json' \
+                --data-binary '' \
+                --output "$response_file" \
+                --write-out '%{http_code}' \
+                "$cashout_base_url/$slug"
+            )"
+
+            if [ "$http_status" != "503" ]; then
+              echo "$slug must return HTTP 503 from the Wallet cash-out tombstone; received $http_status."
+              exit 1
+            fi
+
+            node - "$response_file" "$slug" <<'NODE'
+          const { readFileSync } = require("node:fs");
+          const [responseFile, slug] = process.argv.slice(2);
+          let payload;
+          try {
+            payload = JSON.parse(readFileSync(responseFile, "utf8"));
+          } catch {
+            console.error(`${slug} returned a non-JSON Wallet cash-out tombstone response.`);
+            process.exit(1);
+          }
+          if (payload?.code !== "wallet_cashout_authority_unavailable") {
+            console.error(`${slug} returned the wrong Wallet cash-out tombstone code.`);
+            process.exit(1);
+          }
+          NODE
+          done
+
+  release-please:
+    name: Release please
+    needs: release-authority
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      release_sha: ${{ steps.release.outputs.sha }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7
         id: release
@@ -49,10 +129,22 @@ jobs:
               {"type":"ci","section":"CI","hidden":true}
             ]
 
-      # If a release was just published, push a build tag the mobile-build
-      # workflow can pick up (mobile-build.yml triggers on v* tags).
       - name: Output release info
         if: ${{ steps.release.outputs.release_created }}
         run: |
           echo "Released ${{ steps.release.outputs.tag_name }}"
-          echo "Mobile builds will be triggered automatically."
+          echo "The signed mobile build will run as a required reusable workflow job."
+
+  # release-please currently uses the default GITHUB_TOKEN, so its tag cannot
+  # start the tag-triggered mobile workflow. If a PAT or GitHub App token is
+  # introduced later, remove either that tag trigger or this direct call to
+  # avoid building the same release twice.
+  mobile-build:
+    name: Build released mobile apps
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: ./.github/workflows/mobile-build.yml
+    with:
+      release_type: release
+      release_sha: ${{ needs.release-please.outputs.release_sha }}
+    secrets: inherit

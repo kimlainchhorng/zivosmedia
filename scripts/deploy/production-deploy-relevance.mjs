@@ -10,6 +10,7 @@ import { appendFileSync, readFileSync } from "node:fs";
 const RELEVANT_PATHS = [
   /^src\//,
   /^public\//,
+  /^cloudflare\//,
   /^supabase\//,
   /^scripts\/deploy\//,
   /^scripts\/security\//,
@@ -20,6 +21,7 @@ const RELEVANT_PATHS = [
   /^docs\/platform-upgrade-workflow\.md$/,
   /^docs\/end-to-end-platform-readiness\.md$/,
   /^netlify\.toml$/,
+  /^wrangler\.toml$/,
   /^package\.json$/,
   /^package-lock\.json$/,
   /^vite\.config\.ts$/,

@@ -9,7 +9,7 @@ import {
 
 const expected = Object.freeze({
   packageName: "com.hizovo.app",
-  versionCode: "2026082601",
+  versionCode: "2026083001",
   versionName: "1.3.0",
   minSdk: "24",
   targetSdk: "36",
@@ -18,7 +18,7 @@ const expected = Object.freeze({
 });
 
 const badgingOutput = [
-  "package: name='com.hizovo.app' versionCode='2026082601' versionName='1.3.0' compileSdkVersion='36'",
+  "package: name='com.hizovo.app' versionCode='2026083001' versionName='1.3.0' compileSdkVersion='36'",
   "minSdkVersion:'24'",
   "targetSdkVersion:'36'",
   "application-label:'ZIVO'",
@@ -62,7 +62,7 @@ test("parses the Android release identity from Gradle sources", () => {
     parseAndroidReleaseIdentity({
       buildGradle: `
         applicationId "com.hizovo.app"
-        versionCode 2026082601
+        versionCode 2026083001
         versionName "1.3.0"
       `,
       variablesGradle: `

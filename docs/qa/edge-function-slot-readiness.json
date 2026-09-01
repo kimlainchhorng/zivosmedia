@@ -1,13 +1,13 @@
 {
-  "generated": "2026-08-29T15:51:44.538Z",
+  "generated": "2026-08-31T00:34:24.860Z",
   "mode": "local-plus-known-live-gap",
   "counts": {
-    "configuredFunctions": 107,
-    "localConfiguredFunctions": 107,
+    "configuredFunctions": 145,
+    "localConfiguredFunctions": 145,
     "liveFunctions": null,
-    "knownMissingLiveFunctions": 6,
-    "criticalFunctions": 7,
-    "missingLiveCritical": 6,
+    "knownMissingLiveFunctions": 3,
+    "criticalFunctions": 10,
+    "missingLiveCritical": 3,
     "warnings": 1,
     "failures": 0
   },
@@ -18,13 +18,10 @@
   },
   "knownLiveGap": {
     "path": "docs/qa/edge-function-live-gap-2026-06-03.json",
-    "generated": "2026-06-03T21:20:00.000Z",
+    "generated": "2026-08-30T23:51:18.000Z",
     "projectId": "slirphzzwcogdbkeicff",
     "missing": [
       "analytics-event-track",
-      "notification-manage",
-      "social-notification-manage",
-      "push-device-manage",
       "talent-invite-notification",
       "admin-broadcast-notification"
     ]
@@ -35,8 +32,10 @@
       "why": "browser analytics telemetry",
       "verifyJwt": false,
       "configPresent": true,
+      "configVerifyJwt": false,
       "localPresent": true,
       "livePresent": false,
+      "liveVerifyJwt": null,
       "browserFeatureFlag": "VITE_ANALYTICS_EVENT_TRACK_ENABLED",
       "envDefaults": {
         ".env.example": "false",
@@ -48,8 +47,10 @@
       "why": "notification read/delete/snooze mutations",
       "verifyJwt": true,
       "configPresent": true,
+      "configVerifyJwt": true,
       "localPresent": true,
-      "livePresent": false,
+      "livePresent": null,
+      "liveVerifyJwt": null,
       "browserFeatureFlag": "VITE_NOTIFICATION_MANAGE_ENABLED",
       "envDefaults": {
         ".env.example": "false",
@@ -61,8 +62,10 @@
       "why": "social notification mutations",
       "verifyJwt": true,
       "configPresent": true,
+      "configVerifyJwt": true,
       "localPresent": true,
-      "livePresent": false,
+      "livePresent": null,
+      "liveVerifyJwt": null,
       "browserFeatureFlag": "VITE_SOCIAL_NOTIFICATION_MANAGE_ENABLED",
       "envDefaults": {
         ".env.example": "false",
@@ -74,8 +77,10 @@
       "why": "push device revocation",
       "verifyJwt": true,
       "configPresent": true,
+      "configVerifyJwt": true,
       "localPresent": true,
-      "livePresent": false,
+      "livePresent": null,
+      "liveVerifyJwt": null,
       "browserFeatureFlag": "VITE_PUSH_DEVICE_MANAGE_ENABLED",
       "envDefaults": {
         ".env.example": "false",
@@ -87,8 +92,10 @@
       "why": "talent invite notification creation",
       "verifyJwt": true,
       "configPresent": true,
+      "configVerifyJwt": true,
       "localPresent": true,
       "livePresent": false,
+      "liveVerifyJwt": null,
       "browserFeatureFlag": "VITE_TALENT_INVITE_NOTIFICATION_ENABLED",
       "envDefaults": {
         ".env.example": "false",
@@ -100,8 +107,10 @@
       "why": "admin broadcast notification creation",
       "verifyJwt": true,
       "configPresent": true,
+      "configVerifyJwt": true,
       "localPresent": true,
       "livePresent": false,
+      "liveVerifyJwt": null,
       "browserFeatureFlag": "VITE_ADMIN_BROADCAST_NOTIFICATION_ENABLED",
       "envDefaults": {
         ".env.example": "false",
@@ -113,17 +122,52 @@
       "why": "cross-domain SSO one-time token minting",
       "verifyJwt": true,
       "configPresent": true,
+      "configVerifyJwt": true,
       "localPresent": true,
       "livePresent": null,
+      "liveVerifyJwt": null,
+      "browserFeatureFlag": null,
+      "envDefaults": null
+    },
+    {
+      "slug": "supplier-proxy",
+      "why": "authenticated, non-forwarding supplier compatibility tombstone",
+      "verifyJwt": true,
+      "configPresent": true,
+      "configVerifyJwt": true,
+      "localPresent": true,
+      "livePresent": null,
+      "liveVerifyJwt": null,
+      "browserFeatureFlag": null,
+      "envDefaults": null
+    },
+    {
+      "slug": "send-transactional-email",
+      "why": "service-key-only email delivery with handler-owned authorization",
+      "verifyJwt": false,
+      "configPresent": true,
+      "configVerifyJwt": false,
+      "localPresent": true,
+      "livePresent": null,
+      "liveVerifyJwt": null,
+      "browserFeatureFlag": null,
+      "envDefaults": null
+    },
+    {
+      "slug": "software-subscription-intent",
+      "why": "public checkout bootstrap with handler-owned authorization",
+      "verifyJwt": false,
+      "configPresent": true,
+      "configVerifyJwt": false,
+      "localPresent": true,
+      "livePresent": null,
+      "liveVerifyJwt": null,
       "browserFeatureFlag": null,
       "envDefaults": null
     }
   ],
   "missingLiveCritical": [
     "analytics-event-track",
-    "notification-manage",
-    "social-notification-manage",
-    "push-device-manage",
     "talent-invite-notification",
     "admin-broadcast-notification"
   ],

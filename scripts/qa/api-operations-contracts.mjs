@@ -28,20 +28,47 @@ function requireContains(id, text, needle, relativePath) {
   }
 }
 
+function requireContainsIgnoringWhitespace(id, text, needle, relativePath) {
+  const compactText = text.replace(/\s+/g, "");
+  const compactNeedle = needle.replace(/\s+/g, "");
+  if (!compactText.includes(compactNeedle)) {
+    failures.push(
+      `${id}: ${relativePath} missing ${JSON.stringify(needle)} (ignoring whitespace)`,
+    );
+  }
+}
+
 function requireNotContains(id, text, needle, relativePath) {
   if (text.includes(needle)) {
-    failures.push(`${id}: ${relativePath} must not contain ${JSON.stringify(needle)}`);
+    failures.push(
+      `${id}: ${relativePath} must not contain ${JSON.stringify(needle)}`,
+    );
   }
 }
 
 function requireStrictSecurity(id, route, text) {
   const relativePath = `supabase/functions/${route}/index.ts`;
-  requireContains(id, text, `withSecurity("${route}"`, relativePath);
+  requireContainsIgnoringWhitespace(
+    id,
+    text,
+    `withSecurity("${route}"`,
+    relativePath,
+  );
   requireContains(id, text, "strictCors: true", relativePath);
   requireContains(id, text, 'trackNetwork: "suspicious"', relativePath);
   requireContains(id, text, "blockNetworkRiskAt: 80", relativePath);
-  requireNotContains(id, text, '"Access-Control-Allow-Origin": "*"', relativePath);
-  requireNotContains(id, text, "'Access-Control-Allow-Origin': '*'", relativePath);
+  requireNotContains(
+    id,
+    text,
+    '"Access-Control-Allow-Origin": "*"',
+    relativePath,
+  );
+  requireNotContains(
+    id,
+    text,
+    "'Access-Control-Allow-Origin': '*'",
+    relativePath,
+  );
 }
 
 const contracts = [
@@ -69,10 +96,20 @@ const contracts = [
       ]) {
         requireContains(this.id, wrapper, needle, wrapperPath);
       }
-      for (const table of ["security_events", "network_security_events", "audit_logs"]) {
+      for (const table of [
+        "security_events",
+        "network_security_events",
+        "audit_logs",
+      ]) {
         requireContains(this.id, audit, table, auditPath);
       }
-      for (const needle of ["auth_login", "payment", "search", "upload", "rateLimitDb"]) {
+      for (const needle of [
+        "auth_login",
+        "payment",
+        "search",
+        "upload",
+        "rateLimitDb",
+      ]) {
         requireContains(this.id, limiter, needle, limiterPath);
       }
       for (const needle of [
@@ -136,13 +173,28 @@ const contracts = [
         requireContains(this.id, preflight, needle, preflightPath);
       }
 
-      for (const needle of ["schemaVersion", "mode", "artifacts", "failedCommands", "blockers"]) {
+      for (const needle of [
+        "schemaVersion",
+        "mode",
+        "artifacts",
+        "failedCommands",
+        "blockers",
+      ]) {
         requireContains(this.id, schema, needle, schemaPath);
       }
-      for (const needle of ["max-age-minutes", "require-mode", "production", "Remote migration history status"]) {
+      for (const needle of [
+        "max-age-minutes",
+        "require-mode",
+        "production",
+        "Remote migration history status",
+      ]) {
         requireContains(this.id, summaryCheck, needle, summaryCheckPath);
       }
-      for (const needle of ["validateCsvHeader", "production-preflight-summary.json", "preflight-artifacts: ok"]) {
+      for (const needle of [
+        "validateCsvHeader",
+        "production-preflight-summary.json",
+        "preflight-artifacts: ok",
+      ]) {
         requireContains(this.id, artifactCheck, needle, artifactCheckPath);
       }
       for (const needle of [
@@ -154,7 +206,12 @@ const contracts = [
       ]) {
         requireContains(this.id, runtime, needle, runtimePath);
       }
-      for (const needle of ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ACCESS_TOKEN"]) {
+      for (const needle of [
+        "SUPABASE_URL",
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "SUPABASE_ACCESS_TOKEN",
+      ]) {
         requireContains(this.id, env, needle, envPath);
       }
     },
@@ -199,7 +256,12 @@ const contracts = [
       ]) {
         requireContains(this.id, readiness, phrase, readinessPath);
       }
-      requireContains(this.id, workflow, "qa:api-operations-contracts", workflowPath);
+      requireContains(
+        this.id,
+        workflow,
+        "qa:api-operations-contracts",
+        workflowPath,
+      );
     },
   },
   {
@@ -207,8 +269,10 @@ const contracts = [
     category: "payments",
     check() {
       const webhookStatusPath = "src/pages/admin/AdminWebhookStatusPage.tsx";
-      const lodgingEventsPath = "src/pages/admin/AdminLodgingWebhookEventsPage.tsx";
-      const paymentsWorkflowPath = "src/test/workflows/payments-refunds-webhooks.test.ts";
+      const lodgingEventsPath =
+        "src/pages/admin/AdminLodgingWebhookEventsPage.tsx";
+      const paymentsWorkflowPath =
+        "src/test/workflows/payments-refunds-webhooks.test.ts";
       const stripePath = "supabase/functions/stripe-webhook/index.ts";
       const paypalPath = "supabase/functions/paypal-grocery-webhook/index.ts";
       const squarePath = "supabase/functions/square-grocery-webhook/index.ts";
@@ -224,11 +288,23 @@ const contracts = [
       ]) {
         requireContains(this.id, webhookStatus, needle, webhookStatusPath);
       }
-      for (const needle of ["lodging_stripe_webhook_events", "Last 200 Stripe webhook events"]) {
+      for (const needle of [
+        "lodging_stripe_webhook_events",
+        "Last 200 Stripe webhook events",
+      ]) {
         requireContains(this.id, lodgingEvents, needle, lodgingEventsPath);
       }
-      for (const needle of ["grocery_paypal_webhook_events", "grocery_square_webhook_events", "paymentWebhookIdempotency"]) {
-        requireContains(this.id, paymentsWorkflow, needle, paymentsWorkflowPath);
+      for (const needle of [
+        "grocery_paypal_webhook_events",
+        "grocery_square_webhook_events",
+        "paymentWebhookIdempotency",
+      ]) {
+        requireContains(
+          this.id,
+          paymentsWorkflow,
+          needle,
+          paymentsWorkflowPath,
+        );
       }
       for (const [route, relativePath] of [
         ["stripe-webhook", stripePath],
@@ -236,15 +312,40 @@ const contracts = [
         ["square-grocery-webhook", squarePath],
       ]) {
         const text = source(relativePath);
-        requireContains(this.id, text, `withSecurity("${route}"`, relativePath);
+        requireContainsIgnoringWhitespace(
+          this.id,
+          text,
+          `withSecurity("${route}"`,
+          relativePath,
+        );
         requireContains(this.id, text, "strictCors: true", relativePath);
-        requireContains(this.id, text, 'trackNetwork: "suspicious"', relativePath);
+        requireContains(
+          this.id,
+          text,
+          'trackNetwork: "suspicious"',
+          relativePath,
+        );
         requireContains(this.id, text, "skipWaf: true", relativePath);
         requireContains(this.id, text, "skipBotDetection: true", relativePath);
-        requireNotContains(this.id, text, '"Access-Control-Allow-Origin": "*"', relativePath);
-        requireNotContains(this.id, text, "'Access-Control-Allow-Origin': '*'", relativePath);
+        requireNotContains(
+          this.id,
+          text,
+          '"Access-Control-Allow-Origin": "*"',
+          relativePath,
+        );
+        requireNotContains(
+          this.id,
+          text,
+          "'Access-Control-Allow-Origin': '*'",
+          relativePath,
+        );
       }
-      for (const needle of ["stripe.webhooks.constructEvent", "stripe-signature", "payment_intent", "payment_status"]) {
+      for (const needle of [
+        "stripe.webhooks.constructEvent",
+        "stripe-signature",
+        "payment_intent",
+        "payment_status",
+      ]) {
         requireContains(this.id, source(stripePath), needle, stripePath);
       }
     },
@@ -268,36 +369,109 @@ const contracts = [
         const relativePath = `supabase/functions/${route}/index.ts`;
         const text = source(relativePath);
         requireStrictSecurity(this.id, route, text);
-        requireContains(this.id, text, "x-cron-secret", relativePath);
+        if (route === "marketing-automations-tick") {
+          requireContains(
+            this.id,
+            text,
+            'from "../_shared/internalCronAuth.ts"',
+            relativePath,
+          );
+          requireContains(
+            this.id,
+            text,
+            "isAuthorizedInternalCron(req",
+            relativePath,
+          );
+          requireContains(
+            this.id,
+            text,
+            'functionName: "marketing-automations-tick"',
+            relativePath,
+          );
+
+          const internalCronPath =
+            "supabase/functions/_shared/internalCronAuth.ts";
+          const internalCron = source(internalCronPath);
+          for (const needle of [
+            'readSecret("INTERNAL_CRON_SECRET", 32)',
+            'req.headers.get("x-zivo-cron-signature")',
+            'req.headers.get("x-zivo-cron-nonce")',
+            "claimNonceWithServiceRole",
+          ]) {
+            requireContains(this.id, internalCron, needle, internalCronPath);
+          }
+        } else {
+          requireContains(this.id, text, "x-cron-secret", relativePath);
+        }
         requireContains(this.id, text, "skipBotDetection: true", relativePath);
       }
 
-      const wiring = source("supabase/functions/lodging-wiring-monitor/index.ts");
-      requireContains(this.id, wiring, "lodging_wiring_report", "supabase/functions/lodging-wiring-monitor/index.ts");
-      requireContains(this.id, wiring, "send-admin-alert", "supabase/functions/lodging-wiring-monitor/index.ts");
+      const wiring = source(
+        "supabase/functions/lodging-wiring-monitor/index.ts",
+      );
+      requireContains(
+        this.id,
+        wiring,
+        "lodging_wiring_report",
+        "supabase/functions/lodging-wiring-monitor/index.ts",
+      );
+      requireContains(
+        this.id,
+        wiring,
+        "send-admin-alert",
+        "supabase/functions/lodging-wiring-monitor/index.ts",
+      );
 
-      const securityQueue = source("supabase/functions/process-security-notifications/index.ts");
-      requireContains(this.id, securityQueue, "dequeue_security_notifications", "supabase/functions/process-security-notifications/index.ts");
-      requireContains(this.id, securityQueue, "send-transactional-email", "supabase/functions/process-security-notifications/index.ts");
+      const securityQueue = source(
+        "supabase/functions/process-security-notifications/index.ts",
+      );
+      requireContains(
+        this.id,
+        securityQueue,
+        "dequeue_security_notifications",
+        "supabase/functions/process-security-notifications/index.ts",
+      );
+      requireContains(
+        this.id,
+        securityQueue,
+        "send-transactional-email",
+        "supabase/functions/process-security-notifications/index.ts",
+      );
 
       const cleanup = source("supabase/functions/security-cleanup/index.ts");
-      requireContains(this.id, cleanup, "prune_expired_ip_blocklist", "supabase/functions/security-cleanup/index.ts");
-      requireContains(this.id, cleanup, "security_notification_queue", "supabase/functions/security-cleanup/index.ts");
+      requireContains(
+        this.id,
+        cleanup,
+        "prune_expired_ip_blocklist",
+        "supabase/functions/security-cleanup/index.ts",
+      );
+      requireContains(
+        this.id,
+        cleanup,
+        "security_notification_queue",
+        "supabase/functions/security-cleanup/index.ts",
+      );
     },
   },
 ];
 
 for (const contract of contracts) contract.check();
 
-console.log(JSON.stringify({
-  generated: new Date().toISOString(),
-  counts: {
-    contracts: contracts.length,
-    failures: failures.length,
-  },
-  contracts: contracts.map(({ id, category }) => ({ id, category })),
-  failures,
-}, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      generated: new Date().toISOString(),
+      counts: {
+        contracts: contracts.length,
+        failures: failures.length,
+      },
+      contracts: contracts.map(({ id, category }) => ({ id, category })),
+      failures,
+    },
+    null,
+    2,
+  ),
+);
 
 if (failures.length > 0) {
   process.exitCode = 1;

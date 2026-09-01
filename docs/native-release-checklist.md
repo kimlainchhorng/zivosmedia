@@ -25,6 +25,10 @@ Android requires a local-only `android/local.properties` copied from
 `docs/native-android-setup.md`.
 
 `npm run native:store-signing:preflight` must pass before claiming App Store or Google Play upload readiness. Local simulator, debug, and unsigned compile checks are useful for QA, but store upload requires the owner-controlled Android upload keystore, an Apple Distribution signing path (local certificate or Xcode cloud-managed export), and App Store provisioning profile.
+The iOS release requires separate App Store profiles for `com.hizovo.app` and
+`com.hizovo.app.NotificationServiceExtension`; one app profile does not sign
+both targets. The GitHub workflow fails closed unless both profile secrets are
+present and match their expected bundle IDs.
 `npm run native:release-secrets:guide` prints safe setup commands for the GitHub
 Actions secrets without displaying private file contents or passwords.
 
@@ -44,6 +48,11 @@ Build the production web app and sync both native shells:
 npm run native:sync
 ```
 
+The CI release jobs run `scripts/native/check-web-sync.mjs` immediately after
+Capacitor sync. The iOS job repeats the check against the archived `App.app`,
+and the Android release job runs the exact AAB/universal-APK installability
+check after packaging. A successful web build alone is not native parity.
+
 Use platform-specific sync commands only when preparing one store at a time:
 
 ```bash
@@ -57,9 +66,9 @@ Confirm these values match before upload:
 
 ```text
 App version: 1.3.0
-iOS build: 4
+iOS build: 5
 iOS bundle ID: com.hizovo.app
-Android versionCode: 2026082601
+Android versionCode: 2026083001
 Android package: com.hizovo.app
 Android target SDK: 36 (Android 16)
 ```

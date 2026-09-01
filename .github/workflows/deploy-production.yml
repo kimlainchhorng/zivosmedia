@@ -21,7 +21,9 @@ jobs:
     name: Netlify production (after CI)
     if: |
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'main'
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
@@ -55,6 +57,74 @@ jobs:
       - name: Install dependencies
         if: steps.changes.outputs.relevant == 'true'
         run: npm ci --no-audit --no-fund
+
+      - name: Check browser-safe Stripe production key
+        if: steps.changes.outputs.relevant == 'true'
+        env:
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$VITE_STRIPE_PUBLISHABLE_KEY" ]; then
+            echo "VITE_STRIPE_PUBLISHABLE_KEY is required before a production bundle can be built."
+            exit 1
+          fi
+          if [[ "$VITE_STRIPE_PUBLISHABLE_KEY" != pk_* ]]; then
+            echo "VITE_STRIPE_PUBLISHABLE_KEY must be a browser-safe publishable key (pk_...); secret keys are forbidden."
+            exit 1
+          fi
+
+      - name: Verify Wallet cash-out tombstones
+        if: steps.changes.outputs.relevant == 'true'
+        run: |
+          set -euo pipefail
+          cashout_base_url="https://slirphzzwcogdbkeicff.supabase.co/functions/v1"
+          cashout_functions=(
+            process-withdrawal
+            connect-instant-payout
+            paypal-payout
+            wallet-instant-payout
+            stripe-instant-payout
+          )
+
+          for slug in "${cashout_functions[@]}"; do
+            response_file="$RUNNER_TEMP/${slug}-tombstone.json"
+            http_status="$(
+              curl --silent --show-error \
+                --proto '=https' \
+                --tlsv1.2 \
+                --connect-timeout 10 \
+                --max-time 30 \
+                --request POST \
+                --header 'user-agent: ZIVO-Release-Gate/1.0' \
+                --header 'accept: application/json' \
+                --header 'content-type: application/json' \
+                --data-binary '' \
+                --output "$response_file" \
+                --write-out '%{http_code}' \
+                "$cashout_base_url/$slug"
+            )"
+
+            if [ "$http_status" != "503" ]; then
+              echo "$slug must return HTTP 503 from the Wallet cash-out tombstone; received $http_status."
+              exit 1
+            fi
+
+            node - "$response_file" "$slug" <<'NODE'
+          const { readFileSync } = require("node:fs");
+          const [responseFile, slug] = process.argv.slice(2);
+          let payload;
+          try {
+            payload = JSON.parse(readFileSync(responseFile, "utf8"));
+          } catch {
+            console.error(`${slug} returned a non-JSON Wallet cash-out tombstone response.`);
+            process.exit(1);
+          }
+          if (payload?.code !== "wallet_cashout_authority_unavailable") {
+            console.error(`${slug} returned the wrong Wallet cash-out tombstone code.`);
+            process.exit(1);
+          }
+          NODE
+          done
 
       - name: Verify ZIVO Ride production boundary
         if: steps.changes.outputs.relevant == 'true'
@@ -110,6 +180,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
           VITE_ZIVO_RIDE_APP_URL: ${{ secrets.VITE_ZIVO_RIDE_APP_URL }}
           VITE_ZIVO_SOFTWARE_SUPABASE_URL: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_URL }}
           VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY }}

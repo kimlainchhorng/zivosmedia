@@ -136,17 +136,19 @@ const contracts = [
     category: "login-security",
     check() {
       const authPath = "src/contexts/AuthContext.tsx";
+      const loginPath = "src/pages/Login.tsx";
       const mfaPath = "src/lib/security/mfa.ts";
       const precheckPath = "supabase/migrations/20260411171431_aaa38013-ea70-461e-acb1-db94e7d4c43d.sql";
       const anomalyPath = "supabase/migrations/20260411183000_auth_shield_anomaly_detection.sql";
+      const boundaryPath = "supabase/migrations/20260831000449_harden_auth_login_attempt_boundary.sql";
       const auth = source(authPath);
+      const login = source(loginPath);
       const mfa = source(mfaPath);
       const precheck = source(precheckPath);
       const anomaly = source(anomalyPath);
+      const boundary = source(boundaryPath);
 
       for (const needle of [
-        "auth_precheck_login",
-        "auth_record_login_attempt",
         "signInWithPassword",
         "is_driver",
         "DRIVER_ACCOUNT",
@@ -156,6 +158,11 @@ const contracts = [
       ]) {
         requireContains(this.id, auth, needle, authPath);
       }
+      requireNotContains(this.id, auth, 'rpc("auth_precheck_login"', authPath);
+      requireNotContains(this.id, auth, 'rpc("auth_record_login_attempt"', authPath);
+      requireNotContains(this.id, auth, "_emailExists", authPath);
+      requireContains(this.id, login, "Email or password is incorrect.", loginPath);
+      requireNotContains(this.id, login, "No account found for this email.", loginPath);
       for (const needle of [
         "getAuthenticatorAssuranceLevel",
         "listFactors",
@@ -182,6 +189,14 @@ const contracts = [
         "security_incidents",
       ]) {
         requireContains(this.id, anomaly, needle, anomalyPath);
+      }
+      for (const needle of [
+        "REVOKE EXECUTE ON FUNCTION public.auth_precheck_login(TEXT, TEXT)",
+        "REVOKE EXECUTE ON FUNCTION public.auth_record_login_attempt(TEXT, BOOLEAN, TEXT)",
+        "FROM PUBLIC, anon, authenticated",
+        "TO service_role",
+      ]) {
+        requireContains(this.id, boundary, needle, boundaryPath);
       }
     },
   },

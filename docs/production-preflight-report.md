@@ -1,6 +1,6 @@
 # Production Preflight Report
 
-Generated: 2026-07-28T17:29:24.383Z
+Generated: 2026-08-31T00:34:27.522Z
 Mode: strict
 Options: strict=yes, skipBuild=yes, skipTypeCheck=yes
 
@@ -18,19 +18,19 @@ Options: strict=yes, skipBuild=yes, skipTypeCheck=yes
 - Override JSON freshness window: append `-- --max-age-minutes=60`
 - Require a strict-mode summary: append `-- --require-mode=strict`
 - TypeScript SIGTERM/resource notes: `docs/typescript-preflight-resource-notes.md`
-- API readiness: critical=0, warnings=0
+- API readiness: critical=0, warnings=1
 - Environment readiness: critical=6, warnings=0
 - Runtime settings SQL: failed
 - Database readiness: blockers=0, warnings=0
 - Edge Function deploy contracts: failures=0
-- Edge Function slot readiness: mode=local-plus-known-live-gap, missingLiveCritical=6, warnings=1, failures=0
+- Edge Function slot readiness: mode=local-plus-known-live-gap, missingLiveCritical=3, warnings=1, failures=0
 - Edge Function browser gates: gatedFunctions=6, failures=0
 - Supabase auth: envAccessToken=no, driftAccessToken=no
-- Supabase remote migration history read: no
-- Supabase remote migration history status: unavailable
-- Migration drift: duplicateVersions=6, allowedDuplicateVersions=6, newDuplicateVersions=0, linkedHistoryDisconnected=no, remoteError=yes
-- Reconciliation: candidates=0, highConfidence=0, mediumConfidence=0, unmatchedLocal=1135, unmatchedRemote=0, likelyPendingLocal=0
-- Reconciliation review order: high-confidence candidate mappings (0) -> medium-confidence candidate mappings (0) -> unmatched local migrations after candidates (1135) -> unmatched remote versions after candidates (0) -> likely pending local migrations after remote range (0)
+- Supabase remote migration history read: yes
+- Supabase remote migration history status: read
+- Migration drift: duplicateVersions=6, allowedDuplicateVersions=6, newDuplicateVersions=0, linkedHistoryDisconnected=no, remoteError=no
+- Reconciliation: candidates=617, highConfidence=584, mediumConfidence=33, unmatchedLocal=541, unmatchedRemote=994, likelyPendingLocal=12
+- Reconciliation review order: high-confidence candidate mappings (584) -> medium-confidence candidate mappings (33) -> unmatched local migrations after candidates (541) -> unmatched remote versions after candidates (994) -> likely pending local migrations after remote range (12)
 - Pending migration gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 
 ## Steps
@@ -118,7 +118,7 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 
 ```json
 {
-  "localMigrations": 1135,
+  "localMigrations": 1169,
   "invalidFilenames": 0,
   "duplicateVersions": 6,
   "duplicateVersionGroups": [
@@ -215,20 +215,20 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
   "duplicateHashes": 0,
   "duplicateHashGroups": [],
   "supabaseAccessToken": false,
-  "remoteMigrations": 0,
-  "matchedVersions": 0,
+  "remoteMigrations": 1622,
+  "matchedVersions": 11,
   "linkedHistoryDisconnected": false,
-  "localOnlyPending": 1135,
-  "remoteOnlyMissingLocally": 0,
-  "nearTimestampPairsWithinFiveSeconds": 0,
-  "nearTimestampPairsWithinOneMinute": 0,
-  "oneToOneReconciliationCandidatesWithinFiveSeconds": 0,
-  "oneToOneReconciliationCandidatesWithinOneMinute": 0,
-  "sharedMigrationCalendarDays": 0,
-  "reconciliationCandidates": 0,
-  "unmatchedLocalAfterReconciliationCandidates": 1135,
-  "unmatchedRemoteAfterReconciliationCandidates": 0,
-  "unmatchedLocalAfterRemoteRange": 0,
+  "localOnlyPending": 1158,
+  "remoteOnlyMissingLocally": 1611,
+  "nearTimestampPairsWithinFiveSeconds": 585,
+  "nearTimestampPairsWithinOneMinute": 619,
+  "oneToOneReconciliationCandidatesWithinFiveSeconds": 584,
+  "oneToOneReconciliationCandidatesWithinOneMinute": 617,
+  "sharedMigrationCalendarDays": 95,
+  "reconciliationCandidates": 617,
+  "unmatchedLocalAfterReconciliationCandidates": 541,
+  "unmatchedRemoteAfterReconciliationCandidates": 994,
+  "unmatchedLocalAfterRemoteRange": 12,
   "unmatchedRemoteBeforeLocalRange": 0,
   "pendingLocalRiskGates": {
     "createsTables": 0,
@@ -249,8 +249,8 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
     "legacyAnonJwts": 0
   },
   "pendingRisk": {
-    "high": 1056,
-    "medium": 56,
+    "high": 1077,
+    "medium": 58,
     "low": 23
   },
   "report": "docs/supabase-migration-drift-report.md",
@@ -260,7 +260,7 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
   "reconciliationPlan": "docs/supabase-migration-reconciliation-plan.md",
   "pendingLocalReviewReport": "docs/supabase-migration-pending-local-review.csv",
   "reconciliationRepairDraft": "docs/supabase-migration-reconciliation-repair-draft.sql",
-  "remoteError": "Initialising login role...\n\u001b[31munexpected login role status 401: {\"message\":\"Unauthorized\"}\u001b[39m\nTry rerunning the command with --debug to troubleshoot the error."
+  "remoteError": null
 }
 ```
 
@@ -273,7 +273,7 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 {
   "blockers": 0,
   "warnings": 0,
-  "localMigrations": 1135,
+  "localMigrations": 1169,
   "duplicateVersions": 6,
   "allowedDuplicateVersions": 6,
   "newDuplicateVersions": 0,
@@ -283,7 +283,7 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
   "dataApiGrantReviewCandidates": 0,
   "viewsNeedingSecurityInvokerReview": 0,
   "securityDefinerFilesNeedingSearchPathReview": 0,
-  "hardcodedSupabaseUrls": 36,
+  "hardcodedSupabaseUrls": 37,
   "hardcodedScheduledFunctionUrls": 18,
   "cronFunctionUrlRemediation": true,
   "hardcodedLegacyAnonJwts": 14,
@@ -299,7 +299,7 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
     "hardcodedUrls": 0,
     "legacyAnonJwts": 0
   },
-  "supabaseCli": "2.109.1",
+  "supabaseCli": "2.115.0",
   "report": "docs/database-upgrade-readiness-report.md"
 }
 ```
@@ -312,14 +312,14 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 ```json
 {
   "critical": 0,
-  "warnings": 0,
+  "warnings": 1,
   "edgeFunctions": {
-    "total": 457,
-    "highRisk": 170,
-    "withSecurity": 457,
-    "strictCors": 457,
-    "methodGated": 457,
-    "serviceRole": 351,
+    "total": 465,
+    "highRisk": 177,
+    "withSecurity": 465,
+    "strictCors": 465,
+    "methodGated": 465,
+    "serviceRole": 350,
     "highRiskMissingSecurity": [],
     "highRiskMissingMethodGate": [],
     "missingWithSecurity": [],
@@ -329,21 +329,21 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
     "looseRouteBacklog": []
   },
   "migrationDrift": {
-    "local": 1135,
+    "local": 1169,
     "duplicateVersions": 6,
     "allowedDuplicateVersions": 6,
     "newDuplicateVersions": 0,
-    "remote": 0,
-    "matched": 0,
-    "localOnly": 1135,
-    "remoteOnly": 0,
-    "nearFiveSeconds": 0,
-    "nearOneMinute": 0,
-    "oneToOneNearFiveSeconds": 0,
-    "oneToOneNearOneMinute": 0,
-    "unmatchedLocalAfterCandidates": 1135,
-    "unmatchedRemoteAfterCandidates": 0,
-    "unmatchedLocalAfterRemoteRange": 0,
+    "remote": 1622,
+    "matched": 11,
+    "localOnly": 1158,
+    "remoteOnly": 1611,
+    "nearFiveSeconds": 585,
+    "nearOneMinute": 619,
+    "oneToOneNearFiveSeconds": 584,
+    "oneToOneNearOneMinute": 617,
+    "unmatchedLocalAfterCandidates": 541,
+    "unmatchedRemoteAfterCandidates": 994,
+    "unmatchedLocalAfterRemoteRange": 12,
     "unmatchedRemoteBeforeLocalRange": 0,
     "pendingCreatesTables": 0,
     "pendingCreatesTablesWithoutRls": 0,
@@ -352,23 +352,27 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
     "pendingSecurityDefinersWithoutSearchPath": 0,
     "pendingHardcodedSupabaseUrls": 0,
     "pendingLegacyAnonJwts": 0,
-    "sharedDays": 0,
-    "remoteError": true,
-    "currentLocal": 1135,
+    "sharedDays": 95,
+    "remoteError": false,
+    "currentLocal": 1169,
     "mcpHistory": {
       "file": "docs/supabase-mcp-migration-history-report.json",
-      "valid": true,
+      "valid": false,
       "source": "supabase-mcp",
       "projectRef": "slirphzzwcogdbkeicff",
-      "generated": "2026-07-22T19:38:01Z",
-      "localMigrations": 1135,
-      "remoteMigrations": 1595,
+      "generated": "2026-08-30T23:51:18Z",
+      "localMigrations": 1166,
+      "remoteMigrations": 1622,
       "firstRemoteVersion": "20260126182059",
-      "latestRemoteVersion": "20260722193446",
+      "latestRemoteVersion": "20260830180554",
       "verifiedVersions": [
         "20260722192749",
         "20260722193417",
-        "20260722193446"
+        "20260722193446",
+        "20260830165252",
+        "20260830165904",
+        "20260830174518",
+        "20260830180554"
       ]
     }
   },
@@ -388,7 +392,7 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 
 ```json
 {
-  "generated": "2026-07-28T17:29:22.207Z",
+  "generated": "2026-08-31T00:34:24.715Z",
   "counts": {
     "functions": 9,
     "failures": 0
@@ -451,15 +455,15 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 
 ```json
 {
-  "generated": "2026-07-28T17:29:22.307Z",
+  "generated": "2026-08-31T00:34:24.860Z",
   "mode": "local-plus-known-live-gap",
   "counts": {
-    "configuredFunctions": 100,
-    "localConfiguredFunctions": 100,
+    "configuredFunctions": 145,
+    "localConfiguredFunctions": 145,
     "liveFunctions": null,
-    "knownMissingLiveFunctions": 6,
-    "criticalFunctions": 7,
-    "missingLiveCritical": 6,
+    "knownMissingLiveFunctions": 3,
+    "criticalFunctions": 10,
+    "missingLiveCritical": 3,
     "warnings": 1,
     "failures": 0
   },
@@ -470,13 +474,10 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
   },
   "knownLiveGap": {
     "path": "docs/qa/edge-function-live-gap-2026-06-03.json",
-    "generated": "2026-06-03T21:20:00.000Z",
+    "generated": "2026-08-30T23:51:18.000Z",
     "projectId": "slirphzzwcogdbkeicff",
     "missing": [
       "analytics-event-track",
-      "notification-manage",
-      "social-notification-manage",
-      "push-device-manage",
       "talent-invite-notification",
       "admin-broadcast-notification"
     ]
@@ -487,8 +488,10 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
       "why": "browser analytics telemetry",
       "verifyJwt": false,
       "configPresent": true,
+      "configVerifyJwt": false,
       "localPresent": true,
       "livePresent": false,
+      "liveVerifyJwt": null,
       "browserFeatureFlag": "VITE_ANALYTICS_EVENT_TRACK_ENABLED",
       "envDefaults": {
         ".env.example": "false",
@@ -500,8 +503,10 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
       "why": "notification read/delete/snooze mutations",
       "verifyJwt": true,
       "configPresent": true,
+      "configVerifyJwt": true,
       "localPresent": true,
-      "livePresent": false,
+      "livePresent": null,
+      "liveVerifyJwt": null,
       "browserFeatureFlag": "VITE_NOTIFICATION_MANAGE_ENABLED",
       "envDefaults": {
         ".env.example": "false",
@@ -513,8 +518,10 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
       "why": "social notification mutations",
       "verifyJwt": true,
       "configPresent": true,
+      "configVerifyJwt": true,
       "localPresent": true,
-      "livePresent": false,
+      "livePresent": null,
+      "liveVerifyJwt": null,
       "browserFeatureFlag": "VITE_SOCIAL_NOTIFICATION_MANAGE_ENABLED",
       "envDefaults": {
         ".env.example": "false",
@@ -526,8 +533,10 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
       "why": "push device revocation",
       "verifyJwt": true,
       "configPresent": true,
+      "configVerifyJwt": true,
       "localPresent": true,
-      "livePresent": false,
+      "livePresent": null,
+      "liveVerifyJwt": null,
       "browserFeatureFlag": "VITE_PUSH_DEVICE_MANAGE_ENABLED",
       "envDefaults": {
         ".env.example": "false",
@@ -539,8 +548,10 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
       "why": "talent invite notification creation",
       "verifyJwt": true,
       "configPresent": true,
+      "configVerifyJwt": true,
       "localPresent": true,
       "livePresent": false,
+      "liveVerifyJwt": null,
       "browserFeatureFlag": "VITE_TALENT_INVITE_NOTIFICATION_ENABLED",
       "envDefaults": {
         ".env.example": "false",
@@ -552,8 +563,10 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
       "why": "admin broadcast notification creation",
       "verifyJwt": true,
       "configPresent": true,
+      "configVerifyJwt": true,
       "localPresent": true,
       "livePresent": false,
+      "liveVerifyJwt": null,
       "browserFeatureFlag": "VITE_ADMIN_BROADCAST_NOTIFICATION_ENABLED",
       "envDefaults": {
         ".env.example": "false",
@@ -565,17 +578,52 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
       "why": "cross-domain SSO one-time token minting",
       "verifyJwt": true,
       "configPresent": true,
+      "configVerifyJwt": true,
       "localPresent": true,
       "livePresent": null,
+      "liveVerifyJwt": null,
+      "browserFeatureFlag": null,
+      "envDefaults": null
+    },
+    {
+      "slug": "supplier-proxy",
+      "why": "authenticated, non-forwarding supplier compatibility tombstone",
+      "verifyJwt": true,
+      "configPresent": true,
+      "configVerifyJwt": true,
+      "localPresent": true,
+      "livePresent": null,
+      "liveVerifyJwt": null,
+      "browserFeatureFlag": null,
+      "envDefaults": null
+    },
+    {
+      "slug": "send-transactional-email",
+      "why": "service-key-only email delivery with handler-owned authorization",
+      "verifyJwt": false,
+      "configPresent": true,
+      "configVerifyJwt": false,
+      "localPresent": true,
+      "livePresent": null,
+      "liveVerifyJwt": null,
+      "browserFeatureFlag": null,
+      "envDefaults": null
+    },
+    {
+      "slug": "software-subscription-intent",
+      "why": "public checkout bootstrap with handler-owned authorization",
+      "verifyJwt": false,
+      "configPresent": true,
+      "configVerifyJwt": false,
+      "localPresent": true,
+      "livePresent": null,
+      "liveVerifyJwt": null,
       "browserFeatureFlag": null,
       "envDefaults": null
     }
   ],
   "missingLiveCritical": [
     "analytics-event-track",
-    "notification-manage",
-    "social-notification-manage",
-    "push-device-manage",
     "talent-invite-notification",
     "admin-broadcast-notification"
   ],
@@ -593,10 +641,10 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 
 ```json
 {
-  "generated": "2026-07-28T17:29:23.977Z",
+  "generated": "2026-08-31T00:34:26.932Z",
   "counts": {
     "gatedFunctions": 6,
-    "scannedSrcFiles": 2815,
+    "scannedSrcFiles": 2905,
     "failures": 0
   },
   "gatedFunctions": [
@@ -647,60 +695,11 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 - Status: passed
 
 ```text
-Media readiness report: 35 issue(s) across 9 file(s).
+Media readiness report: 2 issue(s) across 1 file(s).
 
-src/components/admin/marketing/CreateMarketingCampaignWizard.tsx
-  59: img missing loading="lazy"/SmartImage
-  59: img missing decoding="async"/SmartImage
-
-src/components/admin/store/MediaCropDialog.tsx
-  223: img missing loading="lazy"/SmartImage
-  223: img missing decoding="async"/SmartImage
-
-src/pages/AITripPlanner.tsx
-  270: img missing loading="lazy"/SmartImage
-  270: img missing decoding="async"/SmartImage
-  446: img missing loading="lazy"/SmartImage
-  446: img missing decoding="async"/SmartImage
-  802: img missing loading="lazy"/SmartImage
-  802: img missing decoding="async"/SmartImage
-  849: img missing loading="lazy"/SmartImage
-  849: img missing decoding="async"/SmartImage
-
-src/pages/FlightLanding.tsx
-  875: img missing loading="lazy"/SmartImage
-  875: img missing decoding="async"/SmartImage
-
-src/pages/Signup.tsx
-  58: img missing loading="lazy"/SmartImage
-  58: img missing decoding="async"/SmartImage
-  59: img missing loading="lazy"/SmartImage
-  59: img missing decoding="async"/SmartImage
-  123: img missing loading="lazy"/SmartImage
-  123: img missing decoding="async"/SmartImage
-  124: img missing loading="lazy"/SmartImage
-  124: img missing decoding="async"/SmartImage
-
-src/pages/ZivoTravelHome.tsx
-  633: img missing loading="lazy"/SmartImage
-  633: img missing decoding="async"/SmartImage
-  759: img missing decoding="async"/SmartImage
-  909: img missing decoding="async"/SmartImage
-  1005: img missing decoding="async"/SmartImage
-  2113: img missing decoding="async"/SmartImage
-
-src/pages/app/BusOperatorConsole.tsx
-  1130: img missing loading="lazy"/SmartImage
-  1130: img missing decoding="async"/SmartImage
-
-src/pages/business/BusinessLandingPage.tsx
-  342: img missing decoding="async"/SmartImage
-
-src/pages/channels/ChannelPage.tsx
-  494: img missing loading="lazy"/SmartImage
-  494: img missing decoding="async"/SmartImage
-  588: img missing loading="lazy"/SmartImage
-  588: img missing decoding="async"/SmartImage
+src/pages/app/ServicesPage.tsx
+  508: img missing loading="lazy"/SmartImage
+  508: img missing decoding="async"/SmartImage
 
 This command is report-only for now. Move high-traffic surfaces to SmartImage/LazyVideo first, then make it strict.
 ```
@@ -711,13 +710,13 @@ This command is report-only for now. Move high-traffic surfaces to SmartImage/La
 
 ## Migration Reconciliation
 
-- Candidate mappings: 0
-- High-confidence candidates: 0
-- Medium-confidence candidates: 0
-- Unmatched local after candidates: 1135
-- Unmatched remote after candidates: 0
-- Likely pending local after remote range: 0
-- Review order: high-confidence candidate mappings (0) -> medium-confidence candidate mappings (0) -> unmatched local migrations after candidates (1135) -> unmatched remote versions after candidates (0) -> likely pending local migrations after remote range (0)
+- Candidate mappings: 617
+- High-confidence candidates: 584
+- Medium-confidence candidates: 33
+- Unmatched local after candidates: 541
+- Unmatched remote after candidates: 994
+- Likely pending local after remote range: 12
+- Review order: high-confidence candidate mappings (584) -> medium-confidence candidate mappings (33) -> unmatched local migrations after candidates (541) -> unmatched remote versions after candidates (994) -> likely pending local migrations after remote range (12)
 
 ## Production Blockers
 
@@ -727,7 +726,7 @@ This command is report-only for now. Move high-traffic surfaces to SmartImage/La
 - Missing SUPABASE_URL for production backend cron/runtime settings.
 - Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.
 - Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.
-- Supabase remote migration history is unavailable (unavailable).
+- API readiness has 1 warning(s).
 
 ## Current Gate Blockers
 
@@ -737,4 +736,4 @@ This command is report-only for now. Move high-traffic surfaces to SmartImage/La
 - Missing SUPABASE_URL for production backend cron/runtime settings.
 - Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.
 - Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.
-- Supabase remote migration history is unavailable (unavailable).
+- API readiness has 1 warning(s).
