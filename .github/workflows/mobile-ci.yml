@@ -37,14 +37,10 @@ concurrency:
 jobs:
   ios-build:
     name: iOS simulator build
-<<<<<<< Updated upstream
-    runs-on: macos-15
-=======
     # macos-26 is a documented GitHub-hosted runner label. Keep the explicit
     # toolchain guard below so a future image-label change fails closed instead
     # of silently submitting with an obsolete SDK.
     runs-on: macos-26
->>>>>>> Stashed changes
     timeout-minutes: 25
 
     steps:
