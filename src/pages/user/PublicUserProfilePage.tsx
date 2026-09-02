@@ -19,6 +19,7 @@ import MessageCircle from "lucide-react/dist/esm/icons/message-circle";
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left";
 import MoreHorizontal from "lucide-react/dist/esm/icons/more-horizontal";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
+import { ZIVO_ANDROID_STORE_URL, ZIVO_IOS_STORE_URL } from "@/config/appStoreLinks";
 
 interface UserProfile {
   user_id: string;
@@ -286,8 +287,8 @@ export default function PublicUserProfilePage() {
             const isAndroid = /Android/i.test(ua);
             const isMobile = isIOS || isAndroid;
             if (!isMobile) return null;
-            const APP_STORE = "https://apps.apple.com/us/app/zivo-customer/id6759480121";
-            const PLAY_STORE = "https://play.google.com/store/apps/details?id=com.myzivo.app";
+            const APP_STORE = ZIVO_IOS_STORE_URL;
+            const PLAY_STORE = ZIVO_ANDROID_STORE_URL;
             return (
               <div className="rounded-2xl bg-primary/8 border border-primary/30 p-4 text-left space-y-2">
                 <p className="text-sm font-bold text-foreground">Add {profile.full_name || "this contact"} on ZIVO</p>

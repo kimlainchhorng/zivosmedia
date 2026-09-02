@@ -3,10 +3,15 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Smartphone, Download } from "lucide-react";
+import {
+  ZIVO_ANDROID_PACKAGE,
+  ZIVO_ANDROID_STORE_URL,
+  ZIVO_IOS_STORE_URL,
+} from "@/config/appStoreLinks";
 
-const IOS_APP_STORE_URL = "https://apps.apple.com/us/app/zivo-customer/id6759480121";
-const ANDROID_PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.hizovo.app";
-const APP_SCHEME = "com.hizovo.app";
+const IOS_APP_STORE_URL = ZIVO_IOS_STORE_URL;
+const ANDROID_PLAY_STORE_URL = ZIVO_ANDROID_STORE_URL;
+const APP_SCHEME = ZIVO_ANDROID_PACKAGE;
 // How long to wait for the app to take focus before deciding it isn't installed.
 const APP_LAUNCH_TIMEOUT_MS = 1500;
 

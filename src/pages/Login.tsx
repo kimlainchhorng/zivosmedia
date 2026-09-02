@@ -29,6 +29,7 @@ import {
   createSoftwareMediaConnectState,
   rememberSoftwareMediaConnect,
 } from "@/lib/softwareMediaConnect";
+import { ZIVO_DRIVER_IOS_STORE_URL } from "@/config/appStoreLinks";
 
 function ZivoSoftwareAuthLogo() {
   return (
@@ -650,7 +651,7 @@ const Login = () => {
           description: "Driver accounts cannot access the passenger app.",
           action: {
             label: "Driver App",
-            onClick: () => window.open("https://apps.apple.com/us/app/zivodrivers/id6759507131", "_blank", "noopener"),
+            onClick: () => window.open(ZIVO_DRIVER_IOS_STORE_URL, "_blank", "noopener"),
           },
         });
         return;

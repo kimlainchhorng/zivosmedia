@@ -26,6 +26,7 @@ import {
 } from "@/lib/softwareMediaConnect";
 import serviceCars from "@/assets/service-cars.jpg";
 import serviceShopping from "@/assets/service-shopping.png";
+import { ZIVO_DRIVER_IOS_STORE_URL } from "@/config/appStoreLinks";
 
 function ZivoSoftwareAuthLogo() {
   return (
@@ -559,7 +560,7 @@ const Signup = () => {
           <p className="text-center text-[11px] text-zinc-400 dark:text-zinc-500 mt-6">
             Want to drive?{" "}
             <a
-              href="https://apps.apple.com/us/app/zivodrivers/id6759507131"
+              href={ZIVO_DRIVER_IOS_STORE_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex min-h-[40px] items-center font-semibold text-rose-500 hover:text-rose-600"

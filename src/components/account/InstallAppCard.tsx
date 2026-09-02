@@ -16,9 +16,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
+import { ZIVO_ANDROID_STORE_URL, ZIVO_IOS_STORE_URL } from "@/config/appStoreLinks";
 
-const APP_STORE_URL = "https://apps.apple.com/app/id6759480121";
-const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.zivollc.app";
+const APP_STORE_URL = ZIVO_IOS_STORE_URL;
+const PLAY_STORE_URL = ZIVO_ANDROID_STORE_URL;
 const DISMISS_KEY = "zivo_install_card_dismissed";
 
 type Platform = "ios" | "android" | "desktop";

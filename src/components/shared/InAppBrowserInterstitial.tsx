@@ -9,9 +9,10 @@ import { detectInAppBrowser } from "@/lib/isInAppBrowser";
 import { X, Smartphone, Zap, Bell, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import zivoLogo from "@/assets/ZIVO_LOGO.png";
+import { ZIVO_ANDROID_STORE_URL, ZIVO_IOS_STORE_URL } from "@/config/appStoreLinks";
 
-const APP_STORE_URL = "https://apps.apple.com/us/app/zivo-customer/id6759480121";
-const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.hizovo.app";
+const APP_STORE_URL = ZIVO_IOS_STORE_URL;
+const PLAY_STORE_URL = ZIVO_ANDROID_STORE_URL;
 
 const SESSION_KEY = "zivo_iab_dismissed";
 

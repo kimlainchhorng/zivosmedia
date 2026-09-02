@@ -1,6 +1,7 @@
 import { Smartphone, Star, Check, Apple, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ZIVO_IOS_STORE_URL } from "@/config/appStoreLinks";
 
 const appFeatures = [
   "Exclusive app-only deals",
@@ -41,7 +42,7 @@ const MobileAppBanner = () => {
 
               <div className="flex flex-wrap gap-4">
                 <Button asChild size="lg" className="bg-black text-primary-foreground hover:bg-black/80 rounded-xl h-12 px-6 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-200 touch-manipulation">
-                  <a href="https://apps.apple.com/us/app/zivo-customer/id6759480121" target="_blank" rel="noopener noreferrer">
+                  <a href={ZIVO_IOS_STORE_URL} target="_blank" rel="noopener noreferrer">
                     <Apple className="w-5 h-5 mr-2" />
                     App Store
                   </a>

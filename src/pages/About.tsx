@@ -31,6 +31,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
 import packageJson from "../../package.json";
+import { ZIVO_ANDROID_STORE_URL, ZIVO_IOS_STORE_URL } from "@/config/appStoreLinks";
 
 const CHANGELOG: { version: string; date: string; highlights: string[] }[] = [
   {
@@ -449,7 +450,7 @@ const About = () => {
                 </p>
                 <div className="flex flex-wrap gap-3 justify-center">
                   <a
-                    href="https://apps.apple.com/app/zivo"
+                    href={ZIVO_IOS_STORE_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
@@ -458,7 +459,7 @@ const About = () => {
                     Rate on App Store
                   </a>
                   <a
-                    href="https://play.google.com/store/apps/details?id=com.zivo"
+                    href={ZIVO_ANDROID_STORE_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-foreground text-background font-medium hover:opacity-90 transition-opacity"

@@ -10,6 +10,7 @@ import Download from "lucide-react/dist/esm/icons/download";
 import Hotel from "lucide-react/dist/esm/icons/hotel";
 import CarFront from "lucide-react/dist/esm/icons/car-front";
 import UtensilsCrossed from "lucide-react/dist/esm/icons/utensils-crossed";
+import { ZIVO_IOS_STORE_URL } from "@/config/appStoreLinks";
 
 const features = [
   { icon: Plane, text: "Book flights, hotels & cars on the go", colorVar: "--flights" },
@@ -18,7 +19,7 @@ const features = [
   { icon: Star, text: "Exclusive app-only deals & rewards", colorVar: "--hotels" },
 ];
 
-const APP_STORE_URL = "https://apps.apple.com/us/app/zivo-customer/id6759480121";
+const APP_STORE_URL = ZIVO_IOS_STORE_URL;
 
 export default function DownloadAppSection() {
 

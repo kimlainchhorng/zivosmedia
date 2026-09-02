@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { ZIVO_DRIVER_IOS_STORE_URL } from "@/config/appStoreLinks";
 
 /** Official Apple logo (filled) for the App Store badge. */
 const AppleLogo = ({ className }: { className?: string }) => (
@@ -27,8 +28,8 @@ const AppleLogo = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const APP_STORE_URL =
-  "https://apps.apple.com/us/app/zivo-customer/id6759480121";
+// Drivers need the ZIVO Drivers app, not the passenger app.
+const APP_STORE_URL = ZIVO_DRIVER_IOS_STORE_URL;
 const DRIVER_WEBSITE_URL = "https://zivodriver.com";
 
 const HIGHLIGHTS = [

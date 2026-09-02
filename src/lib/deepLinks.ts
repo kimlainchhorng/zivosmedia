@@ -1,14 +1,17 @@
 import { getPublicOrigin } from "@/lib/getPublicOrigin";
+import {
+  ZIVO_ANDROID_PACKAGE,
+  ZIVO_ANDROID_STORE_URL,
+  ZIVO_IOS_STORE_URL,
+} from "@/config/appStoreLinks";
 
-const APP_SCHEME = "com.hizovo.app://";
+const APP_SCHEME = `${ZIVO_ANDROID_PACKAGE}://`;
 
-export const IOS_STORE_URL =
-  import.meta.env.VITE_IOS_APP_STORE_URL?.trim() ||
-  "https://apps.apple.com/us/app/zivo-customer/id6759480121";
+// Re-exported under their original names so existing importers keep working.
+// The values (and the env overrides) now live in config/appStoreLinks.
+export const IOS_STORE_URL = ZIVO_IOS_STORE_URL;
 
-export const ANDROID_STORE_URL =
-  import.meta.env.VITE_ANDROID_PLAY_STORE_URL?.trim() ||
-  "https://play.google.com/store/apps/details?id=com.hizovo.app";
+export const ANDROID_STORE_URL = ZIVO_ANDROID_STORE_URL;
 
 export function buildReelDeepLink(postId: string): string {
   return `${getPublicOrigin()}/dl/reel/${encodeURIComponent(postId)}`;

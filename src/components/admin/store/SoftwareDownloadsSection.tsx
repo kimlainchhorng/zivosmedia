@@ -18,6 +18,11 @@ import { isLodgingStoreCategory } from "@/hooks/useOwnerStoreProfile";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
+import {
+  ZIVO_ANDROID_STORE_URL,
+  ZIVO_DRIVER_ANDROID_STORE_URL,
+  ZIVO_IOS_STORE_URL,
+} from "@/config/appStoreLinks";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -85,8 +90,8 @@ const SOFTWARE_CATALOG: SoftwareApp[] = [
     audience: "all",
     platforms: ["ios", "android"],
     downloads: {
-      ios: "https://apps.apple.com/app/zivo",
-      android: "https://play.google.com/store/apps/details?id=com.hizovo.app",
+      ios: ZIVO_IOS_STORE_URL,
+      android: ZIVO_ANDROID_STORE_URL,
     },
     icon: LayoutDashboard,
     status: "available",
@@ -98,10 +103,10 @@ const SOFTWARE_CATALOG: SoftwareApp[] = [
     description: "Point-of-sale for in-store checkout, receipt printing, and split payments.",
     audience: "shop",
     platforms: ["ios", "android", "windows"],
-    downloads: {
-      ios: "https://apps.apple.com/app/zivo-pos",
-      android: "https://play.google.com/store/apps/details?id=com.hizovo.pos",
-    },
+    // No store listing exists for ZIVO POS on either platform yet, so this
+    // stays empty like every other coming-soon entry. The previous URLs
+    // (apps.apple.com/app/zivo-pos, com.hizovo.pos) both 404.
+    downloads: {},
     icon: ShoppingBag,
     status: "coming-soon",
     version: "Beta",
@@ -143,8 +148,8 @@ const SOFTWARE_CATALOG: SoftwareApp[] = [
     audience: "all",
     platforms: ["ios", "android"],
     downloads: {
-      ios: "https://apps.apple.com/app/zivo-driver",
-      android: "https://play.google.com/store/apps/details?id=com.zivodriver.app",
+      ios: ZIVO_DRIVER_IOS_STORE_URL,
+      android: ZIVO_DRIVER_ANDROID_STORE_URL,
     },
     icon: Navigation,
     status: "available",
