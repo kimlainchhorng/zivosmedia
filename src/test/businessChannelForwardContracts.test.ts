@@ -33,7 +33,7 @@ describe("Zivo Business booking forward", () => {
 
   it("cannot fail a guest's paid booking", () => {
     // Whole body wrapped: this runs inside the payment confirmation path.
-    expect(forward).toMatch(/export async function forwardLodgingBookingToBusiness\([\s\S]{0,400}?\n  try \{/);
+    expect(forward).toMatch(/export async function forwardLodgingBookingToBusiness\([\s\S]{0,400}?\n {2}try \{/);
     expect(forward).toContain("} catch (error) {");
     expect(forward).not.toMatch(/\n\s*throw /);
 

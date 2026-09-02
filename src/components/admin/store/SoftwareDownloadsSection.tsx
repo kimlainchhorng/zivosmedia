@@ -21,6 +21,7 @@ import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 import {
   ZIVO_ANDROID_STORE_URL,
   ZIVO_DRIVER_ANDROID_STORE_URL,
+  ZIVO_DRIVER_IOS_STORE_URL,
   ZIVO_IOS_STORE_URL,
 } from "@/config/appStoreLinks";
 
