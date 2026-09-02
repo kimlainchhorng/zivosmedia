@@ -50,12 +50,12 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="com.hizovo.app" />
             </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="com.myzivo.app" />
-            </intent-filter>
+            <!--
+                Do NOT re-add a com.myzivo.app scheme here. com.myzivo.app is a
+                separate, Google-Play-suspended package; claiming its scheme
+                inside this app ties this listing to a suspended one for no
+                functional gain. Removed 2026-09-01.
+            -->
 
             <!-- App links / universal web links -->
             <intent-filter android:autoVerify="true">

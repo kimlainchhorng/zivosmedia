@@ -49,9 +49,16 @@ describe("native store listing canonical URLs", () => {
       "https://www.zivosmedia.com/privacy-policy",
       "https://www.zivosmedia.com/terms-of-service",
       "https://www.zivosmedia.com/account-deletion",
+      // The exact URL Google Play rejected on 2026-05-22: it does not resolve.
+      "https://hizivo.com/privacy-policy",
     ]) {
       expect(combined).not.toContain(legacyUrl);
     }
+
+    // Neither confusable ZIVO domain may ever be used as a public policy or
+    // deletion URL in store metadata; hizivo.com does not resolve and
+    // hizovo.com is only a bundle-id namespace, not a served web domain.
+    expect(combined).not.toMatch(/https:\/\/(?:www\.)?hiz[io]vo\.com/);
   });
 
   it("keeps native listing URLs backed by app routes", () => {

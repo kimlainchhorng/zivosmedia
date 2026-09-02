@@ -66,6 +66,16 @@ if (generatedConfig.appId !== "com.hizovo.app") {
   process.exit(1);
 }
 
+if (generatedConfig.server !== undefined) {
+  console.error(
+    "Android build stopped: the generated Capacitor config contains a `server` block, so this build would load the web app from a remote/dev URL instead of the bundled assets.",
+  );
+  console.error(
+    `Found: ${JSON.stringify(generatedConfig.server)}. Unset CAPACITOR_DEV_SERVER_URL (or export NODE_ENV=production) and re-run.`,
+  );
+  process.exit(1);
+}
+
 if (generatedConfig.plugins?.SplashScreen?.launchAutoHide !== true) {
   console.error(
     "Android build stopped: generated SplashScreen.launchAutoHide must be true so a failed web boot cannot leave a permanent splash.",

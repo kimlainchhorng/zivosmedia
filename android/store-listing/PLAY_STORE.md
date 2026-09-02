@@ -83,6 +83,19 @@ Contains ads:    Yes (sponsored posts may appear in Reels)
 In-app purchases: No
 ```
 
+**Why "Contains ads" is Yes.** Store-sourced items in the Reels feed render a
+visible `Sponsored` badge (`src/pages/ReelsFeedPage.tsx`), and Google counts
+promoted in-feed content as an ad. Google AdSense units are a separate matter:
+`src/components/ads/AdSenseUnit.tsx` renders nothing inside Capacitor, so
+AdSense never runs in the installed app. The declaration must stay Yes while any
+sponsored item can appear in the app, and the Play Console flag, the Data safety
+form, and this file must always say the same thing.
+
+**Why "In-app purchases" is No.** `src/lib/nativeDigitalPurchasePolicy.ts` throws
+on every digital-purchase surface when running natively, so the installed app
+sells nothing. Changing that requires Google Play Billing before this line may
+change.
+
 ## 6. Contact Details
 
 ```

@@ -293,6 +293,10 @@ const PrivacyPolicy = () => {
                 <li><strong>Payment Information:</strong> Credit/debit card numbers, billing address, payment history</li>
                 <li><strong>Identity Verification:</strong> Driver's license, passport, government ID (for drivers/car rentals)</li>
                 <li><strong>Communication:</strong> Messages with drivers, support tickets, feedback and reviews</li>
+                <li><strong>Photos and Videos:</strong> Images and video you upload to posts, reels, profiles, chats, or support requests, and photos or video you capture with the in-app camera</li>
+                <li><strong>Microphone and Voice:</strong> Voice messages you record in chat, and audio captured during in-app voice and video calls</li>
+                <li><strong>Camera:</strong> Camera access used for capturing posts and reels, scanning QR codes, and video calls; we access the camera only while you are using one of those features</li>
+                <li><strong>Files:</strong> Documents and other files you choose to attach to a chat or a support request</li>
                 <li><strong>Preferences:</strong> Saved addresses, dietary preferences, accessibility needs</li>
               </ul>
 
