@@ -11,8 +11,11 @@ function runtimeFiles(relativeDirectory: string): string[] {
   return readdirSync(absoluteDirectory, { withFileTypes: true }).flatMap(
     (entry) => {
       const relativePath = path.join(relativeDirectory, entry.name);
+      // Compare with normalized separators so the exclusion also holds on
+      // Windows, where path.join yields backslashes.
+      const posixPath = relativePath.split(path.sep).join("/");
       if (entry.isDirectory()) {
-        if (relativePath === "src/test") return [];
+        if (posixPath === "src/test") return [];
         return runtimeFiles(relativePath);
       }
       return /\.(?:ts|tsx|js|mjs)$/.test(entry.name) ? [relativePath] : [];

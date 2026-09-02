@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -16,29 +15,26 @@ type SignalResult = {
   allCreatedHaveRls: boolean;
 };
 
-function inspectSql(sql: string): SignalResult {
-  const program = `
-    import {
-      createsPublicTable,
-      allCreatedPublicTablesHaveRls,
-      extractCreatedPublicTableNames,
-      extractRlsEnabledPublicTableNames,
-    } from ${JSON.stringify(helperUrl)};
-    const sql = ${JSON.stringify(sql)};
-    process.stdout.write(JSON.stringify({
-      created: extractCreatedPublicTableNames(sql),
-      rls: extractRlsEnabledPublicTableNames(sql),
-      createsPublic: createsPublicTable(sql),
-      allCreatedHaveRls: allCreatedPublicTablesHaveRls(sql),
-    }));
-  `;
+type SignalModule = {
+  createsPublicTable: (sql: string) => boolean;
+  allCreatedPublicTablesHaveRls: (sql: string) => boolean;
+  extractCreatedPublicTableNames: (sql: string) => string[];
+  extractRlsEnabledPublicTableNames: (sql: string) => string[];
+};
 
-  return JSON.parse(
-    execFileSync(process.execPath, ["--input-type=module", "--eval", program], {
-      cwd: root,
-      encoding: "utf8",
-    }),
-  ) as SignalResult;
+// In-process import of the helper: the previous child-process --eval approach
+// embedded whole migrations on the command line, which overflows Windows'
+// ~32 KB limit (ENAMETOOLONG). Importing the pure functions directly keeps
+// identical behavior with no spawn at all.
+const signals = (await import(helperUrl)) as SignalModule;
+
+function inspectSql(sql: string): SignalResult {
+  return {
+    created: signals.extractCreatedPublicTableNames(sql),
+    rls: signals.extractRlsEnabledPublicTableNames(sql),
+    createsPublic: signals.createsPublicTable(sql),
+    allCreatedHaveRls: signals.allCreatedPublicTablesHaveRls(sql),
+  };
 }
 
 describe("Supabase migration public-table signals", () => {

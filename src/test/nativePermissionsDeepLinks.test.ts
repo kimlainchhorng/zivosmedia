@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -6,6 +6,12 @@ const root = process.cwd();
 
 const source = (relativePath: string) =>
   readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
+
+// The Capacitor-generated Xcode project is machine-local (never committed);
+// iOS contract tests run on release machines that have it.
+const hasIosProject = existsSync(
+  path.join(root, "ios/App/App.xcodeproj/project.pbxproj"),
+);
 
 describe("native permissions, deep links, and push contracts", () => {
   it("keeps Android runtime permissions, app links, and transport security aligned", () => {
@@ -52,7 +58,7 @@ describe("native permissions, deep links, and push contracts", () => {
     expect(nativeContracts).toContain("native-permissions-deeplinks-push");
   });
 
-  it("keeps iOS notification, universal link, and extension wiring intact", () => {
+  it.skipIf(!hasIosProject)("keeps iOS notification, universal link, and extension wiring intact", () => {
     const info = source("ios/App/App/Info.plist");
     const entitlements = source("ios/App/App/App.entitlements");
     const appDelegate = source("ios/App/App/AppDelegate.swift");

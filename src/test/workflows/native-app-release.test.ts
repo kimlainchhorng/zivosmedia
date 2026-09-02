@@ -1,9 +1,15 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
 const read = (relativePath: string) => readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
+
+// The Capacitor-generated Xcode project is machine-local (never committed);
+// iOS release-contract tests run on machines that have it.
+const hasIosProject = existsSync(
+  path.join(root, "ios/App/App.xcodeproj/project.pbxproj"),
+);
 
 describe("native app release workflow", () => {
   it("keeps Capacitor production config aligned with the native shells", () => {
@@ -53,7 +59,7 @@ describe("native app release workflow", () => {
     expect(main).toContain("SplashScreen.hide");
   });
 
-  it("keeps iOS bundle, privacy, permissions, and App Store listing aligned", () => {
+  it.skipIf(!hasIosProject)("keeps iOS bundle, privacy, permissions, and App Store listing aligned", () => {
     const project = read("ios/App/App.xcodeproj/project.pbxproj");
     const info = read("ios/App/App/Info.plist");
     const privacy = read("ios/App/App/PrivacyInfo.xcprivacy");
