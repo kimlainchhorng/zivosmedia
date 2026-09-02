@@ -1,4 +1,5 @@
 import { createClient } from "./deps.ts";
+import { forwardLodgingBookingToBusiness } from "./businessChannelForward.ts";
 
 export type LodgingNotificationEvent =
   | "booking_confirmed"
@@ -91,6 +92,12 @@ export async function notifyLodgingBookingConfirmed(
     },
     smsBody: `ZIVO: Your stay at ${store?.name || "the property"} is confirmed (ref ${r.number}). ${paidAmount ? `Paid ${paidAmount}.` : ""} Check-in ${ci ? ci.toLocaleDateString() : ""}.`,
   });
+
+  // Mirror the stay into the operator's Zivo Business front desk when that
+  // property is run from there. Best-effort by design: inert unless configured,
+  // cannot throw, and bounded by its own timeout — see businessChannelForward.ts.
+  // A guest's paid, confirmed booking must never fail on a downstream courtesy.
+  await forwardLodgingBookingToBusiness(admin, reservationId);
 }
 
 /**
