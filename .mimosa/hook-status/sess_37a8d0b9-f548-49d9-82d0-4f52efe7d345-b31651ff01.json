@@ -1,14 +1,14 @@
 {
   "schemaVersion": "mimosa-hook-status/v1",
-  "recordedAt": "2026-09-01T20:06:24.422Z",
+  "recordedAt": "2026-09-03T19:28:24.011Z",
   "sessionId": "sess_37a8d0b9-f548-49d9-82d0-4f52efe7d345",
   "event": "PostToolUse",
   "toolName": "Edit",
-  "file": "src/test/nativeDigitalPurchaseBoundary.test.ts",
+  "file": ".github/workflows/mobile-build.yml",
   "outcome": "clear",
   "coverage": "complete",
   "findingCount": 0,
-  "durationMs": 28,
+  "durationMs": 22,
   "hostState": "hook_complete",
   "reportHint": ".mimosa/reports/"
 }

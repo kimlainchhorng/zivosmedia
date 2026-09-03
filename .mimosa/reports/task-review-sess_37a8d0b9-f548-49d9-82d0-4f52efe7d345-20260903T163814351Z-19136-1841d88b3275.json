@@ -1,0 +1,354 @@
+{
+  "schema_version": "mimosa-task-review/v2",
+  "run_id": "20260903T163814351Z-19136-1841d88b3275",
+  "run_status": "inconclusive",
+  "errors": [
+    {
+      "stage": "scan",
+      "target": "capacitor.config.ts",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/test/nativeStoreListingCanonicalUrls.test.ts",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/test/nativeVersionReleaseAlignment.test.ts",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/test/nativePermissionsDeepLinks.test.ts",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "src/test/workflows/native-app-release.test.ts",
+      "reason": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT"
+    },
+    {
+      "stage": "supply-chain-check",
+      "target": ".",
+      "reason": "stop_budget_exhausted: focused supply-chain check was not run before the gate budget"
+    }
+  ],
+  "coverage": {
+    "schema_version": "mimosa-hook-coverage/v1",
+    "status": "partial",
+    "scope": "hook_observed_diff",
+    "baseline": {
+      "complete": true,
+      "captured_files": 3960,
+      "candidate_limit": 5000,
+      "truncated": false,
+      "enumeration_error_count": 0,
+      "snapshot_error_count": 0,
+      "compensated_target_count": 8
+    },
+    "change_tracking": {
+      "touched_observed": 4,
+      "touched_retained": 4,
+      "truncated": false,
+      "bash_mutation": true,
+      "bash_discovered": 8,
+      "bash_discovery_limit": 80,
+      "bash_discovery_truncated": false
+    },
+    "candidates": {
+      "eligible_files": 8,
+      "selected_files": 8,
+      "limit": 20,
+      "truncated": false
+    },
+    "scanning": {
+      "required_files": 5,
+      "scanned_files": 0,
+      "skipped_files": 0,
+      "failed_files": 5,
+      "project_checks_required": 1,
+      "project_checks_completed": 0
+    },
+    "notification": {
+      "eligible_findings": 0,
+      "detailed_findings": 0,
+      "detail_limit": 3,
+      "truncated": false
+    },
+    "reason_counts": {
+      "scanner_failed": 5,
+      "stop_budget_exhausted": 1,
+      "project_check_failed": 6
+    },
+    "reasons": [
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "capacitor.config.ts",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/test/nativeStoreListingCanonicalUrls.test.ts",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/test/nativeVersionReleaseAlignment.test.ts",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/test/nativePermissionsDeepLinks.test.ts",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "src/test/workflows/native-app-release.test.ts",
+        "detail": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "stop_budget_exhausted",
+        "stage": "supply-chain-check",
+        "target": ".",
+        "detail": "focused supply-chain check was not run before the gate budget",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "capacitor.config.ts",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/test/nativeStoreListingCanonicalUrls.test.ts",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/test/nativeVersionReleaseAlignment.test.ts",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/test/nativePermissionsDeepLinks.test.ts",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "src/test/workflows/native-app-release.test.ts",
+        "detail": "scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "supply-chain-check",
+        "target": ".",
+        "detail": "stop_budget_exhausted: focused supply-chain check was not run before the gate budget",
+        "affects_completion": true
+      }
+    ],
+    "reasons_truncated": false
+  },
+  "generated_at": "2026-09-03T16:38:14.351Z",
+  "session_id": "sess_37a8d0b9-f548-49d9-82d0-4f52efe7d345",
+  "target": ".",
+  "revision": "232f868fe803b2b8439c73dbd48beedaf8815cb8",
+  "rules_version": "unavailable",
+  "diff_hash": "5afa20c866ebd08fbb9685150a2f995f8e84202f9051ab37633a0c8dc5b188bd",
+  "diff": {
+    "algorithm": "sha256",
+    "changed_file_count": 8,
+    "changed_files": [
+      {
+        "file": "android/app/build.gradle",
+        "ranges": [
+          {
+            "start": 36,
+            "end": 37
+          }
+        ],
+        "before_hash": "d5da747853cf850c843eca4c4fa20d7f3a97e7109830e70f3a8711f48bbd0c8a",
+        "after_hash": "20d1fdda34dbf93983b32f204617b2786088ca81ace8b32dca42db56d34c9bc0"
+      },
+      {
+        "file": "capacitor.config.ts",
+        "ranges": [
+          {
+            "start": 13,
+            "end": 13
+          }
+        ],
+        "before_hash": "fec15472388cd03e4c70b160e09302afca0636df9607bcfd48a5ea7e0f494d34",
+        "after_hash": "7a9d7b3d8fa88f35932a7454de52bdd47bcf395273081e740a1fa32b2ec6bb89"
+      },
+      {
+        "file": "package-lock.json",
+        "ranges": [
+          {
+            "start": 3,
+            "end": 3
+          },
+          {
+            "start": 9,
+            "end": 9
+          }
+        ],
+        "before_hash": "4886ddb64759a432cb631c9399dd62d536b8c448405751d75ec5e3fde9008348",
+        "after_hash": "ec7143b435ebd464ccd0eb0e3869741ee3504c23737334961df84230863bd4ab"
+      },
+      {
+        "file": "package.json",
+        "ranges": [
+          {
+            "start": 4,
+            "end": 4
+          }
+        ],
+        "before_hash": "591d80a1aab95a8586d29d974c66df05305a1e7fab2f08d882920ed4060fe355",
+        "after_hash": "8fb28293a48955bc187ea74833b40891c1ab6d627f08454e3520518929a20e25"
+      },
+      {
+        "file": "src/test/nativePermissionsDeepLinks.test.ts",
+        "ranges": [
+          {
+            "start": 84,
+            "end": 84
+          },
+          {
+            "start": 86,
+            "end": 86
+          }
+        ],
+        "before_hash": "c65246351f66c44d7fdd256b5a54fc0ea8b882bd4b77fa46b5213ae1965f0990",
+        "after_hash": "c24f1cf54ecf9d6022ae49aa0a644d83ba9b43799528e98f9497adb836fd2e28"
+      },
+      {
+        "file": "src/test/nativeStoreListingCanonicalUrls.test.ts",
+        "ranges": [
+          {
+            "start": 16,
+            "end": 16
+          },
+          {
+            "start": 18,
+            "end": 18
+          },
+          {
+            "start": 24,
+            "end": 24
+          },
+          {
+            "start": 26,
+            "end": 26
+          },
+          {
+            "start": 103,
+            "end": 103
+          },
+          {
+            "start": 112,
+            "end": 112
+          }
+        ],
+        "before_hash": "1f79e13a544253ba98d0aae4b01122492fc6784dc7d62d96d636504493254eea",
+        "after_hash": "1186f1d6233a82b55388619db3fdb79d47a71615d96ab89a5ffe9152667c2082"
+      },
+      {
+        "file": "src/test/nativeVersionReleaseAlignment.test.ts",
+        "ranges": [
+          {
+            "start": 35,
+            "end": 35
+          },
+          {
+            "start": 43,
+            "end": 43
+          }
+        ],
+        "before_hash": "745e110ea4a4b791d31702ad944ae15dd79eaa4b3649888c1ffab7e06ebd259d",
+        "after_hash": "5f60fc354eb4a587b0767319d1c945b32413f2b9f3370e8c5584de80438fd3bc"
+      },
+      {
+        "file": "src/test/workflows/native-app-release.test.ts",
+        "ranges": [
+          {
+            "start": 22,
+            "end": 22
+          }
+        ],
+        "before_hash": "3f1d47e2e58757563891cd9b384224883a8b713545d965f48b2d3c4df9fac10f",
+        "after_hash": "04908aebd2f55711c6c6969ff785351ff79ab75365211ec4707021def51c8d83"
+      }
+    ]
+  },
+  "timing": {
+    "started_at": "2026-09-03T16:38:04.989Z",
+    "completed_at": "2026-09-03T16:38:14.351Z",
+    "duration_ms": 9362,
+    "measurement": "hook_wall_clock"
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "model_calls": 0,
+    "measurement": "known-zero"
+  },
+  "telemetry": {
+    "schemaVersion": "mimosa-gate-telemetry/v1",
+    "profile": "gate",
+    "operation": "Stop",
+    "outcome": "partial/INCONCLUSIVE",
+    "latencyMs": 9362,
+    "peakMemoryBytes": 118112256,
+    "memoryMeasurement": "max-observed-process-rss",
+    "scannedFiles": 0,
+    "cache": {
+      "hits": 0,
+      "misses": 0,
+      "measurement": "not-applicable"
+    },
+    "denyCount": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "total": 0,
+      "modelCalls": 0,
+      "measurement": "known-zero"
+    }
+  },
+  "finding_count": 0,
+  "rewake_finding_count": 0,
+  "evidence_boundary": {
+    "scan": "candidate",
+    "static_fix_verification": "observed_static_only",
+    "runtime_verification": "not_performed"
+  },
+  "finding_events": [],
+  "findings": [],
+  "artifacts": {
+    "immutable_report": ".mimosa/reports/task-review-sess_37a8d0b9-f548-49d9-82d0-4f52efe7d345-20260903T163814351Z-19136-1841d88b3275.json",
+    "latest_report": ".mimosa/reports/task-review-sess_37a8d0b9-f548-49d9-82d0-4f52efe7d345.json",
+    "history_summary": ".mimosa/history/run-20260903T163814351Z-19136-1841d88b3275.json"
+  }
+}

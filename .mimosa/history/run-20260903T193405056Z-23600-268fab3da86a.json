@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "mimosa-finding-history/v1",
+  "runId": "20260903T193405056Z-23600-268fab3da86a",
+  "runStatus": "inconclusive",
+  "errors": [
+    "scan:src/lib/zivoBusinessRestaurantCatalog.ts: scanner_failed: spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+    "supply-chain-check:.: stop_budget_exhausted: focused supply-chain check was not run before the gate budget",
+    "agent-check:.: stop_budget_exhausted: focused agent configuration check was not run before the gate budget"
+  ],
+  "target": ".",
+  "revision": "364eb5ffb430a2b9c3734493cebf98eb2bf74939",
+  "diffHash": "3c2f64b347cac334745de0721b434c5b577d21e31f78a613b28dad5a0617b133",
+  "rulesVersion": "unavailable",
+  "recordedAt": "2026-09-03T19:34:05.056Z",
+  "timing": {
+    "startedAt": "2026-09-03T19:33:55.611Z",
+    "completedAt": "2026-09-03T19:34:05.056Z",
+    "durationMs": 9445
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "modelCalls": 0,
+    "measurement": "known-zero"
+  },
+  "findings": {
+    "total": 0,
+    "bySeverity": {},
+    "byStatus": {}
+  },
+  "coverage": {
+    "status": "partial",
+    "reasonCounts": {
+      "scanner_failed": 1,
+      "stop_budget_exhausted": 2,
+      "project_check_failed": 3
+    }
+  },
+  "evidenceBoundary": "static_only",
+  "immutableReport": ".mimosa/reports/task-review-sess_37a8d0b9-f548-49d9-82d0-4f52efe7d345-20260903T193405056Z-23600-268fab3da86a.json"
+}

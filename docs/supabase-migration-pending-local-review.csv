@@ -1,13 +1,1 @@
 version,filename,risk,domain,create_table,sequence_backed_id,enable_rls,creates_table_without_rls,create_policy,grant,creates_table_without_grant,sequence_grant,sequence_backed_id_without_sequence_grant,create_function,security_definer,sets_search_path,security_definer_without_search_path,cron,hardcoded_supabase_url,legacy_anon_jwt
-20260830183748,20260830183748_eats_wallet_backend_reconciliation.sql,high,security/auth,false,false,true,false,true,true,false,false,false,true,true,true,false,false,false,false
-20260830185229,20260830185229_harden_eats_order_creation_authority.sql,high,security/auth,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false
-20260830190000,20260830190000_eats_payment_cancellation_state_machine.sql,high,security/auth,false,false,false,false,false,true,false,false,false,true,false,true,false,false,false,false
-20260830190500,20260830190500_eats_dispatch_idempotency.sql,high,security/auth,false,false,false,false,false,true,false,false,false,true,true,true,false,false,false,false
-20260830191000,20260830191000_eats_inventory_promo_atomic_order.sql,high,security/auth,false,false,false,false,false,true,false,false,false,true,true,true,false,false,false,false
-20260830193000,20260830193000_eats_manual_payout_authority.sql,high,security/auth,false,false,true,false,false,true,false,false,false,true,false,true,false,false,false,false
-20260830193500,20260830193500_payout_method_verification_authority.sql,high,security/auth,false,false,false,false,true,true,false,false,false,true,true,true,false,false,false,false
-20260830194000,20260830194000_eats_order_financial_authority.sql,high,security/auth,false,false,false,false,false,true,false,false,false,true,false,true,false,false,false,false
-20260830194511,20260830194511_eats_order_creation_authority_hard_cutover.sql,high,security/auth,false,false,true,false,true,true,false,false,false,false,false,false,false,false,false,false
-20260831000449,20260831000449_harden_auth_login_attempt_boundary.sql,high,security/auth,false,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false
-20260831000607,20260831000607_harden_backend_helper_caller_identity.sql,high,security/auth,false,false,false,false,false,true,false,false,false,true,true,true,false,false,false,false
-20260831002349,20260831002349_harden_cafe_customer_lookup_and_loyalty_ownership.sql,high,security/auth,false,false,false,false,false,true,false,false,false,true,true,true,false,false,false,false
