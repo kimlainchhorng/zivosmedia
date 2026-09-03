@@ -12,7 +12,9 @@ export type ZivoBusinessRestaurantCatalogResult =
   | { ok: true; restaurants: ZivoBusinessRestaurant[] }
   | { ok: false; code: "not_configured" | "request_failed" | "invalid_response" };
 
-const DEFAULT_CATALOG_URL = "https://gzyktwcanrrkosieecxs.supabase.co/functions/v1/public-merchant-catalog";
+// Configured via VITE_ZIVO_BUSINESS_CATALOG_URL (see configuredCatalogUrl).
+// A literal default here would trip the hardcoded-Supabase-URL preflight gate.
+const DEFAULT_CATALOG_URL = "";
 const TRUSTED_BUSINESS_ORDER_HOSTS = new Set([
   "zivo-business.myzivo.workers.dev",
   "zivobusiness.com",

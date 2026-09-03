@@ -1,25 +1,25 @@
 # API Readiness Report
 
-Generated: 2026-08-31T00:34:24.636Z
+Generated: 2026-09-03T18:57:06.418Z
 
 ## Summary
 
 - Critical findings: 0
-- Warnings: 1
-- Edge Functions inventoried: 465
+- Warnings: 2
+- Edge Functions inventoried: 466
 - High-risk Edge Functions: 177
-- Functions using withSecurity(): 465
-- Functions using strictCorsHeaders(): 465
-- Method-gated Edge Functions: 465
-- Functions using service role: 350
+- Functions using withSecurity(): 466
+- Functions using strictCorsHeaders(): 466
+- Method-gated Edge Functions: 466
+- Functions using service role: 351
 - Loose Edge Function security backlog: 0
 - Method gate backlog: 0
 - Required public env documented: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_SUPABASE_PROJECT_ID
 - Recommended backend env documented: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 - API operations runbook: present (0 missing topics)
-- Supabase migration drift: reportLocal=1169, currentLocal=1169, remote=1622, matched=11, duplicateVersions=6, allowedDuplicateVersions=6, newDuplicateVersions=0, remoteError=no, mcpVerified=no
+- Supabase migration drift: reportLocal=1176, currentLocal=1176, remote=1625, matched=13, duplicateVersions=6, allowedDuplicateVersions=6, newDuplicateVersions=0, remoteError=no, mcpVerified=no
 
-- Supabase migration near-match diagnostics: near5s=585, near60s=619, oneToOne5s=584, oneToOne60s=617, unmatchedLocal=541, unmatchedRemote=994, localAfterRemoteRange=12, sharedDays=95
+- Supabase migration near-match diagnostics: near5s=585, near60s=619, oneToOne5s=584, oneToOne60s=617, unmatchedLocal=546, unmatchedRemote=995, localAfterRemoteRange=0, sharedDays=95
 - Pending local migration risk gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 
 ## Critical
@@ -28,6 +28,7 @@ Generated: 2026-08-31T00:34:24.636Z
 
 ## Warnings
 
+- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (src/lib/zivoBusinessRestaurantCatalog.ts:15)
 - [stale-mcp-migration-history-report] Supabase MCP migration-history verification is missing required current production details. (docs/supabase-mcp-migration-history-report.json)
 
 ## High-Risk Functions Missing withSecurity()

@@ -201,6 +201,8 @@ jobs:
           ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY }}
           ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY }}
           ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CHANNEL_OG_FUNCTION_URL: ${{ secrets.CHANNEL_OG_FUNCTION_URL }}
         run: |
           set -euo pipefail
           edge_snapshot="$RUNNER_TEMP/zivo-edge-functions.json"
@@ -220,6 +222,7 @@ jobs:
           VITE_ZIVO_SOFTWARE_SUPABASE_URL: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_URL }}
           VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_VAPID_PUBLIC_KEY: ${{ secrets.VITE_VAPID_PUBLIC_KEY }}
+          VITE_ZIVO_BUSINESS_CATALOG_URL: ${{ secrets.VITE_ZIVO_BUSINESS_CATALOG_URL }}
         run: npm run build
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:

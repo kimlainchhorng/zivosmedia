@@ -384,7 +384,7 @@ revoke all on table private.car_dealership_interest_requests
 -- narrow barrier view contains public content only and omits sale/customer
 -- identifiers; full base rows remain owner/admin/service-only.
 create or replace view public.car_dealership_public_reviews
-with (security_barrier = true)
+with (security_barrier = true, security_invoker = true)
 as
 select
   review.id,

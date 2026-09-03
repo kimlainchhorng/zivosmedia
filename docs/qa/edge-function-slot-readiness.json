@@ -1,11 +1,11 @@
 {
-  "generated": "2026-08-31T00:34:24.860Z",
-  "mode": "local-plus-known-live-gap",
+  "generated": "2026-09-03T18:57:06.699Z",
+  "mode": "local-plus-live-snapshot",
   "counts": {
-    "configuredFunctions": 145,
-    "localConfiguredFunctions": 145,
-    "liveFunctions": null,
-    "knownMissingLiveFunctions": 3,
+    "configuredFunctions": 147,
+    "localConfiguredFunctions": 147,
+    "liveFunctions": 528,
+    "knownMissingLiveFunctions": 0,
     "criticalFunctions": 10,
     "missingLiveCritical": 3,
     "warnings": 1,
@@ -16,16 +16,7 @@
     "source": "Supabase hosted limits are plan-dependent; set SUPABASE_EDGE_FUNCTION_SLOT_LIMIT for the project plan.",
     "deployBlocker": "Do not enable browser calls for a missing live function; resolve plan/spend-cap/function-slot capacity first."
   },
-  "knownLiveGap": {
-    "path": "docs/qa/edge-function-live-gap-2026-06-03.json",
-    "generated": "2026-08-30T23:51:18.000Z",
-    "projectId": "slirphzzwcogdbkeicff",
-    "missing": [
-      "analytics-event-track",
-      "talent-invite-notification",
-      "admin-broadcast-notification"
-    ]
-  },
+  "knownLiveGap": null,
   "readiness": [
     {
       "slug": "analytics-event-track",
@@ -49,8 +40,8 @@
       "configPresent": true,
       "configVerifyJwt": true,
       "localPresent": true,
-      "livePresent": null,
-      "liveVerifyJwt": null,
+      "livePresent": true,
+      "liveVerifyJwt": true,
       "browserFeatureFlag": "VITE_NOTIFICATION_MANAGE_ENABLED",
       "envDefaults": {
         ".env.example": "false",
@@ -64,8 +55,8 @@
       "configPresent": true,
       "configVerifyJwt": true,
       "localPresent": true,
-      "livePresent": null,
-      "liveVerifyJwt": null,
+      "livePresent": true,
+      "liveVerifyJwt": true,
       "browserFeatureFlag": "VITE_SOCIAL_NOTIFICATION_MANAGE_ENABLED",
       "envDefaults": {
         ".env.example": "false",
@@ -79,8 +70,8 @@
       "configPresent": true,
       "configVerifyJwt": true,
       "localPresent": true,
-      "livePresent": null,
-      "liveVerifyJwt": null,
+      "livePresent": true,
+      "liveVerifyJwt": true,
       "browserFeatureFlag": "VITE_PUSH_DEVICE_MANAGE_ENABLED",
       "envDefaults": {
         ".env.example": "false",
@@ -124,8 +115,8 @@
       "configPresent": true,
       "configVerifyJwt": true,
       "localPresent": true,
-      "livePresent": null,
-      "liveVerifyJwt": null,
+      "livePresent": true,
+      "liveVerifyJwt": true,
       "browserFeatureFlag": null,
       "envDefaults": null
     },
@@ -136,8 +127,8 @@
       "configPresent": true,
       "configVerifyJwt": true,
       "localPresent": true,
-      "livePresent": null,
-      "liveVerifyJwt": null,
+      "livePresent": true,
+      "liveVerifyJwt": true,
       "browserFeatureFlag": null,
       "envDefaults": null
     },
@@ -148,8 +139,8 @@
       "configPresent": true,
       "configVerifyJwt": false,
       "localPresent": true,
-      "livePresent": null,
-      "liveVerifyJwt": null,
+      "livePresent": true,
+      "liveVerifyJwt": false,
       "browserFeatureFlag": null,
       "envDefaults": null
     },
@@ -160,8 +151,8 @@
       "configPresent": true,
       "configVerifyJwt": false,
       "localPresent": true,
-      "livePresent": null,
-      "liveVerifyJwt": null,
+      "livePresent": true,
+      "liveVerifyJwt": false,
       "browserFeatureFlag": null,
       "envDefaults": null
     }
@@ -172,7 +163,7 @@
     "admin-broadcast-notification"
   ],
   "warnings": [
-    "using known live-gap artifact docs/qa/edge-function-live-gap-2026-06-03.json; replace with --live-snapshot after the next Supabase deploy"
+    "live snapshot has 528 functions, at or above conservative slot limit 25"
   ],
   "failures": []
 }
