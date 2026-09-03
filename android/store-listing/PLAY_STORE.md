@@ -166,8 +166,8 @@ through a Play test track on a real supported Android device.
 ## 9. Release Metadata
 
 ```
-Version: 1.3.0
-Version code: 2026083001
+Version: 1.4.0
+Version code: 2026090101
 Package name: com.hizovo.app
 Target SDK: 36 (Android 16)
 ```

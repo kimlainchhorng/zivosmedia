@@ -151,12 +151,12 @@ features.
 ## 11. Release Metadata
 
 ```text
-Version: 1.3.0
-Build: 5
+Version: 1.4.0
+Build: 6
 Bundle ID: com.hizovo.app
 ```
 
-App Store Connect already processed build 4 on August 27, 2026. Build 5 is the
+App Store Connect already processed build 4 on August 27, 2026. Build 6 is the
 next source candidate; confirm it remains unused immediately before upload.
 
 ## 12. Screenshot Assets

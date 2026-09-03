@@ -33,8 +33,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Google Play requires monotonic version codes; preserve the existing date-based lineage.
         //noinspection HighAppVersionCode
-        versionCode 2026083001
-        versionName "1.3.0"
+        versionCode 2026090101
+        versionName "1.4.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
