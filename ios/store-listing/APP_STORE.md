@@ -11,16 +11,22 @@ Bundle ID: `com.hizovo.app` · App ID: `6759480121`
 ## Identity preflight — resolve before submission
 
 The cross-platform brand, Capacitor config, Android app, Info.plist, and iOS
-Debug/Release build settings now use `ZIVO`. The public App Store listing may
-still show `ZIVOS`; editing source does not change App Store Connect. Confirm
-and update that owner-controlled listing before submission so the store and
-signed candidate show the same identity.
+Debug/Release build settings now use `Zivo Media - All in one`. The public App
+Store listing almost certainly still shows an older name (`ZIVO`, or `ZIVOS`
+before that); editing source does not change App Store Connect. Confirm and
+update that owner-controlled listing before submission so the store and the
+signed candidate show the same identity — a mismatch here is the rejection this
+account already took twice on Google Play.
 
 ## 1. App Name (max 30 characters)
 
 ```text
-ZIVO
+Zivo Media - All in one
 ```
+
+23 characters. Must match the Android listing name, `strings.xml` `app_name`, the
+Capacitor `appName`, `Info.plist` `CFBundleDisplayName`, and
+`INFOPLIST_KEY_CFBundleDisplayName` in the Xcode build settings exactly.
 
 ## 2. Subtitle (max 30 characters)
 

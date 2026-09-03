@@ -81,8 +81,9 @@ describe("native permissions, deep links, and push contracts", () => {
     expect(info).not.toContain("<string>voip</string>");
     expect(info).not.toContain("<string>audio</string>");
     expect(project).not.toContain("INFOPLIST_KEY_CFBundleDisplayName = ZIVOS;");
+    expect(project).not.toContain("INFOPLIST_KEY_CFBundleDisplayName = ZIVO;");
     expect(
-      project.match(/INFOPLIST_KEY_CFBundleDisplayName = ZIVO;/g),
+      project.match(/INFOPLIST_KEY_CFBundleDisplayName = "Zivo Media - All in one";/g),
     ).toHaveLength(2);
 
     for (const needle of [

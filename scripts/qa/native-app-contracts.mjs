@@ -76,7 +76,7 @@ const contracts = [
 
       for (const needle of [
         "appId: 'com.hizovo.app'",
-        "appName: 'ZIVO'",
+        "appName: 'Zivo Media - All in one'",
         "webDir: 'dist'",
         "process.env.NODE_ENV !== 'production'",
         "CAPACITOR_DEV_SERVER_URL",

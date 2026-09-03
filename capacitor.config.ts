@@ -10,7 +10,7 @@ const devServerUrl =
 
 const config: CapacitorConfig = {
   appId: 'com.hizovo.app',
-  appName: 'ZIVO',
+  appName: 'Zivo Media - All in one',
   webDir: 'dist',
   ...(devServerUrl
     ? {

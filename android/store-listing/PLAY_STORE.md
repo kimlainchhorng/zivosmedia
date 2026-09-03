@@ -11,10 +11,14 @@ Package name: `com.hizovo.app`
 ## 1. App Name (max 30 characters)
 
 ```
-ZIVO
+Zivo Media - All in one
 ```
 
-Keep this exactly `ZIVO` so the public listing matches the installed Android app label and icon identity.
+23 characters. Keep this EXACTLY as written, character for character, and identical to
+`android/app/src/main/res/values/strings.xml` `app_name`, the Capacitor `appName`,
+and the iOS display name. A listing name that differs from the installed launcher
+label is the Misleading Claims rejection this account already took on
+`com.myzivo.app` and `com.zivo.driver`.
 
 ## 2. Short Description (max 80 characters)
 

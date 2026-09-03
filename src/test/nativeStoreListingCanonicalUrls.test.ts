@@ -13,17 +13,17 @@ describe("native store listing canonical URLs", () => {
     const capacitorConfig = read("capacitor.config.ts");
     const playStore = read("android/store-listing/PLAY_STORE.md");
 
-    expect(androidStrings).toContain('<string name="app_name">ZIVO</string>');
+    expect(androidStrings).toContain('<string name="app_name">Zivo Media - All in one</string>');
     expect(androidStrings).toContain(
-      '<string name="title_activity_main">ZIVO</string>',
+      '<string name="title_activity_main">Zivo Media - All in one</string>',
     );
     expect(androidStrings).not.toMatch(
       /<string name="(?:app_name|title_activity_main)">Zivo<\/string>/,
     );
     expect(capacitorConfig).toContain("appId: 'com.hizovo.app'");
-    expect(capacitorConfig).toContain("appName: 'ZIVO'");
+    expect(capacitorConfig).toContain("appName: 'Zivo Media - All in one'");
     expect(playStore).toContain("Package name: `com.hizovo.app`");
-    expect(playStore).toMatch(/## 1\. App Name[\s\S]*?```\nZIVO\n```/);
+    expect(playStore).toMatch(/## 1\. App Name[\s\S]*?```\nZivo Media - All in one\n```/);
     expect(playStore).not.toContain("ZIVO – Travel, Social & Shop");
   });
 
@@ -100,7 +100,7 @@ describe("native store listing canonical URLs", () => {
   it("keeps the iOS draft conservative and exposes unresolved console decisions", () => {
     const appStore = read("ios/store-listing/APP_STORE.md");
 
-    expect(appStore).toMatch(/## 1\. App Name[\s\S]*?```text\nZIVO\n```/);
+    expect(appStore).toMatch(/## 1\. App Name[\s\S]*?```text\nZivo Media - All in one\n```/);
     expect(appStore).toContain(
       "ZIVO brings social discovery, messaging, and travel search into one app.",
     );
@@ -109,7 +109,7 @@ describe("native store listing canonical URLs", () => {
     );
     expect(appStore).toContain("Identity preflight — resolve before submission");
     expect(appStore).toContain(
-      "Info.plist, and iOS\nDebug/Release build settings now use `ZIVO`",
+      "Info.plist, and iOS\nDebug/Release build settings now use `Zivo Media - All in one`",
     );
     expect(appStore).toContain(
       "Use the rating calculated by App Store Connect",

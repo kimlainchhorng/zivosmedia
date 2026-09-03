@@ -19,7 +19,7 @@ describe("native app release workflow", () => {
     const main = read("src/main.tsx");
 
     expect(config).toContain("appId: 'com.hizovo.app'");
-    expect(config).toContain("appName: 'ZIVO'");
+    expect(config).toContain("appName: 'Zivo Media - All in one'");
     expect(config).toContain("webDir: 'dist'");
     expect(config).toContain("process.env.NODE_ENV !== 'production'");
     expect(config).toContain("CAPACITOR_DEV_SERVER_URL");

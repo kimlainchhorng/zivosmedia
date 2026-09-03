@@ -17,7 +17,7 @@ export const ANDROID_INSTALLABILITY_PATHS = Object.freeze({
     "android/app/build/outputs/apk_from_bundle/release/app-release-universal.apk",
 });
 
-const EXPECTED_APP_LABEL = "ZIVO";
+const EXPECTED_APP_LABEL = "Zivo Media - All in one";
 const EXPECTED_LAUNCHABLE_ACTIVITY = "com.hizovo.app.MainActivity";
 const SUPPORTED_UNIVERSAL_APK_TASK = "packageReleaseUniversalApk";
 const MIN_ARTIFACT_BYTES = 1024 * 1024;
