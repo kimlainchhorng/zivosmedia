@@ -108,9 +108,14 @@ describe("release safety artifact contracts", () => {
     );
     expect(summary.supabase.linkedHistoryDisconnected).toBe(false);
 
-    // SUPABASE_ACCESS_TOKEN really is absent here, so this stays pinned -- it is
-    // the actual "deploy secret is missing" assertion this suite exists for.
-    expect(summary.blockers.production).toContain("Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.");
+    // SUPABASE_ACCESS_TOKEN is configured as a deploy secret since 2026-09-03
+    // (commit 364eb5ffb cleared the strict gates), so the missing-token blocker
+    // is gone. What stays pinned is that the production gate keeps listing its
+    // explicit, source-attributed blockers instead of going quietly empty.
+    expect(summary.blockers.production.length).toBeGreaterThan(0);
+    expect(summary.blockers.production).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^Environment readiness has \d+ warning/)]),
+    );
 
     // Whether the history could be READ is a different question, and it is not
     // decided by that env var: the CLI also authenticates through a stored
@@ -137,7 +142,7 @@ describe("release safety artifact contracts", () => {
     expect(apiReadiness).toContain(`- Warnings: ${summary.counts.apiWarnings}`);
     expect(databaseReadiness).toContain("## Blockers");
     expect(databaseReadiness).toContain("- None");
-    expect(migrationDrift).toContain("SUPABASE_ACCESS_TOKEN configured: no");
+    expect(migrationDrift).toContain("SUPABASE_ACCESS_TOKEN configured: yes");
     expect(migrationDrift).toContain("- Pending local creates tables without explicit grants: 0");
     expect(migrationDrift).toContain("- Pending local hardcoded Supabase URLs: 0");
   });

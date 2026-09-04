@@ -1,24 +1,24 @@
 # Database Upgrade Readiness Report
 
-Generated: 2026-09-03T18:56:59.093Z
+Generated: 2026-09-04T04:05:44.262Z
 
 ## Summary
 
-- Supabase CLI: 2.116.0
-- Local migrations: 1176
+- Supabase CLI: 2.115.0
+- Local migrations: 1178
 - Invalid migration filenames: 0
 - Duplicate migration versions: 6
 - Allowed legacy duplicate migration versions: 6
 - New duplicate migration versions: 0
 - Duplicate SQL hashes: 0
-- Last linked drift report: local=1176, remote=1625, matched=13, near5s=585, near60s=619, oneToOne5s=584, oneToOne60s=617, unmatchedLocal=546, unmatchedRemote=995, localAfterRemoteRange=0, sharedDays=95, remoteError=no, generated=2026-09-03T18:56:53.467Z
+- Last linked drift report: local=1178, remote=1625, matched=13, near5s=585, near60s=619, oneToOne5s=584, oneToOne60s=617, unmatchedLocal=548, unmatchedRemote=995, localAfterRemoteRange=2, sharedDays=96, remoteError=no, generated=2026-09-04T04:05:43.198Z
 - Pending local migration gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 - Declared extensions: btree_gist, citext, pg_cron, pg_net, pg_trgm, pgcrypto
 - Postgres 17 unsupported extensions found: 0
 - Public tables created in migrations: 941
 - Public tables needing RLS review: 0
 - Recent public tables needing Data API grant review: 0
-- Views needing security_invoker review: 1
+- Views needing security_invoker review: 0
 - SECURITY DEFINER files needing search_path review: 0
 - Hardcoded Supabase URLs in migrations: 37
 - Hardcoded scheduled/function endpoint URLs: 18
@@ -34,7 +34,7 @@ Generated: 2026-09-03T18:56:59.093Z
 
 ## Warnings
 
-- 1 view(s) may need security_invoker=true review before Postgres 17/Data API exposure.
+- None
 
 ## Duplicate Versions
 
@@ -59,7 +59,7 @@ Generated: 2026-09-03T18:56:59.093Z
 
 ## View Review Candidates
 
-- car_dealership_public_reviews: supabase/migrations/20260831041437_car_dealership_customer_capability_access.sql
+- None
 
 ## Hardcoded Supabase URL Review
 

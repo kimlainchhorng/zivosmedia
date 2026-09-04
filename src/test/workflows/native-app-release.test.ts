@@ -70,7 +70,7 @@ describe("native app release workflow", () => {
     const appStoreUpload = read("scripts/upload-to-app-store.mjs");
 
     expect(project).toContain("PRODUCT_BUNDLE_IDENTIFIER = com.hizovo.app");
-    expect(project).toContain("MARKETING_VERSION = 1.3.0");
+    expect(project).toContain("MARKETING_VERSION = 1.4.0");
     expect(project.match(/PrivacyInfo\.xcprivacy in Resources/g)).toHaveLength(2);
     expect(info).toContain("NSCameraUsageDescription");
     expect(info).toContain("NSMicrophoneUsageDescription");
@@ -131,8 +131,8 @@ describe("native app release workflow", () => {
 
     expect(build).toContain('namespace = "com.hizovo.app"');
     expect(build).toContain('applicationId "com.hizovo.app"');
-    expect(build).toContain("versionCode 2026083001");
-    expect(build).toContain('versionName "1.3.0"');
+    expect(build).toContain("versionCode 2026090101");
+    expect(build).toContain('versionName "1.4.0"');
     expect(build).toContain("com.google.android.play:integrity");
     expect(build).toContain("keystore.properties");
     expect(build).toContain("google-services.json");

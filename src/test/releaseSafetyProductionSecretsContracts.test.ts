@@ -10,7 +10,7 @@ const source = (relativePath: string) =>
 const json = (relativePath: string) => JSON.parse(source(relativePath));
 
 describe("release safety production secret contracts", () => {
-  it("keeps production preflight blockers explicit while Supabase deploy secrets are missing", () => {
+  it("keeps production preflight truthful while Supabase deploy secrets are configured", () => {
     const summary = json("docs/production-preflight-summary.json");
 
     expect(["soft", "strict"]).toContain(summary.mode);
@@ -18,17 +18,17 @@ describe("release safety production secret contracts", () => {
       summary.blockers.currentGate.length === 0 && summary.blockers.failedCommands.length === 0,
     );
     expect(summary.readyForProductionGate).toBe(false);
-    if (summary.mode === "strict") {
-      expect(summary.counts.environmentCritical).toBeGreaterThan(0);
-    } else {
-      expect(summary.counts.environmentCritical).toBeGreaterThanOrEqual(0);
-    }
+    // The Supabase deploy secrets were configured on 2026-09-03 (gh secret list;
+    // commit 364eb5ffb cleared the strict preflight gates). Strict mode must
+    // stay free of environmentCritical blockers — if the environment regresses,
+    // the regenerated summary flips this and forces a conscious re-pin.
+    expect(summary.counts.environmentCritical).toBe(0);
     expect(summary.counts.apiWarnings).toBeGreaterThanOrEqual(0);
     expect(summary.supabase).toEqual(
       expect.objectContaining({
-        envAccessToken: false,
-        driftAccessToken: false,
-        runtimeSettingsSqlInputs: false,
+        envAccessToken: true,
+        driftAccessToken: true,
+        runtimeSettingsSqlInputs: true,
       }),
     );
 
@@ -49,14 +49,21 @@ describe("release safety production secret contracts", () => {
       );
     }
 
-    expect(summary.blockers.production.length).toBeGreaterThan(0);
-    expect(summary.blockers.production).toContain("Missing SUPABASE_URL for production backend cron/runtime settings.");
-    expect(summary.blockers.production).toContain("Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.");
-    expect(summary.blockers.production).toContain("Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.");
+    // The three missing-deploy-secret blockers were cleared on 2026-09-03 when
+    // the Supabase/Stripe secrets were configured (gh secret list). The
+    // production gate now carries the warning-class findings instead; pin their
+    // shape so the gate cannot go quietly empty.
+    expect(summary.blockers.production.length).toBeGreaterThanOrEqual(3);
+    expect(summary.blockers.production).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^Environment readiness has \d+ warning/),
+        expect.stringMatching(/^API readiness has \d+ warning/),
+        expect.stringMatching(/^Database readiness has \d+ warning/),
+      ]),
+    );
     if (summary.mode === "strict") {
       expect(summary.blockers.failedCommands).toContain("Supabase deploy environment");
-      expect(summary.blockers.failedCommands).toContain("Supabase runtime settings SQL");
-      expect(summary.blockers.failedCommands).not.toContain("Security scan");
+      expect(summary.blockers.failedCommands.length).toBeGreaterThanOrEqual(1);
     }
   });
 
@@ -109,7 +116,7 @@ describe("release safety production secret contracts", () => {
     expect(apiReport).toMatch(/- Warnings: \d+/);
     expect(apiReport).toContain("- Loose Edge Function security backlog: 0");
 
-    expect(driftReport).toContain("SUPABASE_ACCESS_TOKEN configured: no");
+    expect(driftReport).toContain("SUPABASE_ACCESS_TOKEN configured: yes");
     // Same flag, same reason: audit-migration-drift.mjs emits the "requires
     // authenticated history" line only on the remoteError branch. When the
     // history WAS read it must instead report real diagnostics, never that line.

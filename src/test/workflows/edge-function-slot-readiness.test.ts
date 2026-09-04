@@ -72,9 +72,12 @@ describe("Edge Function slot readiness", () => {
 
   it("stores the known live deployment gap in the generated readiness report", () => {
     const report = JSON.parse(read("docs/qa/edge-function-slot-readiness.json"));
-    expect(report.mode).toBe("local-plus-known-live-gap");
+    // The live function list is now read straight from the project
+    // (local-plus-live-snapshot), so the gap is recorded from the real
+    // snapshot instead of the 2026-06-03 known-gap manifest.
+    expect(report.mode).toBe("local-plus-live-snapshot");
+    expect(report.counts.liveFunctions).toBeGreaterThan(0);
     expect(report.counts.missingLiveCritical).toBeGreaterThanOrEqual(1);
     expect(report.missingLiveCritical).toContain("analytics-event-track");
-    expect(report.knownLiveGap.path).toBe("docs/qa/edge-function-live-gap-2026-06-03.json");
   });
 });

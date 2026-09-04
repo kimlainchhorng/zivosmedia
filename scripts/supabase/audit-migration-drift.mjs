@@ -866,13 +866,17 @@ console.log(JSON.stringify({
     medium: riskCounts.medium ?? 0,
     low: riskCounts.low ?? 0,
   },
-  report: writeReport ? path.relative(root, reportPath) : undefined,
-  reconciliationCandidatesReport: writeReport ? path.relative(root, reconciliationCandidatesPath) : undefined,
-  unmatchedLocalReport: writeReport ? path.relative(root, unmatchedLocalPath) : undefined,
-  unmatchedRemoteReport: writeReport ? path.relative(root, unmatchedRemotePath) : undefined,
-  reconciliationPlan: writeReport ? path.relative(root, reconciliationPlanPath) : undefined,
-  pendingLocalReviewReport: writeReport ? path.relative(root, pendingLocalReviewPath) : undefined,
-  reconciliationRepairDraft: writeReport ? path.relative(root, reconciliationRepairDraftPath) : undefined,
+  // Downstream consumers (deploy preflight artifact meta, byte-accuracy gates)
+  // treat these as repo-relative POSIX paths, so normalize the separator:
+  // path.relative emits backslashes on Windows and the committed summary then
+  // fails every non-Windows existence check.
+  report: writeReport ? path.relative(root, reportPath).replace(/\\/g, "/") : undefined,
+  reconciliationCandidatesReport: writeReport ? path.relative(root, reconciliationCandidatesPath).replace(/\\/g, "/") : undefined,
+  unmatchedLocalReport: writeReport ? path.relative(root, unmatchedLocalPath).replace(/\\/g, "/") : undefined,
+  unmatchedRemoteReport: writeReport ? path.relative(root, unmatchedRemotePath).replace(/\\/g, "/") : undefined,
+  reconciliationPlan: writeReport ? path.relative(root, reconciliationPlanPath).replace(/\\/g, "/") : undefined,
+  pendingLocalReviewReport: writeReport ? path.relative(root, pendingLocalReviewPath).replace(/\\/g, "/") : undefined,
+  reconciliationRepairDraft: writeReport ? path.relative(root, reconciliationRepairDraftPath).replace(/\\/g, "/") : undefined,
   remoteError,
 }, null, 2));
 
