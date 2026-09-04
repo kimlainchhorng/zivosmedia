@@ -6,6 +6,15 @@ generated artifacts (`supabase-migration-drift-report.md`, `…reconciliation-pl
 `…repair-draft.sql`, `…candidates.csv`, `…unmatched-*.csv`), which were refreshed by
 `npm run supabase:migrations:report` on 2026-09-03.
 
+> **OPERATIONAL RISK — read before Phase 1.** The repair phase (Phases 1–2) changes
+> **bookkeeping only** — rows in `supabase_migrations.schema_migrations` — and **nothing
+> in this plan mutates data**: no table, row, function, policy, or schema object is
+> created, altered, or dropped by any step. It **MUST be executed by the owner**, on a
+> machine with `SUPABASE_ACCESS_TOKEN` configured (the linked CLI commands require it),
+> and the **546 unmatched local migrations must go through the Phase 3 decision tree
+> one file at a time** — they must never be bulk-applied. `supabase db push` and
+> `db pull` remain forbidden on this project for exactly this reason.
+
 **Nothing in this runbook has been executed.** Every write is owner-run. The scan and the
 verification queries below are read-only.
 
