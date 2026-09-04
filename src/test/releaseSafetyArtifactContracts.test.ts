@@ -142,7 +142,10 @@ describe("release safety artifact contracts", () => {
     expect(apiReadiness).toContain(`- Warnings: ${summary.counts.apiWarnings}`);
     expect(databaseReadiness).toContain("## Blockers");
     expect(databaseReadiness).toContain("- None");
-    expect(migrationDrift).toContain("SUPABASE_ACCESS_TOKEN configured: yes");
+    // The token line flips with the generating environment (env var vs stored
+    // `supabase login` session); the read/not-read consequences are pinned via
+    // summary.supabase below.
+    expect(migrationDrift).toMatch(/SUPABASE_ACCESS_TOKEN configured: (yes|no)/);
     expect(migrationDrift).toContain("- Pending local creates tables without explicit grants: 0");
     expect(migrationDrift).toContain("- Pending local hardcoded Supabase URLs: 0");
   });

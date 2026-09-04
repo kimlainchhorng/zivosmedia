@@ -1,0 +1,18 @@
+local_version,local_filename,remote_version,delta_seconds,confidence,note
+20260525191033,20260525191033_driver_earnings_ride_requests.sql,20260525191031,2,high,sql differs - Phase 3 decision tree required
+20260524400000,20260524400000_salon_stripe_deposits.sql,20260525155957,3,high,sql differs - Phase 3 decision tree required
+20260527152000,20260527152000_ar_estimates_tax_rate_and_expire_cron.sql,20260527152005,5,high,sql differs - Phase 3 decision tree required
+20260525190000,20260525190000_cafe_loyalty.sql,20260525190006,6,medium,sql differs - Phase 3 decision tree required
+20260525520001,20260525520001_car_dealership_customer_interactions.sql,20260527040009,8,medium,sql differs - Phase 3 decision tree required
+20260527150000,20260527150000_ar_estimates_discount_cents.sql,20260527150010,10,medium,sql differs - Phase 3 decision tree required
+20260603120000,20260603120000_ar_estimate_public_rpcs.sql,20260603120012,12,medium,sql differs - Phase 3 decision tree required
+20260527141000,20260527141000_ar_job_photos.sql,20260527140942,18,medium,sql differs - Phase 3 decision tree required
+20260527151000,20260527151000_ar_invoices_estimates_backfill_subtotals.sql,20260527151021,21,medium,sql differs - Phase 3 decision tree required
+20260601164500,20260601164500_car_dealership_reviews_server_gate.sql,20260601164428,32,medium,sql differs - Phase 3 decision tree required
+20260601193000,20260601193000_car_rental_customers_server_gate.sql,20260601192927,33,medium,sql differs - Phase 3 decision tree required
+20260524190000,20260524190000_salon_public_stylist_and_review_rpcs.sql,20260524185923,37,medium,sql differs - Phase 3 decision tree required
+20260526145114,20260526145114_feed_preferences.sql,20260526145035,39,medium,sql differs - Phase 3 decision tree required
+20260605030155,20260605030155_lockdown_auto_repair_internal_function_grants.sql,20260605030112,43,medium,sql differs - Phase 3 decision tree required
+20260601201500,20260601201500_car_rental_store_settings_server_gate.sql,20260601201548,48,medium,sql differs - Phase 3 decision tree required
+20260527145444,20260527145444_group_paid_media_bundles.sql,20260527145351,53,medium,sql differs - Phase 3 decision tree required
+20260527143000,20260527143000_store_promotions_reviews_messages.sql,20260527142901,59,medium,sql differs - Phase 3 decision tree required

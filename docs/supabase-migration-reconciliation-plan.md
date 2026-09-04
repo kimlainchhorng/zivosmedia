@@ -1,28 +1,28 @@
 # Supabase Migration Reconciliation Plan
 
-Generated: 2026-09-03T18:56:53.485Z
+Generated: 2026-09-04T18:46:02.591Z
 
 This plan is diagnostic only. It does not repair migration history or change the remote schema.
 
 ## Current State
 
-- Local migrations: 1176
+- Local migrations: 1178
 - Remote migration versions: 1625
-- Exact version matches: 13
-- One-to-one likely timestamp-drift matches: 617
-- High-confidence one-to-one matches: 584
-- Medium-confidence one-to-one matches: 33
-- Unmatched local migrations: 546
+- Exact version matches: 613
+- One-to-one likely timestamp-drift matches: 17
+- High-confidence one-to-one matches: 3
+- Medium-confidence one-to-one matches: 14
+- Unmatched local migrations: 548
 - Unmatched local migrations inside remote version range: 546
-- Unmatched local migrations after remote version range: 0
+- Unmatched local migrations after remote version range: 2
 - Unmatched remote versions: 995
-- Unmatched remote versions inside local version range: 994
+- Unmatched remote versions inside local version range: 995
 - Unmatched remote versions before local version range: 0
-- Unmatched remote versions after local version range: 1
+- Unmatched remote versions after local version range: 0
 
 ## Pending Local Risk Summary
 
-- Likely pending local migrations: 0
+- Likely pending local migrations: 2
 - Creates tables: 0
 - Creates tables without RLS: 0
 - Creates tables without explicit grants: 0
@@ -44,11 +44,11 @@ This plan is diagnostic only. It does not repair migration history or change the
 
 ## Review Order
 
-1. high-confidence candidate mappings (584 items)
-2. medium-confidence candidate mappings (33 items)
-3. unmatched local migrations after candidates (546 items)
+1. high-confidence candidate mappings (3 items)
+2. medium-confidence candidate mappings (14 items)
+3. unmatched local migrations after candidates (548 items)
 4. unmatched remote versions after candidates (995 items)
-5. likely pending local migrations after remote range (0 items)
+5. likely pending local migrations after remote range (2 items)
 
 ## Recommended Sequence
 
@@ -71,7 +71,8 @@ This plan is diagnostic only. It does not repair migration history or change the
 These local migrations are newer than the latest remote migration version and have no one-to-one candidate match.
 Review flags are generated in `docs/supabase-migration-pending-local-review.csv`.
 
-- None
+- 20260903183000: 20260903183000_car_dealership_public_reviews_security_invoker.sql (low, security/auth)
+- 20260903220000: 20260903220000_alter_square_connections_safe_security_invoker.sql (low, chat/social)
 
 ## Current Gate
 

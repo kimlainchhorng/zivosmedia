@@ -1,29 +1,29 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-09-03T18:56:53.467Z
+Generated: 2026-09-04T18:46:02.584Z
 
 ## Summary
 
-- Local migrations: 1176
+- Local migrations: 1178
 - Invalid filenames: 0
 - Duplicate versions: 6
 - Allowed duplicate versions: 6
 - New duplicate versions: 0
 - Duplicate SQL hashes: 0
-- SUPABASE_ACCESS_TOKEN configured: yes
-- Local version range: 20260126182101 to 20260831041439
-- Remote version range: 20260126182059 to 20260903182301
+- SUPABASE_ACCESS_TOKEN configured: no
+- Local version range: 20260126182101 to 20260903220000
+- Remote version range: 20260126182101 to 20260903182301
 - Remote migrations: 1625
-- Matched versions: 13
-- Local-only pending: 1163
-- Remote-only missing locally: 1612
-- Near timestamp pairs within 5 seconds: 585
-- Near timestamp pairs within 1 minute: 619
-- One-to-one reconciliation candidates within 5 seconds: 584
-- One-to-one reconciliation candidates within 1 minute: 617
-- Unmatched local migrations after one-to-one candidates: 546
+- Matched versions: 613
+- Local-only pending: 565
+- Remote-only missing locally: 1012
+- Near timestamp pairs within 5 seconds: 4
+- Near timestamp pairs within 1 minute: 19
+- One-to-one reconciliation candidates within 5 seconds: 3
+- One-to-one reconciliation candidates within 1 minute: 17
+- Unmatched local migrations after one-to-one candidates: 548
 - Unmatched remote versions after one-to-one candidates: 995
-- Unmatched local migrations after remote range: 0
+- Unmatched local migrations after remote range: 2
 - Unmatched remote versions before local range: 0
 - Pending local creates tables: 0
 - Pending local creates tables without RLS: 0
@@ -32,22 +32,22 @@ Generated: 2026-09-03T18:56:53.467Z
 - Pending local SECURITY DEFINER without search_path: 0
 - Pending local hardcoded Supabase URLs: 0
 - Pending local legacy anon JWTs: 0
-- Shared migration calendar days: 95
+- Shared migration calendar days: 30
 - Reconciliation candidates CSV: docs/supabase-migration-reconciliation-candidates.csv
 - Unmatched local CSV: docs/supabase-migration-unmatched-local.csv
 - Unmatched remote CSV: docs/supabase-migration-unmatched-remote.csv
 - Reconciliation plan: docs/supabase-migration-reconciliation-plan.md
 - Pending local review CSV: docs/supabase-migration-pending-local-review.csv
-- Pending risk: high=1082, medium=58, low=23
+- Pending risk: high=543, medium=10, low=12
 
 ## Domains
 
-- security/auth: 997
-- commerce/store: 58
-- chat/social: 50
-- general: 24
-- travel/lodging: 22
-- infrastructure: 12
+- security/auth: 493
+- chat/social: 33
+- commerce/store: 27
+- general: 5
+- travel/lodging: 4
+- infrastructure: 3
 
 ## Duplicate Versions
 
@@ -60,7 +60,7 @@ Generated: 2026-09-03T18:56:53.467Z
 
 ## Remote Query
 
-- Auth token: SUPABASE_ACCESS_TOKEN was present for this run.
+- Auth token: SUPABASE_ACCESS_TOKEN was not present for this run.
 - Linked remote migration history was read successfully.
 
 
@@ -71,171 +71,151 @@ Generated: 2026-09-03T18:56:53.467Z
 
 ### Closest Local/Remote Version Pairs
 
-- local 20260126184430 (20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql) -> remote 20260126184429 (1s apart)
-- local 20260126185227 (20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql) -> remote 20260126185226 (1s apart)
-- local 20260126195812 (20260126195812_4c0fbc98-ad0f-455f-abee-31eb6a1c0840.sql) -> remote 20260126195811 (1s apart)
-- local 20260126204406 (20260126204406_4b930ffe-7701-4cca-8669-5b8015c31411.sql) -> remote 20260126204405 (1s apart)
-- local 20260126210105 (20260126210105_93ebc1b8-2f34-4353-8ebe-0cd1ec2b2902.sql) -> remote 20260126210104 (1s apart)
-- local 20260127233015 (20260127233015_5ca2a59c-f6eb-4fca-9560-ba33232020d3.sql) -> remote 20260127233014 (1s apart)
-- local 20260129225228 (20260129225228_f8acf683-0020-463d-baac-e9c8dda02913.sql) -> remote 20260129225227 (1s apart)
-- local 20260131204001 (20260131204001_8fc6e8e9-7bc7-46de-bd85-4266f95306aa.sql) -> remote 20260131204000 (1s apart)
-- local 20260201011854 (20260201011854_0dd90e3e-d414-443c-ab60-74ab8b147261.sql) -> remote 20260201011853 (1s apart)
-- local 20260201143419 (20260201143419_282f5007-80e4-4b53-881f-6268400c8d51.sql) -> remote 20260201143418 (1s apart)
-- local 20260201143843 (20260201143843_74a114aa-2010-4487-91e4-5b4f3e2e5f04.sql) -> remote 20260201143842 (1s apart)
-- local 20260201162950 (20260201162950_5af8902a-3602-41e8-851a-3e26875239af.sql) -> remote 20260201162949 (1s apart)
-- local 20260201163106 (20260201163106_64748b6e-1d0e-4437-9b4f-96e05f3ca218.sql) -> remote 20260201163105 (1s apart)
-- local 20260202033232 (20260202033232_5ff94892-d738-4994-ad98-4b857a97b277.sql) -> remote 20260202033231 (1s apart)
-- local 20260202035426 (20260202035426_d125ec90-64bf-4265-99a7-bdf9c1456fcb.sql) -> remote 20260202035425 (1s apart)
-- local 20260202041223 (20260202041223_4f96bc3c-1d6a-423e-99e7-fbbfbeb3da0d.sql) -> remote 20260202041222 (1s apart)
-- local 20260202182912 (20260202182912_634f3df2-e9b3-4ba9-8f66-987d421ff0c4.sql) -> remote 20260202182911 (1s apart)
-- local 20260202192002 (20260202192002_5a1b188b-1b4c-40d3-9293-a5fbb9590879.sql) -> remote 20260202192001 (1s apart)
-- local 20260202214213 (20260202214213_744d4882-3728-4e5f-b1dc-5443d2606cb4.sql) -> remote 20260202214212 (1s apart)
-- local 20260202220847 (20260202220847_bedb61f0-7016-4d3e-927c-061886814f3d.sql) -> remote 20260202220846 (1s apart)
-- local 20260202221827 (20260202221827_244880bc-6bd0-4820-a0b7-d58f49e96c92.sql) -> remote 20260202221826 (1s apart)
-- local 20260202221910 (20260202221910_846f264d-c52d-46b4-8995-94369ebedcb1.sql) -> remote 20260202221909 (1s apart)
-- local 20260202223817 (20260202223817_e5ee102f-2b49-44be-bdf7-ae4a2eb44ae8.sql) -> remote 20260202223816 (1s apart)
-- local 20260203002459 (20260203002459_884b16e7-6421-4c2d-bcb9-9a7514f5ba33.sql) -> remote 20260203002458 (1s apart)
-- local 20260203024553 (20260203024553_67ed27d8-e665-4e0e-90ec-7801e977e5f3.sql) -> remote 20260203024552 (1s apart)
+- local 20260525191033 (20260525191033_driver_earnings_ride_requests.sql) -> remote 20260525191031 (2s apart)
+- local 20260524400000 (20260524400000_salon_stripe_deposits.sql) -> remote 20260525155957 (3s apart)
+- local 20260527152000 (20260527152000_ar_estimates_tax_rate_and_expire_cron.sql) -> remote 20260527152005 (5s apart)
+- local 20260525190000 (20260525190000_cafe_loyalty.sql) -> remote 20260525190006 (6s apart)
+- local 20260525520001 (20260525520001_car_dealership_customer_interactions.sql) -> remote 20260527040009 (8s apart)
+- local 20260527150000 (20260527150000_ar_estimates_discount_cents.sql) -> remote 20260527150010 (10s apart)
+- local 20260603120000 (20260603120000_ar_estimate_public_rpcs.sql) -> remote 20260603120012 (12s apart)
+- local 20260527141000 (20260527141000_ar_job_photos.sql) -> remote 20260527140942 (18s apart)
+- local 20260527151000 (20260527151000_ar_invoices_estimates_backfill_subtotals.sql) -> remote 20260527151021 (21s apart)
+- local 20260601164500 (20260601164500_car_dealership_reviews_server_gate.sql) -> remote 20260601164428 (32s apart)
+- local 20260601193000 (20260601193000_car_rental_customers_server_gate.sql) -> remote 20260601192927 (33s apart)
+- local 20260524190000 (20260524190000_salon_public_stylist_and_review_rpcs.sql) -> remote 20260524185923 (37s apart)
+- local 20260526145114 (20260526145114_feed_preferences.sql) -> remote 20260526145035 (39s apart)
+- local 20260605030155 (20260605030155_lockdown_auto_repair_internal_function_grants.sql) -> remote 20260605030112 (43s apart)
+- local 20260601201500 (20260601201500_car_rental_store_settings_server_gate.sql) -> remote 20260601201548 (48s apart)
+- local 20260527145444 (20260527145444_group_paid_media_bundles.sql) -> remote 20260527145351 (53s apart)
+- local 20260527143000 (20260527143000_store_promotions_reviews_messages.sql) -> remote 20260527142901 (59s apart)
 
 ## High Risk Pending Migrations
 
-- 20260126182101: 20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql (security/auth)
-- 20260126184430: 20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql (security/auth)
-- 20260126184928: 20260126184928_0755b267-5e93-4458-b091-dce75d554b08.sql (security/auth)
-- 20260126185227: 20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql (security/auth)
-- 20260126191000: 20260126191000_58715aeb-e9bb-454c-bb6a-e617cbbce913.sql (security/auth)
-- 20260126194309: 20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql (security/auth)
-- 20260126195812: 20260126195812_4c0fbc98-ad0f-455f-abee-31eb6a1c0840.sql (security/auth)
-- 20260126204105: 20260126204105_c67b7de4-2860-447e-9fbd-92891b2247a5.sql (security/auth)
-- 20260126210051: 20260126210051_db732eec-5136-48f3-9aed-f84e414f4307.sql (commerce/store)
-- 20260126222347: 20260126222347_17c79ffb-aefb-49fe-9f4c-311d704354ee.sql (security/auth)
-- 20260127224426: 20260127224426_9322795d-86a8-4ca0-86af-654caacb5286.sql (security/auth)
-- 20260127224927: 20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql (security/auth)
-- 20260127233015: 20260127233015_5ca2a59c-f6eb-4fca-9560-ba33232020d3.sql (security/auth)
-- 20260129225210: 20260129225210_7429b719-03e7-49dc-98a2-a101f956b59d.sql (security/auth)
-- 20260129225228: 20260129225228_f8acf683-0020-463d-baac-e9c8dda02913.sql (security/auth)
-- 20260131202033: 20260131202033_2a6cde74-5ca5-4f55-9675-9580420c3829.sql (security/auth)
-- 20260131202050: 20260131202050_6631b7e6-2c78-41b2-983b-8730b4146de5.sql (security/auth)
-- 20260131204001: 20260131204001_8fc6e8e9-7bc7-46de-bd85-4266f95306aa.sql (security/auth)
-- 20260201011854: 20260201011854_0dd90e3e-d414-443c-ab60-74ab8b147261.sql (security/auth)
-- 20260201013822: 20260201013822_2bc1f474-0e88-44be-a68d-befe581a0753.sql (security/auth)
-- 20260201015944: 20260201015944_d2dcded2-8f84-47d7-b226-bb29a6944d8f.sql (security/auth)
-- 20260201040315: 20260201040315_45c14265-db1d-49f1-94b5-0b6ab7a1e92c.sql (security/auth)
-- 20260201045033: 20260201045033_b7016c20-b1d2-43dc-ad6f-1b0c0d3746b2.sql (security/auth)
-- 20260201143419: 20260201143419_282f5007-80e4-4b53-881f-6268400c8d51.sql (security/auth)
-- 20260201143843: 20260201143843_74a114aa-2010-4487-91e4-5b4f3e2e5f04.sql (security/auth)
-- 20260201162950: 20260201162950_5af8902a-3602-41e8-851a-3e26875239af.sql (security/auth)
-- 20260201231045: 20260201231045_bed0e379-2e96-49d2-b3f5-ab12040aa6ff.sql (security/auth)
-- 20260202033232: 20260202033232_5ff94892-d738-4994-ad98-4b857a97b277.sql (security/auth)
-- 20260202035408: 20260202035408_41812af0-2f9d-4a2d-9e9c-65de3934ea7c.sql (security/auth)
-- 20260202035426: 20260202035426_d125ec90-64bf-4265-99a7-bdf9c1456fcb.sql (security/auth)
-- 20260202041223: 20260202041223_4f96bc3c-1d6a-423e-99e7-fbbfbeb3da0d.sql (security/auth)
-- 20260202051526: 20260202051526_be8b4e54-ffc7-4534-aaa6-abec65adfef1.sql (security/auth)
-- 20260202174006: 20260202174006_90659f78-5306-4f6a-bd58-1d418ec8608f.sql (security/auth)
-- 20260202182912: 20260202182912_634f3df2-e9b3-4ba9-8f66-987d421ff0c4.sql (security/auth)
-- 20260202190221: 20260202190221_2f4e65a7-d37d-4341-85d1-49869ecfde54.sql (security/auth)
-- 20260202192002: 20260202192002_5a1b188b-1b4c-40d3-9293-a5fbb9590879.sql (security/auth)
-- 20260202195122: 20260202195122_1bca7ac1-b2a0-47bd-8a8c-625bc03550cc.sql (security/auth)
-- 20260202214213: 20260202214213_744d4882-3728-4e5f-b1dc-5443d2606cb4.sql (security/auth)
-- 20260202214846: 20260202214846_72ca2e8b-e277-4863-b76d-bb0d4e845657.sql (security/auth)
-- 20260202220003: 20260202220003_7186c03b-3c3b-4bd5-924c-fc1f9ed55f18.sql (security/auth)
-- 20260202220847: 20260202220847_bedb61f0-7016-4d3e-927c-061886814f3d.sql (security/auth)
-- 20260202221827: 20260202221827_244880bc-6bd0-4820-a0b7-d58f49e96c92.sql (security/auth)
-- 20260202221910: 20260202221910_846f264d-c52d-46b4-8995-94369ebedcb1.sql (general)
-- 20260202222644: 20260202222644_48560059-27a6-4794-a4e3-482bfcb875ca.sql (security/auth)
-- 20260202223817: 20260202223817_e5ee102f-2b49-44be-bdf7-ae4a2eb44ae8.sql (security/auth)
-- 20260202231736: 20260202231736_6b8dc9d3-3a5f-4793-877b-8cbee0fb9382.sql (security/auth)
-- 20260202232819: 20260202232819_7969ad70-23c6-4147-b5c9-6587a027526d.sql (security/auth)
-- 20260202235318: 20260202235318_e89b6a56-8ed2-4e22-afe3-5e90d6de92eb.sql (security/auth)
-- 20260203002459: 20260203002459_884b16e7-6421-4c2d-bcb9-9a7514f5ba33.sql (commerce/store)
-- 20260203013302: 20260203013302_fb931ed1-e37a-4cb8-9735-4c02a54a44e6.sql (security/auth)
-- 20260203014556: 20260203014556_e3548448-7695-4760-9bd6-c9202f144cd5.sql (security/auth)
-- 20260203023746: 20260203023746_8ef5adcb-b1c5-4c87-89de-216095a24a2e.sql (security/auth)
-- 20260203024509: 20260203024509_48237148-549e-4acd-83ff-c267f196c088.sql (security/auth)
-- 20260203024553: 20260203024553_67ed27d8-e665-4e0e-90ec-7801e977e5f3.sql (security/auth)
-- 20260203035016: 20260203035016_9a6baf43-240a-4f54-96b5-6d0397a1cd0a.sql (security/auth)
-- 20260203035504: 20260203035504_83aefa21-867e-4aa6-91cd-8c68b4561fa9.sql (security/auth)
-- 20260203040052: 20260203040052_8cf9df9b-0674-49fb-8aad-c8219fa8300f.sql (security/auth)
-- 20260203040559: 20260203040559_c9d20df4-5df5-4ff4-b37a-d7cd6f6e9f9f.sql (security/auth)
-- 20260203041546: 20260203041546_d5165abd-0140-4a42-bae9-e1817cf42f10.sql (security/auth)
-- 20260203042123: 20260203042123_7a062e20-630b-40ea-9598-24718ddd4ad5.sql (security/auth)
-- 20260203042638: 20260203042638_4f0ef888-7553-417e-9493-0b406bb4636d.sql (security/auth)
-- 20260203043407: 20260203043407_1b668709-989f-4e07-a5ed-3deea34fc232.sql (security/auth)
-- 20260203043853: 20260203043853_87e6eb95-4926-4c07-815f-a58af54f2315.sql (security/auth)
-- 20260203044803: 20260203044803_99e6ab80-a3bd-469e-9cb1-1a7485e5ce60.sql (security/auth)
-- 20260203145120: 20260203145120_c5fecd17-cad2-40b3-ac3c-22600caed6e2.sql (security/auth)
-- 20260203145737: 20260203145737_75c92195-d70d-4079-85aa-2edc080f2d36.sql (security/auth)
-- 20260203150429: 20260203150429_cf2585b7-3153-4f77-a951-98fb2b9b0418.sql (security/auth)
-- 20260203151534: 20260203151534_5523d0a6-049c-4116-b10f-b4aa49688c97.sql (security/auth)
-- 20260203152414: 20260203152414_5c22e0b8-f5ff-4155-a0c2-73003951c937.sql (security/auth)
-- 20260203152915: 20260203152915_9ae9c004-7e8c-425b-925a-a5e959e5629d.sql (security/auth)
-- 20260203153417: 20260203153417_4f24b2b8-5688-44ff-b538-b430e127a4d4.sql (security/auth)
-- 20260203154129: 20260203154129_83f7dd56-1556-4b57-a38f-812225923eb0.sql (security/auth)
-- 20260203174741: 20260203174741_708fcb48-34e2-4a51-9985-de4631f402dd.sql (security/auth)
-- 20260203174854: 20260203174854_95e27314-1838-45ae-b140-6360a5a77390.sql (security/auth)
-- 20260203174956: 20260203174956_6cc7b4da-15be-492f-bb6e-daa6be0079c1.sql (travel/lodging)
-- 20260203175122: 20260203175122_07778d64-e9a9-45e8-9f01-1c61e76f71f7.sql (security/auth)
-- 20260203183412: 20260203183412_e0ea229c-828f-4352-be80-ccfe10880304.sql (security/auth)
-- 20260203184154: 20260203184154_70969c81-f5bf-431a-b0b9-b7dd1710e0c1.sql (security/auth)
-- 20260203184905: 20260203184905_3c94f6ca-0d11-490b-9b87-96a82b132312.sql (security/auth)
-- 20260203190708: 20260203190708_17826dd3-1fbe-4811-9a38-181a94eec0dc.sql (security/auth)
-- 20260203191314: 20260203191314_4bcd6c8d-628e-4428-9018-d710e87ea9bc.sql (security/auth)
-- 20260203191920: 20260203191920_a6bd8472-ec77-4b0e-87d8-61a5926aac35.sql (security/auth)
-- 20260203192447: 20260203192447_0c1d7391-5428-4d9e-9686-c2b8c902f2ac.sql (security/auth)
-- 20260203192852: 20260203192852_f503ea1a-971b-4f8f-8ebf-861f14c05f84.sql (security/auth)
-- 20260203193509: 20260203193509_1a34c8cb-a4ec-4f06-a4c0-6511409df339.sql (security/auth)
-- 20260203194134: 20260203194134_acc3f9b5-84b9-4ca5-8517-89ae26fd1bd4.sql (security/auth)
-- 20260203194847: 20260203194847_12b4c810-520d-4f0c-b03b-7c5264824de3.sql (security/auth)
-- 20260203195340: 20260203195340_b395386a-94a0-4a05-8223-c7331cd83d2c.sql (security/auth)
-- 20260203195729: 20260203195729_7c5801c8-43b3-4891-9e13-8aa5349cdd64.sql (security/auth)
-- 20260203200300: 20260203200300_6a5a3335-6899-4156-b68d-6395a1c43438.sql (security/auth)
-- 20260203235832: 20260203235832_d1fd9bf0-307a-4eee-b48e-14a455bf14cf.sql (security/auth)
-- 20260204000809: 20260204000809_982bd61a-f958-41fe-82ab-6c6c9885b511.sql (security/auth)
-- 20260204003412: 20260204003412_890cf69e-526d-449c-a5f5-2f9313bf1b0d.sql (security/auth)
-- 20260204142922: 20260204142922_292a0f9d-aa48-483e-9840-630dd35bb586.sql (security/auth)
-- 20260204143017: 20260204143017_1e6880e3-e6f5-4416-b252-a17d588f896f.sql (security/auth)
-- 20260204185833: 20260204185833_be1100b8-887e-4b8c-8963-db49ddd2e34d.sql (security/auth)
-- 20260205190654: 20260205190654_e002faef-a986-4892-834d-32676cb93055.sql (security/auth)
-- 20260205192129: 20260205192129_06ed20b1-b359-463b-9e96-40051d4caf5a.sql (security/auth)
-- 20260205192940: 20260205192940_8fcdf92c-0c92-4e90-af83-01275c9e0717.sql (security/auth)
-- 20260205213337: 20260205213337_9bbf6075-0954-473f-bac0-bc7a11d5443c.sql (security/auth)
-- ...and 982 more
+- 20260213005402: 20260213005402_fda0e32d-702d-43d8-aa30-d72d6e3f88f1.sql (security/auth)
+- 20260330173000: 20260330173000_8b4f4f26-7036-4e35-9d37-65ab70f88df4.sql (security/auth)
+- 20260405131000: 20260405131000_device_tokens_unique_token.sql (commerce/store)
+- 20260406020001: 20260406020001_meta_capi_bridge_webhooks.sql (chat/social)
+- 20260406091500: 20260406091500_super_app_architecture.sql (security/auth)
+- 20260406093000: 20260406093000_launch_security_deeplink_pulse.sql (security/auth)
+- 20260406094500: 20260406094500_admin_wallet_ledger.sql (security/auth)
+- 20260411124500: 20260411124500_chat_security_enforcement.sql (security/auth)
+- 20260411133500: 20260411133500_chat_security_rate_limit.sql (security/auth)
+- 20260411143000: 20260411143000_chat_sender_quarantine_controls.sql (security/auth)
+- 20260411152000: 20260411152000_chat_resilience_limits.sql (security/auth)
+- 20260411160000: 20260411160000_security_sentinel_project.sql (security/auth)
+- 20260411170000: 20260411170000_auth_shield_lockout.sql (security/auth)
+- 20260411175000: 20260411175000_auth_shield_admin_controls.sql (security/auth)
+- 20260411183000: 20260411183000_auth_shield_anomaly_detection.sql (security/auth)
+- 20260411190000: 20260411190000_auth_shield_playbooks.sql (security/auth)
+- 20260429154352: 20260429154352_lodge_handover_notes.sql (security/auth)
+- 20260429160000: 20260429160000_lodge_group_bookings.sql (security/auth)
+- 20260429162000: 20260429162000_lodge_notification_templates.sql (security/auth)
+- 20260429163000: 20260429163000_lodge_yield_rules.sql (security/auth)
+- 20260429164000: 20260429164000_lodge_inventory.sql (security/auth)
+- 20260429170000: 20260429170000_lodge_room_service.sql (security/auth)
+- 20260429171000: 20260429171000_lodge_gift_vouchers.sql (security/auth)
+- 20260429172000: 20260429172000_lodge_parking.sql (security/auth)
+- 20260429180000: 20260429180000_lodge_wakeup_calls.sql (security/auth)
+- 20260429181000: 20260429181000_lodge_laundry.sql (security/auth)
+- 20260429182000: 20260429182000_lodge_complaints.sql (security/auth)
+- 20260429210000: 20260429210000_lodge_rooms_public_read.sql (security/auth)
+- 20260429220000: 20260429220000_lodge_rate_plans.sql (commerce/store)
+- 20260429230000: 20260429230000_security_hardening.sql (security/auth)
+- 20260429230001: 20260429230001_user_posts_visibility_location.sql (security/auth)
+- 20260429240000: 20260429240000_backfill_storage_paths.sql (security/auth)
+- 20260429240001: 20260429240001_increment_user_post_views.sql (security/auth)
+- 20260429250000: 20260429250000_post_actions_tables.sql (security/auth)
+- 20260429260001: 20260429260001_post_reactions.sql (security/auth)
+- 20260429270000: 20260429270000_post_view_share_counts.sql (security/auth)
+- 20260430000000: 20260430000000_post_reposts.sql (security/auth)
+- 20260430010000: 20260430010000_social_notifications_and_comment_hearts.sql (security/auth)
+- 20260430020000: 20260430020000_blocked_link_attempts.sql (security/auth)
+- 20260430020001: 20260430020001_fix_social_notification_triggers.sql (security/auth)
+- 20260430030000: 20260430030000_comment_threading.sql (security/auth)
+- 20260430040000: 20260430040000_ar_shop_settings_column.sql (security/auth)
+- 20260430040001: 20260430040001_comment_pinning.sql (security/auth)
+- 20260430050000: 20260430050000_booking_to_workorder_link.sql (commerce/store)
+- 20260430050001: 20260430050001_post_comments_pin_and_edit.sql (security/auth)
+- 20260430060000: 20260430060000_ar_estimates_share_token.sql (security/auth)
+- 20260430060001: 20260430060001_post_comments_notification_trigger.sql (security/auth)
+- 20260430070000: 20260430070000_ar_workorder_share_token.sql (security/auth)
+- 20260430080000: 20260430080000_ar_service_catalog.sql (security/auth)
+- 20260430090000: 20260430090000_ar_customer_notes.sql (security/auth)
+- 20260501100000: 20260501100000_threat_intel.sql (security/auth)
+- 20260501110000: 20260501110000_auto_block_threat.sql (security/auth)
+- 20260501120000: 20260501120000_blocklist_cleanup.sql (security/auth)
+- 20260501130000: 20260501130000_user_blocklist.sql (security/auth)
+- 20260501140000: 20260501140000_auto_revoke_blocked_sessions.sql (security/auth)
+- 20260501150000: 20260501150000_new_device_login_alert.sql (security/auth)
+- 20260501160000: 20260501160000_my_recent_logins.sql (security/auth)
+- 20260501170000: 20260501170000_audit_admin_pii_read.sql (security/auth)
+- 20260501180000: 20260501180000_login_country_tracking.sql (security/auth)
+- 20260502140000: 20260502140000_daily_coin_reward.sql (security/auth)
+- 20260503181000: 20260503181000_post_comments_post_id_to_text.sql (security/auth)
+- 20260503181500: 20260503181500_post_comments_pinning.sql (security/auth)
+- 20260503184000: 20260503184000_user_posts_is_pinned.sql (security/auth)
+- 20260504163000: 20260504163000_fix_group_member_function_permissions.sql (security/auth)
+- 20260505180000: 20260505180000_chat_super_app_features.sql (security/auth)
+- 20260505184000: 20260505184000_review_and_rating_system.sql (security/auth)
+- 20260505190000: 20260505190000_p2p_transfers_and_expenses.sql (security/auth)
+- 20260505200000: 20260505200000_user_wallet_loyalty_partner.sql (security/auth)
+- 20260505210000: 20260505210000_super_app_mega_features.sql (security/auth)
+- 20260506211527: 20260506211527_get_nearby_drivers_freshness_filter.sql (security/auth)
+- 20260506220000: 20260506220000_employee_workflow.sql (security/auth)
+- 20260507165352: 20260507165352_fix_user_followers_triggers.sql (security/auth)
+- 20260507200000: 20260507200000_of_creator_discovery_filter.sql (security/auth)
+- 20260508120000: 20260508120000_bots_botfather.sql (security/auth)
+- 20260509120000: 20260509120000_unified_notifications.sql (security/auth)
+- 20260509130000: 20260509130000_notifications_followups.sql (security/auth)
+- 20260509140000: 20260509140000_provider_side_notifications.sql (security/auth)
+- 20260509150000: 20260509150000_notification_logs_admin_read.sql (security/auth)
+- 20260509160000: 20260509160000_hotel_detail_rpc.sql (security/auth)
+- 20260509170000: 20260509170000_live_and_payout_notifications.sql (security/auth)
+- 20260509180000: 20260509180000_notifications_cron_schedule.sql (security/auth)
+- 20260509200000: 20260509200000_grouped_social_notifications.sql (security/auth)
+- 20260509210000: 20260509210000_notifications_snooze.sql (security/auth)
+- 20260509230000: 20260509230000_make_like_trigger_nonfatal.sql (security/auth)
+- 20260516120000: 20260516120000_api_performance_indexes_access_rpc.sql (security/auth)
+- 20260518204722: 20260518204722_drop_duplicate_performance_indexes.sql (security/auth)
+- 20260518220000: 20260518220000_feed_perf_and_maintenance.sql (security/auth)
+- 20260518230000: 20260518230000_saved_collections.sql (security/auth)
+- 20260518230100: 20260518230100_post_products.sql (security/auth)
+- 20260519000000: 20260519000000_user_posts_visibility_fix.sql (security/auth)
+- 20260519010000: 20260519010000_profile_pinned_posts.sql (security/auth)
+- 20260520211411: 20260520211411_fix_p2p_notify_public_profiles_name.sql (security/auth)
+- 20260520212616: 20260520212616_fix_p2p_request_rpc_roles.sql (security/auth)
+- 20260521020631: 20260521020631_repair_store_product_storage_paths.sql (security/auth)
+- 20260521183500: 20260521183500_network_security_events.sql (security/auth)
+- 20260522012300: 20260522012300_database_security_forward_hardening.sql (security/auth)
+- 20260522120000: 20260522120000_service_bookings_delete_policy.sql (security/auth)
+- 20260522130000: 20260522130000_store_products_delete_policy.sql (security/auth)
+- 20260524000000: 20260524000000_store_profiles_owner_insert_policy.sql (security/auth)
+- 20260524010000: 20260524010000_store_payment_settings.sql (security/auth)
+- ...and 443 more
 
 ## Remote-Only Versions
 
-- 20260126182059
 - 20260126183930
 - 20260126184148
 - 20260126184302
-- 20260126184429
 - 20260126184455
 - 20260126184528
 - 20260126184745
 - 20260126184804
-- 20260126184926
 - 20260126185025
-- 20260126185226
-- 20260126190958
 - 20260126191009
 - 20260126191230
 - 20260126191456
 - 20260126191725
 - 20260126192403
 - 20260126192431
-- 20260126194307
-- 20260126195811
-- 20260126204103
 - 20260126204142
 - 20260126204329
 - 20260126204335
-- 20260126204405
 - 20260126204846
 - 20260126205325
-- 20260126210049
-- 20260126210104
 - 20260126211226
 - 20260126222108
-- 20260126222345
 - 20260126224544
 - 20260126230109
 - 20260126234441
@@ -252,9 +232,6 @@ Generated: 2026-09-03T18:56:53.467Z
 - 20260127220734
 - 20260127221317
 - 20260127223805
-- 20260127224424
-- 20260127224925
-- 20260127233014
 - 20260127233542
 - 20260127234807
 - 20260127235132
@@ -281,9 +258,6 @@ Generated: 2026-09-03T18:56:53.467Z
 - 20260129192300
 - 20260129192519
 - 20260129194844
-- 20260129222401
-- 20260129225208
-- 20260129225227
 - 20260130203701
 - 20260130203802
 - 20260130204934
@@ -299,8 +273,26 @@ Generated: 2026-09-03T18:56:53.467Z
 - 20260131162056
 - 20260131162153
 - 20260131164944
-- 20260131202031
-- 20260131202048
 - 20260131203610
-- 20260131204000
-- ...and 1512 more
+- 20260201014036
+- 20260201014207
+- 20260201055642
+- 20260202042714
+- 20260203030156
+- 20260205013545
+- 20260205014656
+- 20260206012343
+- 20260206232028
+- 20260206232848
+- 20260206233141
+- 20260206233246
+- 20260206234718
+- 20260206235406
+- 20260207000006
+- 20260207000540
+- 20260207000820
+- 20260207001417
+- 20260207002634
+- 20260207003212
+- 20260207003400
+- ...and 912 more

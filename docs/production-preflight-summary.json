@@ -36,12 +36,12 @@
     "newDuplicateVersions": 0
   },
   "reconciliation": {
-    "candidates": 617,
-    "highConfidenceCandidates": 584,
-    "mediumConfidenceCandidates": 33,
-    "unmatchedLocalAfterCandidates": 546,
+    "candidates": 17,
+    "highConfidenceCandidates": 3,
+    "mediumConfidenceCandidates": 14,
+    "unmatchedLocalAfterCandidates": 548,
     "unmatchedRemoteAfterCandidates": 995,
-    "unmatchedLocalAfterRemoteRange": 0,
+    "unmatchedLocalAfterRemoteRange": 2,
     "reviewOrder": [
       "high-confidence candidate mappings",
       "medium-confidence candidate mappings",
@@ -53,17 +53,17 @@
       {
         "order": 1,
         "label": "high-confidence candidate mappings",
-        "count": 584
+        "count": 3
       },
       {
         "order": 2,
         "label": "medium-confidence candidate mappings",
-        "count": 33
+        "count": 14
       },
       {
         "order": 3,
         "label": "unmatched local migrations after candidates",
-        "count": 546
+        "count": 548
       },
       {
         "order": 4,
@@ -73,7 +73,7 @@
       {
         "order": 5,
         "label": "likely pending local migrations after remote range",
-        "count": 0
+        "count": 2
       }
     ]
   },
@@ -189,12 +189,12 @@
     "json": {
       "path": "docs/production-preflight-summary.json",
       "exists": true,
-      "bytes": 6760
+      "bytes": 6752
     },
     "migrationDrift": {
       "path": "docs/supabase-migration-drift-report.md",
       "exists": true,
-      "bytes": 16897
+      "bytes": 14595
     },
     "databaseReadiness": {
       "path": "docs/database-upgrade-readiness-report.md",
@@ -209,38 +209,38 @@
     "reconciliationPlan": {
       "path": "docs/supabase-migration-reconciliation-plan.md",
       "exists": true,
-      "bytes": 3442
+      "bytes": 3639
     },
     "reconciliationCandidates": {
       "path": "docs/supabase-migration-reconciliation-candidates.csv",
       "exists": true,
-      "bytes": 57433
+      "bytes": 1573
     },
     "reconciliationRepairDraft": {
       "path": "docs/supabase-migration-reconciliation-repair-draft.sql",
       "exists": true,
-      "bytes": 212367
+      "bytes": 6504
     },
     "pendingLocalReview": {
       "path": "docs/supabase-migration-pending-local-review.csv",
       "exists": true,
-      "bytes": 334
+      "bytes": 722
     },
     "unmatchedLocal": {
       "path": "docs/supabase-migration-unmatched-local.csv",
       "exists": true,
-      "bytes": 66686
+      "bytes": 67045
     },
     "unmatchedRemote": {
       "path": "docs/supabase-migration-unmatched-remote.csv",
       "exists": true,
-      "bytes": 105504
+      "bytes": 106607
     }
   },
   "artifactSummary": {
     "total": 11,
     "existing": 11,
     "missing": 0,
-    "bytes": 508103
+    "bytes": 246117
   }
 }

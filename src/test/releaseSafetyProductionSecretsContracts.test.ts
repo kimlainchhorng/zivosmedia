@@ -116,7 +116,12 @@ describe("release safety production secret contracts", () => {
     expect(apiReport).toMatch(/- Warnings: \d+/);
     expect(apiReport).toContain("- Loose Edge Function security backlog: 0");
 
-    expect(driftReport).toContain("SUPABASE_ACCESS_TOKEN configured: yes");
+    // The token line flips with the generating environment (a maintainer's
+    // shell may or may not export SUPABASE_ACCESS_TOKEN; the CLI also reads
+    // remote history through a stored `supabase login` session). Pin only that
+    // the report states its auth state; the read/not-read consequences are
+    // asserted through summary.supabase below and in the drift branches above.
+    expect(driftReport).toMatch(/SUPABASE_ACCESS_TOKEN configured: (yes|no)/);
     // Same flag, same reason: audit-migration-drift.mjs emits the "requires
     // authenticated history" line only on the remoteError branch. When the
     // history WAS read it must instead report real diagnostics, never that line.

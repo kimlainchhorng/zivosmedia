@@ -18,6 +18,37 @@ generated artifacts (`supabase-migration-drift-report.md`, `…reconciliation-pl
 **Nothing in this runbook has been executed.** Every write is owner-run. The scan and the
 verification queries below are read-only.
 
+## Execution log
+
+### 2026-09-04 — Phase 0 + Phase 1 executed (owner-delegated, bookkeeping-only)
+
+Executed via the Supabase management SQL channel under explicit owner instruction
+("keep going do it for me" + the Supabase plugin); no schema object and no data row
+was touched — every statement below is a `schema_migrations` bookkeeping change.
+
+1. **Phase 0 — backup**: `supabase_migrations.schema_migrations_backup_20260904`
+   created with all 1625 rows (verified).
+2. **Full-scale equivalence verification** (replacing the 3-pair spot-check): all
+   617 candidate pairs were compared, remote `statements` text vs local file
+   content, normalized only for line endings/trailing whitespace/blank-line runs:
+   - **594 byte-exact** + **6 whitespace-normalized** = **600 verified renames**
+   - **17 mismatches — NOT renamed** (their SQL genuinely differs; left for owner
+     review; recorded in `docs/supabase-migration-reconciliation-mismatches.csv`)
+3. **Phase 1 renames applied** in 6 transaction batches of 100 guarded
+   `UPDATE … SET version = local WHERE version = remote AND NOT EXISTS (local)`:
+   every batch verified 100/100; table totals unchanged (1625 rows, 1625 distinct
+   versions) — pure renames.
+4. **Phase 5 validation**: linked drift re-scan reports **Matched versions: 613**
+   (13 + 600, exactly as predicted), near-timestamp pairs collapsed 617 → ~19
+   residual, `remoteError: null`. `supabase:migrations:check:main` (strict,
+   non-linked) still green; full unit suite green (3,240 passed / 0 failed).
+
+**Still owner-reviewed (Phase 3):** the ~548 unmatched local migrations (now
+including the two deliberate pending `security_invoker` ALTER VIEW migrations) and
+the 17 mismatched candidate pairs. These were deliberately not bulk-recorded —
+each needs its Phase 3 decision-tree judgment against the live schema. Rollback
+for everything executed today: restore rows from the backup table (see §9).
+
 ---
 
 ## 1. Verified state (re-confirmed live 2026-09-03)
