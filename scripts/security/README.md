@@ -35,6 +35,11 @@ Runs `npm audit --audit-level=moderate` against installed dependencies.
 npm run security:audit
 ```
 
+The command is wrapped by `scripts/security/npm-audit-with-retry.mjs`, which
+retries only npm-registry outages (the advisory-endpoint network timeout).
+Real audit findings and every other failure exit non-zero on the first
+attempt — the retry can never mask a vulnerable tree.
+
 Run monthly per the policy in `SECURITY.md`. To attempt automatic patching:
 
 ```bash

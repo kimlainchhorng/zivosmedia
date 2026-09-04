@@ -111,7 +111,7 @@
     "qa:shop-owner-contracts": "node scripts/qa/shop-owner-contracts.mjs",
     "qa:client-staff-contracts": "node scripts/qa/client-staff-contracts.mjs",
     "perf:media-report": "node scripts/performance/media-readiness-check.mjs",
-    "security:audit": "npm audit --audit-level=moderate",
+    "security:audit": "node scripts/security/npm-audit-with-retry.mjs",
     "security:audit:fix": "npm audit fix",
     "security:check-secrets": "node scripts/security/check-secrets.mjs",
     "security:check-secrets:local": "node scripts/security/check-secrets.mjs --include-local-env",
