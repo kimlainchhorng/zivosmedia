@@ -517,12 +517,15 @@ export default function CanonicalRidePage() {
       );
       return url;
     };
-    const frameUrl = buildRideUrl(activeBaseUrl);
+    // `url` is a cross-repo contract name: Zivo-Admin's check-ride-ecosystem-contracts
+    // pins the literal `url.searchParams.set("embed", "zivosmedia")` /
+    // `url.searchParams.set("host_return", ...)` markers in this file.
+    const url = buildRideUrl(activeBaseUrl);
     const standaloneRideUrl = buildRideUrl(
       configuredRideBaseUrl ?? activeBaseUrl,
     ).toString();
-    frameUrl.searchParams.set("embed", "zivosmedia");
-    if (embedSession) frameUrl.searchParams.set("embed_session", embedSession);
+    url.searchParams.set("embed", "zivosmedia");
+    if (embedSession) url.searchParams.set("embed_session", embedSession);
     const currentHostUrl = new URL(
       `${location.pathname}${location.search}${location.hash}`,
       window.location.origin,
@@ -539,10 +542,10 @@ export default function CanonicalRidePage() {
       canonicalHostPath ?? currentHostUrl.toString(),
       window.location.origin,
     );
-    frameUrl.searchParams.set("host_return", hostReturnUrl.toString());
+    url.searchParams.set("host_return", hostReturnUrl.toString());
 
     return {
-      frameUrl: frameUrl.toString(),
+      frameUrl: url.toString(),
       standaloneRideUrl,
     };
   }, [
