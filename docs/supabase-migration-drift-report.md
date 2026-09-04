@@ -1,6 +1,6 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-09-04T18:46:02.584Z
+Generated: 2026-09-04T20:38:26.348Z
 
 ## Summary
 
@@ -12,18 +12,18 @@ Generated: 2026-09-04T18:46:02.584Z
 - Duplicate SQL hashes: 0
 - SUPABASE_ACCESS_TOKEN configured: no
 - Local version range: 20260126182101 to 20260903220000
-- Remote version range: 20260126182101 to 20260903182301
-- Remote migrations: 1625
-- Matched versions: 613
-- Local-only pending: 565
+- Remote version range: 20260126182101 to 20260903220000
+- Remote migrations: 1627
+- Matched versions: 615
+- Local-only pending: 563
 - Remote-only missing locally: 1012
 - Near timestamp pairs within 5 seconds: 4
 - Near timestamp pairs within 1 minute: 19
 - One-to-one reconciliation candidates within 5 seconds: 3
 - One-to-one reconciliation candidates within 1 minute: 17
-- Unmatched local migrations after one-to-one candidates: 548
+- Unmatched local migrations after one-to-one candidates: 546
 - Unmatched remote versions after one-to-one candidates: 995
-- Unmatched local migrations after remote range: 2
+- Unmatched local migrations after remote range: 0
 - Unmatched remote versions before local range: 0
 - Pending local creates tables: 0
 - Pending local creates tables without RLS: 0
@@ -32,18 +32,18 @@ Generated: 2026-09-04T18:46:02.584Z
 - Pending local SECURITY DEFINER without search_path: 0
 - Pending local hardcoded Supabase URLs: 0
 - Pending local legacy anon JWTs: 0
-- Shared migration calendar days: 30
+- Shared migration calendar days: 29
 - Reconciliation candidates CSV: docs/supabase-migration-reconciliation-candidates.csv
 - Unmatched local CSV: docs/supabase-migration-unmatched-local.csv
 - Unmatched remote CSV: docs/supabase-migration-unmatched-remote.csv
 - Reconciliation plan: docs/supabase-migration-reconciliation-plan.md
 - Pending local review CSV: docs/supabase-migration-pending-local-review.csv
-- Pending risk: high=543, medium=10, low=12
+- Pending risk: high=543, medium=10, low=10
 
 ## Domains
 
-- security/auth: 493
-- chat/social: 33
+- security/auth: 492
+- chat/social: 32
 - commerce/store: 27
 - general: 5
 - travel/lodging: 4
