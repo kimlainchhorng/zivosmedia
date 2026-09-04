@@ -1,19 +1,19 @@
 # Supabase Migration Reconciliation Plan
 
-Generated: 2026-09-04T20:38:26.361Z
+Generated: 2026-09-04T23:12:00.893Z
 
 This plan is diagnostic only. It does not repair migration history or change the remote schema.
 
 ## Current State
 
 - Local migrations: 1178
-- Remote migration versions: 1627
-- Exact version matches: 615
+- Remote migration versions: 1768
+- Exact version matches: 758
 - One-to-one likely timestamp-drift matches: 17
 - High-confidence one-to-one matches: 3
 - Medium-confidence one-to-one matches: 14
-- Unmatched local migrations: 546
-- Unmatched local migrations inside remote version range: 546
+- Unmatched local migrations: 403
+- Unmatched local migrations inside remote version range: 403
 - Unmatched local migrations after remote version range: 0
 - Unmatched remote versions: 995
 - Unmatched remote versions inside local version range: 995
@@ -46,7 +46,7 @@ This plan is diagnostic only. It does not repair migration history or change the
 
 1. high-confidence candidate mappings (3 items)
 2. medium-confidence candidate mappings (14 items)
-3. unmatched local migrations after candidates (546 items)
+3. unmatched local migrations after candidates (403 items)
 4. unmatched remote versions after candidates (995 items)
 5. likely pending local migrations after remote range (0 items)
 

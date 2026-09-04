@@ -49,6 +49,32 @@ the 17 mismatched candidate pairs. These were deliberately not bulk-recorded —
 each needs its Phase 3 decision-tree judgment against the live schema. Rollback
 for everything executed today: restore rows from the backup table (see §9).
 
+### 2026-09-04 — Phase 3 first pass executed (owner-delegated, read-only verification + bookkeeping-only records)
+
+A live-catalog verifier (`scripts`-equivalent run recorded in the board entry;
+classification logic: extract every policy/function/table/view/index/trigger/type/
+schema/column/constraint/RLS/grant reference per file, probe the live public
+schema, require ALL recognized objects to match — grants batch-verified via
+`has_table_privilege`) classified the 548 unmatched local migrations:
+
+- **143 files — every recognized object verified live → recorded as applied**
+  via `supabase migration repair --status applied` (4 batched CLI calls,
+  bookkeeping-only). `supabase migration list` now matches the repo for them.
+- **403 files — recorded in
+  `docs/supabase-migration-reconciliation-phase3-review.csv` with per-file
+  reasons.** Dominant: objects genuinely absent live (never-applied / retired
+  work — archive candidates per decision tree (c)), data-effect files
+  (INSERT/UPDATE/DELETE — owner decides), grant checks that could not complete
+  (registry transport flakes), and a few verifier-limit cases. These need human
+  judgment; they were deliberately NOT recorded.
+- The 2 deliberate pending `security_invoker` migrations were repair-recorded
+  (their live effects pre-exist), so **unmatched-local-after-remote-range = 0**.
+
+**Post-runbook-execution state:** Matched versions **758**, local-only pending
+**420** (403 review + 17 mismatched pairs), strict non-linked gate PASS, full
+unit suite 3,240 / 0. Next owner actions: read the dossier + review CSV and
+apply the decision tree; nothing else in the reconciliation blocks any flow.
+
 ---
 
 ## 1. Verified state (re-confirmed live 2026-09-03)

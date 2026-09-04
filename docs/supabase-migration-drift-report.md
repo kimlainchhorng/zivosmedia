@@ -1,6 +1,6 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-09-04T20:38:26.348Z
+Generated: 2026-09-04T23:12:00.885Z
 
 ## Summary
 
@@ -13,15 +13,15 @@ Generated: 2026-09-04T20:38:26.348Z
 - SUPABASE_ACCESS_TOKEN configured: no
 - Local version range: 20260126182101 to 20260903220000
 - Remote version range: 20260126182101 to 20260903220000
-- Remote migrations: 1627
-- Matched versions: 615
-- Local-only pending: 563
+- Remote migrations: 1768
+- Matched versions: 758
+- Local-only pending: 420
 - Remote-only missing locally: 1012
 - Near timestamp pairs within 5 seconds: 4
 - Near timestamp pairs within 1 minute: 19
 - One-to-one reconciliation candidates within 5 seconds: 3
 - One-to-one reconciliation candidates within 1 minute: 17
-- Unmatched local migrations after one-to-one candidates: 546
+- Unmatched local migrations after one-to-one candidates: 403
 - Unmatched remote versions after one-to-one candidates: 995
 - Unmatched local migrations after remote range: 0
 - Unmatched remote versions before local range: 0
@@ -32,22 +32,21 @@ Generated: 2026-09-04T20:38:26.348Z
 - Pending local SECURITY DEFINER without search_path: 0
 - Pending local hardcoded Supabase URLs: 0
 - Pending local legacy anon JWTs: 0
-- Shared migration calendar days: 29
+- Shared migration calendar days: 25
 - Reconciliation candidates CSV: docs/supabase-migration-reconciliation-candidates.csv
 - Unmatched local CSV: docs/supabase-migration-unmatched-local.csv
 - Unmatched remote CSV: docs/supabase-migration-unmatched-remote.csv
 - Reconciliation plan: docs/supabase-migration-reconciliation-plan.md
 - Pending local review CSV: docs/supabase-migration-pending-local-review.csv
-- Pending risk: high=543, medium=10, low=10
+- Pending risk: high=413, medium=4, low=3
 
 ## Domains
 
-- security/auth: 492
-- chat/social: 32
-- commerce/store: 27
-- general: 5
-- travel/lodging: 4
-- infrastructure: 3
+- security/auth: 384
+- chat/social: 21
+- commerce/store: 11
+- travel/lodging: 3
+- general: 1
 
 ## Duplicate Versions
 
@@ -91,7 +90,6 @@ Generated: 2026-09-04T20:38:26.348Z
 
 ## High Risk Pending Migrations
 
-- 20260213005402: 20260213005402_fda0e32d-702d-43d8-aa30-d72d6e3f88f1.sql (security/auth)
 - 20260330173000: 20260330173000_8b4f4f26-7036-4e35-9d37-65ab70f88df4.sql (security/auth)
 - 20260405131000: 20260405131000_device_tokens_unique_token.sql (commerce/store)
 - 20260406020001: 20260406020001_meta_capi_bridge_webhooks.sql (chat/social)
@@ -107,23 +105,10 @@ Generated: 2026-09-04T20:38:26.348Z
 - 20260411175000: 20260411175000_auth_shield_admin_controls.sql (security/auth)
 - 20260411183000: 20260411183000_auth_shield_anomaly_detection.sql (security/auth)
 - 20260411190000: 20260411190000_auth_shield_playbooks.sql (security/auth)
-- 20260429154352: 20260429154352_lodge_handover_notes.sql (security/auth)
-- 20260429160000: 20260429160000_lodge_group_bookings.sql (security/auth)
-- 20260429162000: 20260429162000_lodge_notification_templates.sql (security/auth)
-- 20260429163000: 20260429163000_lodge_yield_rules.sql (security/auth)
-- 20260429164000: 20260429164000_lodge_inventory.sql (security/auth)
-- 20260429170000: 20260429170000_lodge_room_service.sql (security/auth)
-- 20260429171000: 20260429171000_lodge_gift_vouchers.sql (security/auth)
-- 20260429172000: 20260429172000_lodge_parking.sql (security/auth)
-- 20260429180000: 20260429180000_lodge_wakeup_calls.sql (security/auth)
-- 20260429181000: 20260429181000_lodge_laundry.sql (security/auth)
-- 20260429182000: 20260429182000_lodge_complaints.sql (security/auth)
-- 20260429210000: 20260429210000_lodge_rooms_public_read.sql (security/auth)
 - 20260429220000: 20260429220000_lodge_rate_plans.sql (commerce/store)
 - 20260429230000: 20260429230000_security_hardening.sql (security/auth)
 - 20260429230001: 20260429230001_user_posts_visibility_location.sql (security/auth)
 - 20260429240000: 20260429240000_backfill_storage_paths.sql (security/auth)
-- 20260429240001: 20260429240001_increment_user_post_views.sql (security/auth)
 - 20260429250000: 20260429250000_post_actions_tables.sql (security/auth)
 - 20260429260001: 20260429260001_post_reactions.sql (security/auth)
 - 20260429270000: 20260429270000_post_view_share_counts.sql (security/auth)
@@ -132,15 +117,9 @@ Generated: 2026-09-04T20:38:26.348Z
 - 20260430020000: 20260430020000_blocked_link_attempts.sql (security/auth)
 - 20260430020001: 20260430020001_fix_social_notification_triggers.sql (security/auth)
 - 20260430030000: 20260430030000_comment_threading.sql (security/auth)
-- 20260430040000: 20260430040000_ar_shop_settings_column.sql (security/auth)
 - 20260430040001: 20260430040001_comment_pinning.sql (security/auth)
-- 20260430050000: 20260430050000_booking_to_workorder_link.sql (commerce/store)
-- 20260430050001: 20260430050001_post_comments_pin_and_edit.sql (security/auth)
 - 20260430060000: 20260430060000_ar_estimates_share_token.sql (security/auth)
 - 20260430060001: 20260430060001_post_comments_notification_trigger.sql (security/auth)
-- 20260430070000: 20260430070000_ar_workorder_share_token.sql (security/auth)
-- 20260430080000: 20260430080000_ar_service_catalog.sql (security/auth)
-- 20260430090000: 20260430090000_ar_customer_notes.sql (security/auth)
 - 20260501100000: 20260501100000_threat_intel.sql (security/auth)
 - 20260501110000: 20260501110000_auto_block_threat.sql (security/auth)
 - 20260501120000: 20260501120000_blocklist_cleanup.sql (security/auth)
@@ -152,17 +131,8 @@ Generated: 2026-09-04T20:38:26.348Z
 - 20260501180000: 20260501180000_login_country_tracking.sql (security/auth)
 - 20260502140000: 20260502140000_daily_coin_reward.sql (security/auth)
 - 20260503181000: 20260503181000_post_comments_post_id_to_text.sql (security/auth)
-- 20260503181500: 20260503181500_post_comments_pinning.sql (security/auth)
-- 20260503184000: 20260503184000_user_posts_is_pinned.sql (security/auth)
-- 20260504163000: 20260504163000_fix_group_member_function_permissions.sql (security/auth)
-- 20260505180000: 20260505180000_chat_super_app_features.sql (security/auth)
 - 20260505184000: 20260505184000_review_and_rating_system.sql (security/auth)
-- 20260505190000: 20260505190000_p2p_transfers_and_expenses.sql (security/auth)
-- 20260505200000: 20260505200000_user_wallet_loyalty_partner.sql (security/auth)
 - 20260505210000: 20260505210000_super_app_mega_features.sql (security/auth)
-- 20260506211527: 20260506211527_get_nearby_drivers_freshness_filter.sql (security/auth)
-- 20260506220000: 20260506220000_employee_workflow.sql (security/auth)
-- 20260507165352: 20260507165352_fix_user_followers_triggers.sql (security/auth)
 - 20260507200000: 20260507200000_of_creator_discovery_filter.sql (security/auth)
 - 20260508120000: 20260508120000_bots_botfather.sql (security/auth)
 - 20260509120000: 20260509120000_unified_notifications.sql (security/auth)
@@ -187,11 +157,40 @@ Generated: 2026-09-04T20:38:26.348Z
 - 20260521020631: 20260521020631_repair_store_product_storage_paths.sql (security/auth)
 - 20260521183500: 20260521183500_network_security_events.sql (security/auth)
 - 20260522012300: 20260522012300_database_security_forward_hardening.sql (security/auth)
-- 20260522120000: 20260522120000_service_bookings_delete_policy.sql (security/auth)
-- 20260522130000: 20260522130000_store_products_delete_policy.sql (security/auth)
-- 20260524000000: 20260524000000_store_profiles_owner_insert_policy.sql (security/auth)
-- 20260524010000: 20260524010000_store_payment_settings.sql (security/auth)
-- ...and 443 more
+- 20260524050000: 20260524050000_salon_bookings.sql (security/auth)
+- 20260524090000: 20260524090000_salon_booking_completion_hooks.sql (security/auth)
+- 20260524100000: 20260524100000_salon_booking_retail_items.sql (security/auth)
+- 20260524140000: 20260524140000_salon_blockouts.sql (security/auth)
+- 20260524150000: 20260524150000_salon_store_closures.sql (security/auth)
+- 20260524160000: 20260524160000_salon_gift_cards.sql (security/auth)
+- 20260524170000: 20260524170000_salon_time_entries.sql (security/auth)
+- 20260524190000: 20260524190000_salon_public_stylist_and_review_rpcs.sql (security/auth)
+- 20260524210000: 20260524210000_salon_booking_addons_and_commission_payouts.sql (security/auth)
+- 20260524220000: 20260524220000_salon_bookings_realtime_publication.sql (chat/social)
+- 20260524230000: 20260524230000_salon_booking_addons_rollup.sql (travel/lodging)
+- 20260524240000: 20260524240000_salon_loyalty_includes_addons.sql (commerce/store)
+- 20260524250000: 20260524250000_salon_public_get_booking_with_addons.sql (security/auth)
+- 20260524260000: 20260524260000_salon_addons_rollup_end_at.sql (travel/lodging)
+- 20260524270000: 20260524270000_salon_sidebar_badges_realtime.sql (chat/social)
+- 20260524280000: 20260524280000_salon_completion_sync_restore_retail.sql (security/auth)
+- 20260524290000: 20260524290000_salon_no_show_count_sync.sql (chat/social)
+- 20260524300000: 20260524300000_salon_clients_tags_and_no_show_count.sql (commerce/store)
+- 20260524310000: 20260524310000_salon_clients_tags_limits.sql (chat/social)
+- 20260524320000: 20260524320000_salon_public_stylist_busy.sql (security/auth)
+- 20260524340000: 20260524340000_salon_bookings_cancellation_reason_limit.sql (travel/lodging)
+- 20260524350000: 20260524350000_salon_public_get_booking_with_ids_and_cancel_window.sql (security/auth)
+- 20260524360000: 20260524360000_salon_reminders.sql (security/auth)
+- 20260524370000: 20260524370000_salon_customer_portal.sql (security/auth)
+- 20260524380000: 20260524380000_salon_reminders_followup.sql (security/auth)
+- 20260524390000: 20260524390000_salon_campaigns.sql (security/auth)
+- 20260524400000: 20260524400000_salon_stripe_deposits.sql (security/auth)
+- 20260524410000: 20260524410000_salon_public_booking_returns_refunded_cents.sql (security/auth)
+- 20260524420000: 20260524420000_salon_no_show_fees.sql (security/auth)
+- 20260525040000: 20260525040000_cafe_orders.sql (security/auth)
+- 20260525060000: 20260525060000_cafe_payments.sql (security/auth)
+- 20260525070000: 20260525070000_cafe_public_order_rpc.sql (security/auth)
+- 20260525100001: 20260525100001_cafe_orders_realtime_publication.sql (chat/social)
+- ...and 313 more
 
 ## Remote-Only Versions
 
