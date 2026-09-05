@@ -39,7 +39,7 @@
     "candidates": 17,
     "highConfidenceCandidates": 3,
     "mediumConfidenceCandidates": 14,
-    "unmatchedLocalAfterCandidates": 397,
+    "unmatchedLocalAfterCandidates": 393,
     "unmatchedRemoteAfterCandidates": 995,
     "unmatchedLocalAfterRemoteRange": 0,
     "reviewOrder": [
@@ -63,7 +63,7 @@
       {
         "order": 3,
         "label": "unmatched local migrations after candidates",
-        "count": 397
+        "count": 393
       },
       {
         "order": 4,
@@ -194,7 +194,7 @@
     "migrationDrift": {
       "path": "docs/supabase-migration-drift-report.md",
       "exists": true,
-      "bytes": 14677
+      "bytes": 14690
     },
     "databaseReadiness": {
       "path": "docs/database-upgrade-readiness-report.md",
@@ -229,7 +229,7 @@
     "unmatchedLocal": {
       "path": "docs/supabase-migration-unmatched-local.csv",
       "exists": true,
-      "bytes": 48764
+      "bytes": 48307
     },
     "unmatchedRemote": {
       "path": "docs/supabase-migration-unmatched-remote.csv",
@@ -241,6 +241,6 @@
     "total": 11,
     "existing": 11,
     "missing": 0,
-    "bytes": 228124
+    "bytes": 227680
   }
 }

@@ -1,6 +1,6 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-09-05T21:46:42.086Z
+Generated: 2026-09-05T21:56:43.187Z
 
 ## Summary
 
@@ -13,15 +13,15 @@ Generated: 2026-09-05T21:46:42.086Z
 - SUPABASE_ACCESS_TOKEN configured: no
 - Local version range: 20260126182101 to 20260903220000
 - Remote version range: 20260126182101 to 20260903220000
-- Remote migrations: 1774
-- Matched versions: 764
-- Local-only pending: 414
+- Remote migrations: 1778
+- Matched versions: 768
+- Local-only pending: 410
 - Remote-only missing locally: 1012
 - Near timestamp pairs within 5 seconds: 4
 - Near timestamp pairs within 1 minute: 19
 - One-to-one reconciliation candidates within 5 seconds: 3
 - One-to-one reconciliation candidates within 1 minute: 17
-- Unmatched local migrations after one-to-one candidates: 397
+- Unmatched local migrations after one-to-one candidates: 393
 - Unmatched remote versions after one-to-one candidates: 995
 - Unmatched local migrations after remote range: 0
 - Unmatched remote versions before local range: 0
@@ -32,17 +32,17 @@ Generated: 2026-09-05T21:46:42.086Z
 - Pending local SECURITY DEFINER without search_path: 0
 - Pending local hardcoded Supabase URLs: 0
 - Pending local legacy anon JWTs: 0
-- Shared migration calendar days: 24
+- Shared migration calendar days: 23
 - Reconciliation candidates CSV: docs/supabase-migration-reconciliation-candidates.csv
 - Unmatched local CSV: docs/supabase-migration-unmatched-local.csv
 - Unmatched remote CSV: docs/supabase-migration-unmatched-remote.csv
 - Reconciliation plan: docs/supabase-migration-reconciliation-plan.md
 - Pending local review CSV: docs/supabase-migration-pending-local-review.csv
-- Pending risk: high=407, medium=4, low=3
+- Pending risk: high=403, medium=4, low=3
 
 ## Domains
 
-- security/auth: 378
+- security/auth: 374
 - chat/social: 21
 - commerce/store: 11
 - travel/lodging: 3
@@ -110,7 +110,6 @@ Generated: 2026-09-05T21:46:42.086Z
 - 20260429230001: 20260429230001_user_posts_visibility_location.sql (security/auth)
 - 20260429240000: 20260429240000_backfill_storage_paths.sql (security/auth)
 - 20260429250000: 20260429250000_post_actions_tables.sql (security/auth)
-- 20260429260001: 20260429260001_post_reactions.sql (security/auth)
 - 20260429270000: 20260429270000_post_view_share_counts.sql (security/auth)
 - 20260430000000: 20260430000000_post_reposts.sql (security/auth)
 - 20260430010000: 20260430010000_social_notifications_and_comment_hearts.sql (security/auth)
@@ -190,7 +189,8 @@ Generated: 2026-09-05T21:46:42.086Z
 - 20260525060000: 20260525060000_cafe_payments.sql (security/auth)
 - 20260525070000: 20260525070000_cafe_public_order_rpc.sql (security/auth)
 - 20260525100001: 20260525100001_cafe_orders_realtime_publication.sql (chat/social)
-- ...and 307 more
+- 20260525120000: 20260525120000_cafe_orders_status_timestamps.sql (chat/social)
+- ...and 303 more
 
 ## Remote-Only Versions
 

@@ -16,15 +16,15 @@ executed against the database beyond read-only probes.
 | Family | Missing live | Revive-by (migration file) | Runtime entry points |
 |---|---|---|---|
 | **ZivoPay / payments — ✅ SCHEMA APPLIED 2026-09-04** | ~~nothing now~~ | `20260607163048` applied (with `driver_payouts` → `payment_driver_payouts` rename after a live name-collision with the legacy week-based payouts table); functions still to deploy | `zivopay-order`, `zivopay-stripe-webhook`, `zivopay-create-billing-portal`, `_shared/zivopay{,Chat,Software,Business,Driver,Admin}.ts` |
-| **Post reactions** | `post_reactions`, `review_flags` | `20260429260001_post_reactions.sql`, `20260505184000_review_and_rating_system.sql` | `usePostReactions`, `ReactionSummary`, `PostInsights` |
-| **Share-to-earn / referrals** | `user_referral_codes`, `referral_shares`, `referral_conversions`, `purchase_records` | `20260601114500_share_to_earn_server_gate.sql` (+ `20260406093000_launch_security_deeplink_pulse.sql` for referral shares) | `share-to-earn-manage`, `stripe-webhook` (purchase_records), `src/config/referralProgram.ts` |
-| **Account hub activity** | `account_hub_activity` | `20260608000000_account_hub_activity.sql` | `MorePage`, `ActivityLogPage` |
+| **Post reactions — ✅ SCHEMA APPLIED 2026-09-04** | ~~`post_reactions`~~ | `20260429260001` applied (idempotent, 4 policies); the shared `20260505184000` review file is NOT applied — see review-system row | `usePostReactions`, `ReactionSummary`, `PostInsights` — feature now schema-backed |
+| **Share-to-earn / referrals — ✅ SCHEMA APPLIED 2026-09-04** | ~~3 referral tables~~ (purchase_records still missing) | `20260601114500` applied (idempotent; RESTRICTIVE server-only-write policies); `purchase_records` lives in `20260406093000` (mixed file — owner review) | `share-to-earn-manage`, `referralProgram.ts` — schema-backed; `stripe-webhook`'s purchase_records still pending |
+| **Account hub activity — ✅ SCHEMA APPLIED 2026-09-04** | ~~`account_hub_activity`~~ | `20260608000000` applied (idempotent, RLS own-rows, grant) | `MorePage`, `ActivityLogPage` — feature now schema-backed |
 | **SMS audit log** | `sms_send_log` | `20260509120000_unified_notifications.sql` | `send-sms`, `AdminNotificationAnalyticsPage` |
 | **Login protection** | `auth_login_protection` (function `auth_record_login_attempt` EXISTS) | `20260411170000_auth_shield_lockout.sql` | auth Edge Functions — **verify the existing function's write path before enabling anything** |
 | **Group message reports** | `group_message_reports` | `20260526165000_sensitive_media_controls.sql` | chat moderation paths |
-| **Salon memberships** | `salon_membership_tiers` | `20260602000000_salon_memberships.sql` | salon public RPCs (`salon_public_get_membership_tiers` etc. — also absent) |
+| **Salon memberships — ✅ SCHEMA APPLIED 2026-09-04** | ~~`salon_membership_tiers`~~ | `20260602000000` applied: tiers + client_memberships + BOTH RPCs created | salon membership UI now schema-backed |
 | **Store payroll** | `store_payroll_configs` | part of `20260406091500_super_app_architecture.sql` (shared file — extracting payroll means splitting it) | — |
-| **Hotel reviews** | `hotel_reviews` | `20260505184000_review_and_rating_system.sql` (shared with post reactions) | no direct runtime references found (UI likely uses another path — verify before deciding) |
+| **Hotel reviews / review system — ⚠ CONFLICTED, owner review** | `hotel_reviews`, `review_votes`, `review_flags` absent — BUT `reviews`, `restaurant_reviews`, `car_rental_reviews` ALREADY EXIST live (divergent partial system via other migrations); the file's non-idempotent creates would collide | Do NOT apply `20260505184000` as-is; reconcile the live partial review system first |
 | **Super-app warehouse/truck** | `warehouse_inventory`, `truck_inventory`, `truck_offline_sales_queue` | `20260406091500_super_app_architecture.sql` | `truck_inventory` referenced in 1 runtime file |
 
 ## P0 verdict (bus payments — resolved, no live risk)
