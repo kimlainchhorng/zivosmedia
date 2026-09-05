@@ -95,6 +95,29 @@ apply the decision tree; nothing else in the reconciliation blocks any flow.
 - **State:** Matched versions **763**, local-only pending **415**, out-of-range
   pendings 0, strict non-linked gate PASS.
 
+### 2026-09-04 — Phase 3 runtime-reference enrichment (final evidence pass)
+
+Each review file's principal objects (tables/views/functions/types/sequences it
+creates) were cross-referenced against current runtime code (`src/` +
+`supabase/functions/`, tests excluded — 3,274 files indexed, word-boundary
+matching). Final dispositions in the review CSV:
+
+| Disposition | Files | Meaning |
+|---|---|---|
+| NEVER-APPLIED + ZERO-RUNTIME-REFS | 163 | Archive-safe evidence — nothing in runtime code wants these objects |
+| VERIFIER-LIMIT + ZERO-RUNTIME-REFS | 38 | Same archive-safe evidence, unparsed statement shapes |
+| DATA-EFFECTS + ZERO-RUNTIME-REFS | 19 | Likely archive (data files nothing references) |
+| NEVER-APPLIED + RUNTIME-REFS | 60 | **Product decision** — runtime code still names these objects |
+| DATA-EFFECTS + RUNTIME-REFS | 86 | **Product decision** |
+| VERIFIER-LIMIT + RUNTIME-REFS | 27 | Manual review |
+| GRANT-DIFFERS / PARTIALLY-RETIRED | 5 | Edge cases |
+
+**220 files carry archive-safe evidence; 178 need the owner.** Archiving
+(moving to `supabase/migrations-archived/`) was deliberately NOT executed:
+"never applied and unreferenced" is strong evidence but a reversible-but-structural
+repo change — the owner should bless the bucket move once, then it is one
+`git mv` list. Rollback of everything recorded remains the backup table.
+
 ---
 
 ## 1. Verified state (re-confirmed live 2026-09-03)
