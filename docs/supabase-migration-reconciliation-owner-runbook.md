@@ -75,6 +75,26 @@ schema, require ALL recognized objects to match — grants batch-verified via
 unit suite 3,240 / 0. Next owner actions: read the dossier + review CSV and
 apply the decision tree; nothing else in the reconciliation blocks any flow.
 
+### 2026-09-04 — Phase 3 enrichment pass (grant retry + superseded-by-drop analysis)
+
+- **Grant verification retried** with batched `has_table_privilege` queries
+  (862 triples, all resolved): **5 more files fully verified → recorded as
+  applied**; 4 files confirmed as genuinely differing live (GRANT-DIFFERS).
+- **Superseded-by-drop analysis** across all 1,178 local migration files:
+  **zero** review files are "retired by a later drop" — every missing-object
+  file is **never-applied** work (the feature's objects were never created live
+  and never dropped later either). Final review-classification of the
+  remaining 398 files (see
+  `docs/supabase-migration-reconciliation-phase3-review.csv`, now with
+  disposition + evidence columns):
+  - **NEVER-APPLIED: 223** — owner decides resurrect vs archive;
+  - **DATA-EFFECTS: 105** — INSERT/UPDATE/DELETE work, owner decides;
+  - **VERIFIER-LIMIT: 65** — statement shapes the verifier cannot vouch for;
+  - **GRANT-DIFFERS: 4** — live grant state differs from the file;
+  - **PARTIALLY-RETIRED: 1**.
+- **State:** Matched versions **763**, local-only pending **415**, out-of-range
+  pendings 0, strict non-linked gate PASS.
+
 ---
 
 ## 1. Verified state (re-confirmed live 2026-09-03)

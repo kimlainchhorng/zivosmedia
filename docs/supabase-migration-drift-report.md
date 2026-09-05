@@ -1,6 +1,6 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-09-04T23:12:00.885Z
+Generated: 2026-09-05T19:29:48.553Z
 
 ## Summary
 
@@ -13,15 +13,15 @@ Generated: 2026-09-04T23:12:00.885Z
 - SUPABASE_ACCESS_TOKEN configured: no
 - Local version range: 20260126182101 to 20260903220000
 - Remote version range: 20260126182101 to 20260903220000
-- Remote migrations: 1768
-- Matched versions: 758
-- Local-only pending: 420
+- Remote migrations: 1773
+- Matched versions: 763
+- Local-only pending: 415
 - Remote-only missing locally: 1012
 - Near timestamp pairs within 5 seconds: 4
 - Near timestamp pairs within 1 minute: 19
 - One-to-one reconciliation candidates within 5 seconds: 3
 - One-to-one reconciliation candidates within 1 minute: 17
-- Unmatched local migrations after one-to-one candidates: 403
+- Unmatched local migrations after one-to-one candidates: 398
 - Unmatched remote versions after one-to-one candidates: 995
 - Unmatched local migrations after remote range: 0
 - Unmatched remote versions before local range: 0
@@ -32,17 +32,17 @@ Generated: 2026-09-04T23:12:00.885Z
 - Pending local SECURITY DEFINER without search_path: 0
 - Pending local hardcoded Supabase URLs: 0
 - Pending local legacy anon JWTs: 0
-- Shared migration calendar days: 25
+- Shared migration calendar days: 24
 - Reconciliation candidates CSV: docs/supabase-migration-reconciliation-candidates.csv
 - Unmatched local CSV: docs/supabase-migration-unmatched-local.csv
 - Unmatched remote CSV: docs/supabase-migration-unmatched-remote.csv
 - Reconciliation plan: docs/supabase-migration-reconciliation-plan.md
 - Pending local review CSV: docs/supabase-migration-pending-local-review.csv
-- Pending risk: high=413, medium=4, low=3
+- Pending risk: high=408, medium=4, low=3
 
 ## Domains
 
-- security/auth: 384
+- security/auth: 379
 - chat/social: 21
 - commerce/store: 11
 - travel/lodging: 3
@@ -190,7 +190,7 @@ Generated: 2026-09-04T23:12:00.885Z
 - 20260525060000: 20260525060000_cafe_payments.sql (security/auth)
 - 20260525070000: 20260525070000_cafe_public_order_rpc.sql (security/auth)
 - 20260525100001: 20260525100001_cafe_orders_realtime_publication.sql (chat/social)
-- ...and 313 more
+- ...and 308 more
 
 ## Remote-Only Versions
 
