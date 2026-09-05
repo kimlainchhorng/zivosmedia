@@ -1,27 +1,27 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-09-05T21:56:43.187Z
+Generated: 2026-09-05T22:22:26.463Z
 
 ## Summary
 
-- Local migrations: 1178
+- Local migrations: 1179
 - Invalid filenames: 0
 - Duplicate versions: 6
 - Allowed duplicate versions: 6
 - New duplicate versions: 0
 - Duplicate SQL hashes: 0
 - SUPABASE_ACCESS_TOKEN configured: no
-- Local version range: 20260126182101 to 20260903220000
-- Remote version range: 20260126182101 to 20260903220000
-- Remote migrations: 1778
-- Matched versions: 768
-- Local-only pending: 410
+- Local version range: 20260126182101 to 20260904210000
+- Remote version range: 20260126182101 to 20260904210000
+- Remote migrations: 1780
+- Matched versions: 770
+- Local-only pending: 409
 - Remote-only missing locally: 1012
 - Near timestamp pairs within 5 seconds: 4
 - Near timestamp pairs within 1 minute: 19
 - One-to-one reconciliation candidates within 5 seconds: 3
 - One-to-one reconciliation candidates within 1 minute: 17
-- Unmatched local migrations after one-to-one candidates: 393
+- Unmatched local migrations after one-to-one candidates: 392
 - Unmatched remote versions after one-to-one candidates: 995
 - Unmatched local migrations after remote range: 0
 - Unmatched remote versions before local range: 0
@@ -38,11 +38,11 @@ Generated: 2026-09-05T21:56:43.187Z
 - Unmatched remote CSV: docs/supabase-migration-unmatched-remote.csv
 - Reconciliation plan: docs/supabase-migration-reconciliation-plan.md
 - Pending local review CSV: docs/supabase-migration-pending-local-review.csv
-- Pending risk: high=403, medium=4, low=3
+- Pending risk: high=402, medium=4, low=3
 
 ## Domains
 
-- security/auth: 374
+- security/auth: 373
 - chat/social: 21
 - commerce/store: 11
 - travel/lodging: 3
@@ -190,7 +190,7 @@ Generated: 2026-09-05T21:56:43.187Z
 - 20260525070000: 20260525070000_cafe_public_order_rpc.sql (security/auth)
 - 20260525100001: 20260525100001_cafe_orders_realtime_publication.sql (chat/social)
 - 20260525120000: 20260525120000_cafe_orders_status_timestamps.sql (chat/social)
-- ...and 303 more
+- ...and 302 more
 
 ## Remote-Only Versions
 
