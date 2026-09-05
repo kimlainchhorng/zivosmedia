@@ -15,7 +15,7 @@ executed against the database beyond read-only probes.
 
 | Family | Missing live | Revive-by (migration file) | Runtime entry points |
 |---|---|---|---|
-| **ZivoPay / payments** | `payment_customers`, `payment_orders`, `payment_invoices`, `payment_refunds`, `payment_subscriptions`, `payment_transactions`, `payment_webhook_events`, `payment_audit_logs`, `payment_support_threads`, `payment_methods`, `business_billing_profiles` | `20260607163048_zivosmedia_payments_foundation.sql` (the entire family is this ONE file from merged PR #57) | `zivopay-order`, `zivopay-stripe-webhook`, `zivopay-create-billing-portal`, `_shared/zivopay{,Chat,Software,Business}.ts` |
+| **ZivoPay / payments — ✅ SCHEMA APPLIED 2026-09-04** | ~~nothing now~~ | `20260607163048` applied (with `driver_payouts` → `payment_driver_payouts` rename after a live name-collision with the legacy week-based payouts table); functions still to deploy | `zivopay-order`, `zivopay-stripe-webhook`, `zivopay-create-billing-portal`, `_shared/zivopay{,Chat,Software,Business,Driver,Admin}.ts` |
 | **Post reactions** | `post_reactions`, `review_flags` | `20260429260001_post_reactions.sql`, `20260505184000_review_and_rating_system.sql` | `usePostReactions`, `ReactionSummary`, `PostInsights` |
 | **Share-to-earn / referrals** | `user_referral_codes`, `referral_shares`, `referral_conversions`, `purchase_records` | `20260601114500_share_to_earn_server_gate.sql` (+ `20260406093000_launch_security_deeplink_pulse.sql` for referral shares) | `share-to-earn-manage`, `stripe-webhook` (purchase_records), `src/config/referralProgram.ts` |
 | **Account hub activity** | `account_hub_activity` | `20260608000000_account_hub_activity.sql` | `MorePage`, `ActivityLogPage` |

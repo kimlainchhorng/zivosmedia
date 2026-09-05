@@ -39,7 +39,7 @@
     "candidates": 17,
     "highConfidenceCandidates": 3,
     "mediumConfidenceCandidates": 14,
-    "unmatchedLocalAfterCandidates": 398,
+    "unmatchedLocalAfterCandidates": 397,
     "unmatchedRemoteAfterCandidates": 995,
     "unmatchedLocalAfterRemoteRange": 0,
     "reviewOrder": [
@@ -63,7 +63,7 @@
       {
         "order": 3,
         "label": "unmatched local migrations after candidates",
-        "count": 398
+        "count": 397
       },
       {
         "order": 4,
@@ -229,7 +229,7 @@
     "unmatchedLocal": {
       "path": "docs/supabase-migration-unmatched-local.csv",
       "exists": true,
-      "bytes": 48889
+      "bytes": 48764
     },
     "unmatchedRemote": {
       "path": "docs/supabase-migration-unmatched-remote.csv",
@@ -241,6 +241,6 @@
     "total": 11,
     "existing": 11,
     "missing": 0,
-    "bytes": 228249
+    "bytes": 228124
   }
 }

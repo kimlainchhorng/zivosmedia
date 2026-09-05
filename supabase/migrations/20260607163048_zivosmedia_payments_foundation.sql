@@ -209,7 +209,7 @@ create table if not exists public.payment_refunds (
   constraint payment_refunds_currency_lower check (currency = lower(currency) and char_length(currency) = 3)
 );
 
-create table if not exists public.driver_payouts (
+create table if not exists public.payment_driver_payouts (
   id uuid primary key default gen_random_uuid(),
   driver_id uuid not null,
   zivosmedia_user_id uuid not null,
@@ -228,8 +228,8 @@ create table if not exists public.driver_payouts (
   paid_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint driver_payouts_amounts_nonnegative check (gross_amount >= 0 and platform_fee >= 0 and driver_earning >= 0),
-  constraint driver_payouts_currency_lower check (currency = lower(currency) and char_length(currency) = 3)
+  constraint payment_driver_payouts_amounts_nonnegative check (gross_amount >= 0 and platform_fee >= 0 and driver_earning >= 0),
+  constraint payment_driver_payouts_currency_lower check (currency = lower(currency) and char_length(currency) = 3)
 );
 
 create table if not exists public.payment_webhook_events (
@@ -305,9 +305,9 @@ create index if not exists idx_payment_subscriptions_user_status on public.payme
 create index if not exists idx_payment_subscriptions_business_status on public.payment_subscriptions (business_id, status) where business_id is not null;
 create index if not exists idx_payment_invoices_user_created on public.payment_invoices (zivosmedia_user_id, created_at desc);
 create index if not exists idx_payment_refunds_transaction on public.payment_refunds (payment_transaction_id);
-create index if not exists idx_driver_payouts_driver_status on public.driver_payouts (driver_id, status);
-create index if not exists idx_driver_payouts_user_status on public.driver_payouts (zivosmedia_user_id, status);
-create index if not exists idx_driver_payouts_job on public.driver_payouts (driver_job_id);
+create index if not exists idx_payment_driver_payouts_driver_status on public.payment_driver_payouts (driver_id, status);
+create index if not exists idx_payment_driver_payouts_user_status on public.payment_driver_payouts (zivosmedia_user_id, status);
+create index if not exists idx_payment_driver_payouts_job on public.payment_driver_payouts (driver_job_id);
 create index if not exists idx_payment_webhook_events_unprocessed on public.payment_webhook_events (processed, received_at) where processed = false;
 create index if not exists idx_payment_audit_logs_created on public.payment_audit_logs (created_at desc);
 create index if not exists idx_payment_audit_logs_user on public.payment_audit_logs (zivosmedia_user_id, created_at desc) where zivosmedia_user_id is not null;
@@ -352,8 +352,8 @@ drop trigger if exists trg_payment_refunds_updated_at on public.payment_refunds;
 create trigger trg_payment_refunds_updated_at before update on public.payment_refunds
 for each row execute function public.set_zivopay_updated_at();
 
-drop trigger if exists trg_driver_payouts_updated_at on public.driver_payouts;
-create trigger trg_driver_payouts_updated_at before update on public.driver_payouts
+drop trigger if exists trg_payment_driver_payouts_updated_at on public.payment_driver_payouts;
+create trigger trg_payment_driver_payouts_updated_at before update on public.payment_driver_payouts
 for each row execute function public.set_zivopay_updated_at();
 
 drop trigger if exists trg_payment_support_threads_updated_at on public.payment_support_threads;
@@ -367,7 +367,7 @@ alter table public.payment_transactions enable row level security;
 alter table public.payment_subscriptions enable row level security;
 alter table public.payment_invoices enable row level security;
 alter table public.payment_refunds enable row level security;
-alter table public.driver_payouts enable row level security;
+alter table public.payment_driver_payouts enable row level security;
 alter table public.payment_webhook_events enable row level security;
 alter table public.payment_audit_logs enable row level security;
 alter table public.payment_support_threads enable row level security;
@@ -379,7 +379,7 @@ revoke all on public.payment_transactions from anon, authenticated;
 revoke all on public.payment_subscriptions from anon, authenticated;
 revoke all on public.payment_invoices from anon, authenticated;
 revoke all on public.payment_refunds from anon, authenticated;
-revoke all on public.driver_payouts from anon, authenticated;
+revoke all on public.payment_driver_payouts from anon, authenticated;
 revoke all on public.payment_webhook_events from anon, authenticated;
 revoke all on public.payment_audit_logs from anon, authenticated;
 revoke all on public.payment_support_threads from anon, authenticated;
@@ -391,7 +391,7 @@ grant select on public.payment_transactions to authenticated;
 grant select on public.payment_subscriptions to authenticated;
 grant select on public.payment_invoices to authenticated;
 grant select on public.payment_refunds to authenticated;
-grant select on public.driver_payouts to authenticated;
+grant select on public.payment_driver_payouts to authenticated;
 grant select on public.payment_support_threads to authenticated;
 
 drop policy if exists "payment customers are visible to owner" on public.payment_customers;
@@ -443,9 +443,9 @@ using (
   )
 );
 
-drop policy if exists "driver payouts are visible to driver user" on public.driver_payouts;
+drop policy if exists "driver payouts are visible to driver user" on public.payment_driver_payouts;
 create policy "driver payouts are visible to driver user"
-on public.driver_payouts for select
+on public.payment_driver_payouts for select
 to authenticated
 using ((select auth.uid()) = zivosmedia_user_id);
 

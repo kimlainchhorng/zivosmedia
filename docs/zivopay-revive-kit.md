@@ -1,12 +1,44 @@
-# ZivoPay revive kit — one owner command from live
+# ZivoPay revive kit — SCHEMA APPLIED 2026-09-04; functions remain to deploy
 
-Prepared 2026-09-04. ZivoPay is fully **staged, not live**: the three Edge
-functions answer 404 on the MAIN project (`slirphzzwcogdbkeicff`), and the
-schema family they target was never applied. Nothing is half-broken in
-production — reviving is a coordinated launch decision, and everything below
-is verified so it is ONE decision, not an investigation.
+Applied under owner delegation after fixing the one blocker below. Live state
+verified: 11 family tables + `business_billing_profiles` + renamed
+`payment_driver_payouts` created; the LEGACY `driver_payouts` (week-based,
+consumed by the deployed `driver-payout` function) untouched; 5 `zivo_*`
+enums created; bookkeeping recorded (`migration repair --status applied
+20260607163048`); drift scan green (matched 764). The tables are INERT until
+the owner deploys the Edge Functions (`zivopay-order`,
+`zivopay-stripe-webhook`, `zivopay-create-billing-portal` — currently 404)
+with their Stripe secrets; the UI already gates on them.
 
-## What reviving means
+## The blocker that was found and fixed (kept for the record)
+
+The live MAIN project already has a **legacy `public.driver_payouts`**
+(`id, driver_id, week_start, payout_type, amount, status, created_at, paid_at`
+— the week-based payouts table, consumed by the DEPLOYED `driver-payout` Edge
+function). The foundation file's own `driver_payouts` definition assumes its
+new shape (`zivosmedia_user_id`, provider refs…). Because every create is
+`if not exists`, the existing table is silently KEPT, and the first later
+statement referencing `zivosmedia_user_id` on it fails:
+
+```
+ERROR: 42703: column "zivosmedia_user_id" does not exist
+```
+
+The one-command apply is therefore **retracted** until the file is corrected.
+
+## The fix (owner decision, one option recommended)
+
+- **Recommended — rename in the (unapplied) file**: `driver_payouts` →
+  `payment_driver_payouts` in `20260607163048` + the `_shared/zivopay*.ts`
+  references. The migration is unapplied and absent from remote bookkeeping,
+  so editing it creates no drift. The legacy table keeps its deployed
+  consumer untouched.
+- Alternative: split the `driver_payouts` section into a follow-up migration
+  reconciled with the legacy shape (slower; two payout tables coexist).
+
+After the rename lands, re-run this kit's apply step.
+
+## What reviving means (unchanged)
 
 Apply one migration + deploy the zivopay Edge Functions together. The UI
 already gates on their presence (the missing-function browser gates), so

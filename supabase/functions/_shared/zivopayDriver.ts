@@ -126,7 +126,7 @@ export async function getDriverPayouts(req: Request, ctx: any) {
     const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") || 50)));
     const admin = serviceClient();
     const { data, error } = await admin
-      .from("driver_payouts")
+      .from("payment_driver_payouts")
       .select("*")
       .eq("zivosmedia_user_id", user.id)
       .order("created_at", { ascending: false })
@@ -156,7 +156,7 @@ export async function applyDriverPayoutStatus(req: Request, ctx: any, status: "p
       paid_at: status === "paid" ? new Date().toISOString() : null,
       updated_at: new Date().toISOString(),
     };
-    const query = admin.from("driver_payouts").update(update);
+    const query = admin.from("payment_driver_payouts").update(update);
     const { data, error } = payoutId
       ? await query.eq("id", payoutId).select("id, zivosmedia_user_id").maybeSingle()
       : await query.eq("provider", "stripe").eq("provider_payout_id", providerPayoutId).select("id, zivosmedia_user_id").maybeSingle();
@@ -191,14 +191,14 @@ export async function recordDriverTransferPayout(admin: any, input: {
   currency: string;
 }) {
   const { data: existing } = await admin
-    .from("driver_payouts")
+    .from("payment_driver_payouts")
     .select("id")
     .eq("provider", "stripe")
     .eq("provider_payout_id", input.providerPayoutId)
     .maybeSingle();
   if (existing?.id) return existing.id;
 
-  const { data, error } = await admin.from("driver_payouts").insert({
+  const { data, error } = await admin.from("payment_driver_payouts").insert({
     driver_id: input.driverId,
     zivosmedia_user_id: input.zivosmediaUserId,
     driver_job_id: input.driverJobId,

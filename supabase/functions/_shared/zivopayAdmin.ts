@@ -277,7 +277,7 @@ export async function adminPayoutStatus(req: Request, ctx: any, status: "held" |
   try {
     const body = await req.json();
     const payoutId = requireUuid(body.payout_id, "payout_id");
-    const { data, error } = await gate.admin.from("driver_payouts").update({
+    const { data, error } = await gate.admin.from("payment_driver_payouts").update({
       status,
       updated_at: new Date().toISOString(),
     }).eq("id", payoutId).select("*").single();
