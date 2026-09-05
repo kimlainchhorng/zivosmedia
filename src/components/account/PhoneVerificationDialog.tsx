@@ -3,7 +3,7 @@
  * OTP input modal for phone number verification
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -39,10 +39,24 @@ export function PhoneVerificationDialog({
   const sendOTP = useSendPhoneOTP();
   const verifyOTP = useVerifyPhoneOTP();
 
-  // Send OTP when dialog opens
+  // Send OTP when dialog opens. The handler is read through a ref so listing
+  // it in the dependency array cannot re-fire the SMS send on unrelated
+  // renders (its identity changes with the mutation hook each render).
+  const handleSendOTP = useCallback(async () => {
+    try {
+      await sendOTP.mutateAsync(phoneNumber);
+      setResendCooldown(60);
+    } catch {
+      // Error handled in hook
+    }
+  }, [phoneNumber, sendOTP]);
+  const sendOTPRef = useRef(handleSendOTP);
+  useEffect(() => {
+    sendOTPRef.current = handleSendOTP;
+  });
   useEffect(() => {
     if (open && phoneNumber) {
-      handleSendOTP();
+      sendOTPRef.current();
     }
   }, [open, phoneNumber]);
 
@@ -61,15 +75,6 @@ export function PhoneVerificationDialog({
       setIsVerified(false);
     }
   }, [open]);
-
-  const handleSendOTP = async () => {
-    try {
-      await sendOTP.mutateAsync(phoneNumber);
-      setResendCooldown(60);
-    } catch {
-      // Error handled in hook
-    }
-  };
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;

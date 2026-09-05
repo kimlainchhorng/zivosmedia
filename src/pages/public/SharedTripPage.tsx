@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { displayableDriverRating } from "@/lib/driverRating";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,7 @@ export default function SharedTripPage() {
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!token) return;
     try {
       const url = `${SUPABASE_URL}/functions/v1/get-shared-trip?token=${encodeURIComponent(token)}`;
@@ -25,7 +25,7 @@ export default function SharedTripPage() {
     } catch (e: any) {
       setError(e.message);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchData();
@@ -50,7 +50,7 @@ export default function SharedTripPage() {
       clearInterval(interval);
       if (channel) supabase.removeChannel(channel);
     };
-  }, [token]);
+  }, [fetchData, token]);
 
   if (error) {
     return (
