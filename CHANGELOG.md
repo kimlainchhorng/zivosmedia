@@ -4,6 +4,14 @@
 
 66+ commits have landed since release 1.0.0, including the chat/channel suite and the ZIVO Ride unification work. Note: many recent commits are **not** conventional-commit formatted, so release-please will not capture them automatically — the next release notes will need manual curation.
 
+## [1.0.2](https://github.com/kimlainchhorng/zivosmedia/compare/v1.0.1...v1.0.2) (2026-09-05)
+
+
+### Bug Fixes
+
+* **chat:** surface folder and user-report write failures instead of false success ([646fa03](https://github.com/kimlainchhorng/zivosmedia/commit/646fa03f5a7adae121315a208c670a74e2c82d55))
+* resolve committed stash-conflict markers across 10 files; restore CI ([84c55df](https://github.com/kimlainchhorng/zivosmedia/commit/84c55dfc1d5fe5224e47b83bc4970834e9823295))
+
 ## [1.0.1](https://github.com/kimlainchhorng/zivosmedia/compare/v1.0.0...v1.0.1) (2026-08-31)
 
 
