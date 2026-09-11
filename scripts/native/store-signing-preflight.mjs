@@ -7,7 +7,7 @@ import path from "node:path";
 const root = path.resolve(new URL("../..", import.meta.url).pathname);
 const app = {
   name: "Zivosmedia",
-  bundleId: "com.hizovo.app",
+  bundleId: "com.zivosmedia.app",
   iosBundleIds: ["com.hizovo.app", "com.hizovo.app.NotificationServiceExtension"],
   teamId: "9KWY67J6LX",
   aab: "android/app/build/outputs/bundle/release/app-release.aab",

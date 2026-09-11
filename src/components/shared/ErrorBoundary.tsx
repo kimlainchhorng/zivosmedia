@@ -80,6 +80,8 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   render() {
+    const km = typeof document !== "undefined" && document.documentElement.lang === "km";
+    const text = (en: string, kh: string) => km ? kh : en;
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
 
@@ -89,13 +91,13 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="w-14 h-14 rounded-2xl bg-secondary border border-border flex items-center justify-center mx-auto mb-5">
               <AlertTriangle className="w-7 h-7 text-destructive" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight mb-2">Something went wrong</h1>
+            <h1 className="text-2xl font-bold tracking-tight mb-2">{text("Something went wrong", "មានបញ្ហាកើតឡើង")}</h1>
             <p className="text-base text-muted-foreground mb-6">
-              An unexpected error occurred. This has been logged and we're working on a fix.
+              {text("This page could not load. Try again or return to the homepage.", "ទំព័រនេះមិនអាចផ្ទុកបាន។ សូមព្យាយាមម្ដងទៀត ឬត្រឡប់ទៅទំព័រដើម។")}
             </p>
             {this.state.reportId && (
               <p className="text-xs text-muted-foreground mb-5">
-                Support code: <span className="font-mono">{this.state.reportId}</span>
+                {text("Support code:", "លេខកូដជំនួយ៖")} <span className="font-mono">{this.state.reportId}</span>
               </p>
             )}
             {import.meta.env.DEV && this.state.error && (
@@ -106,11 +108,11 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex gap-3 justify-center">
               <Button onClick={this.handleRetry} className="gap-2 rounded-full h-11 px-5 font-bold">
                 <RefreshCw className="w-4 h-4" />
-                Try Again
+                {text("Try Again", "ព្យាយាមម្ដងទៀត")}
               </Button>
               <Button variant="outline" onClick={this.handleGoHome} className="gap-2 rounded-full h-11 px-5 font-bold">
                 <Home className="w-4 h-4" />
-                Go Home
+                {text("Go Home", "ទៅទំព័រដើម")}
               </Button>
             </div>
           </div>

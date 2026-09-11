@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { isZivoTravelHost, ZIVO_TRAVEL_ORIGIN } from '@/config/zivoTravelDomain';
+import { ZIVO_ANDROID_PACKAGE } from '@/config/appStoreLinks';
 
 const SITE_URL = 'https://zivosmedia.com';
 
@@ -96,7 +97,7 @@ export default function SEOHead({
       setMeta('name', 'al:ios:app_store_id', '6759480121');
       setMeta('name', 'al:ios:app_name', 'ZIVO');
       setMeta('name', 'al:android:url', appLink);
-      setMeta('name', 'al:android:package', 'com.zivo.app');
+      setMeta('name', 'al:android:package', ZIVO_ANDROID_PACKAGE);
       setMeta('name', 'al:android:app_name', 'ZIVO');
     }
 

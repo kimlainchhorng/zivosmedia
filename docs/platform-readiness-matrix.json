@@ -1,53 +1,41 @@
 {
-  "generated": "2026-08-30T23:42:59.000Z",
+  "generated": "2026-09-09T16:13:17.424Z",
   "totals": {
-    "pageFiles": 720,
-    "componentFiles": 1341,
-    "sourceFiles": 2791,
-    "edgeFunctions": 482,
-    "migrations": 1166,
-    "testFiles": 315,
-    "docsFiles": 1593
+    "pageFiles": 731,
+    "componentFiles": 1355,
+    "sourceFiles": 2839,
+    "edgeFunctions": 484,
+    "migrations": 1183,
+    "testFiles": 347,
+    "docsFiles": 1611
   },
   "currentGate": {
     "mode": "strict",
-    "readyForCurrentGate": false,
-    "readyForProductionGate": false,
-    "remoteMigrationHistoryStatus": "unavailable",
-    "productionBlockers": [
-      "Environment readiness has 6 critical finding(s).",
-      "Missing SUPABASE_URL for production backend cron/runtime settings.",
-      "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
-      "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
-      "Supabase remote migration history is unavailable (unavailable)."
-    ]
+    "readyForCurrentGate": true,
+    "readyForProductionGate": true,
+    "remoteMigrationHistoryStatus": "read",
+    "productionBlockers": []
   },
-  "productionBlockers": [
-    "Environment readiness has 6 critical finding(s).",
-    "Missing SUPABASE_URL for production backend cron/runtime settings.",
-    "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
-    "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
-    "Supabase remote migration history is unavailable (unavailable)."
-  ],
+  "productionBlockers": [],
   "lanes": [
     {
       "id": "release-safety",
       "label": "Release Safety Foundation",
-      "evidenceCount": 1680,
+      "evidenceCount": 1724,
       "evidenceBreakdown": {
         "pages": 19,
         "components": 20,
-        "otherSource": 18,
-        "edgeFunctions": 206,
-        "migrations": 1166,
-        "tests": 129,
-        "docs": 122
+        "otherSource": 20,
+        "edgeFunctions": 211,
+        "migrations": 1183,
+        "tests": 139,
+        "docs": 132
       },
       "testGap": {
-        "implementationEvidence": 1429,
-        "testEvidence": 129,
-        "testCoverageRatio": 0.0768,
-        "targetTestEvidence": 34,
+        "implementationEvidence": 1453,
+        "testEvidence": 139,
+        "testCoverageRatio": 0.0806,
+        "targetTestEvidence": 35,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -84,21 +72,21 @@
     {
       "id": "auth-sso-sessions",
       "label": "Auth, SSO, Sessions, and Account Protection",
-      "evidenceCount": 3393,
+      "evidenceCount": 3466,
       "evidenceBreakdown": {
-        "pages": 490,
-        "components": 385,
-        "otherSource": 275,
-        "edgeFunctions": 422,
-        "migrations": 862,
-        "tests": 202,
-        "docs": 757
+        "pages": 497,
+        "components": 389,
+        "otherSource": 289,
+        "edgeFunctions": 423,
+        "migrations": 876,
+        "tests": 219,
+        "docs": 773
       },
       "testGap": {
-        "implementationEvidence": 2434,
-        "testEvidence": 202,
-        "testCoverageRatio": 0.0595,
-        "targetTestEvidence": 68,
+        "implementationEvidence": 2474,
+        "testEvidence": 219,
+        "testCoverageRatio": 0.0632,
+        "targetTestEvidence": 70,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -131,21 +119,21 @@
     {
       "id": "role-workflows",
       "label": "Customer, Shop Owner, Staff, Driver, Support, Admin Workflows",
-      "evidenceCount": 5497,
+      "evidenceCount": 5576,
       "evidenceBreakdown": {
-        "pages": 702,
-        "components": 1175,
-        "otherSource": 535,
+        "pages": 708,
+        "components": 1185,
+        "otherSource": 549,
         "edgeFunctions": 454,
-        "migrations": 867,
-        "tests": 203,
-        "docs": 1561
+        "migrations": 881,
+        "tests": 220,
+        "docs": 1579
       },
       "testGap": {
-        "implementationEvidence": 3733,
-        "testEvidence": 203,
-        "testCoverageRatio": 0.0369,
-        "targetTestEvidence": 110,
+        "implementationEvidence": 3777,
+        "testEvidence": 220,
+        "testCoverageRatio": 0.0395,
+        "targetTestEvidence": 112,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -185,21 +173,21 @@
     {
       "id": "payments-payouts",
       "label": "Payments, Payouts, Refunds, and Webhooks",
-      "evidenceCount": 2094,
+      "evidenceCount": 2134,
       "evidenceBreakdown": {
-        "pages": 351,
-        "components": 414,
-        "otherSource": 151,
+        "pages": 350,
+        "components": 417,
+        "otherSource": 157,
         "edgeFunctions": 236,
-        "migrations": 283,
-        "tests": 147,
-        "docs": 512
+        "migrations": 289,
+        "tests": 155,
+        "docs": 530
       },
       "testGap": {
-        "implementationEvidence": 1435,
-        "testEvidence": 147,
-        "testCoverageRatio": 0.0702,
-        "targetTestEvidence": 42,
+        "implementationEvidence": 1449,
+        "testEvidence": 155,
+        "testCoverageRatio": 0.0726,
+        "targetTestEvidence": 43,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -233,21 +221,21 @@
     {
       "id": "email-push-marketing",
       "label": "Email, Push, SMS, and Marketing",
-      "evidenceCount": 1849,
+      "evidenceCount": 1890,
       "evidenceBreakdown": {
-        "pages": 305,
-        "components": 345,
-        "otherSource": 244,
+        "pages": 307,
+        "components": 348,
+        "otherSource": 247,
         "edgeFunctions": 229,
-        "migrations": 272,
-        "tests": 109,
-        "docs": 345
+        "migrations": 279,
+        "tests": 121,
+        "docs": 359
       },
       "testGap": {
-        "implementationEvidence": 1395,
-        "testEvidence": 109,
-        "testCoverageRatio": 0.059,
-        "targetTestEvidence": 37,
+        "implementationEvidence": 1410,
+        "testEvidence": 121,
+        "testCoverageRatio": 0.064,
+        "targetTestEvidence": 38,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -281,21 +269,21 @@
     {
       "id": "database-storage-media",
       "label": "Database, Storage, and Media",
-      "evidenceCount": 4255,
+      "evidenceCount": 4347,
       "evidenceBreakdown": {
-        "pages": 543,
-        "components": 564,
-        "otherSource": 303,
-        "edgeFunctions": 482,
-        "migrations": 919,
-        "tests": 243,
-        "docs": 1201
+        "pages": 549,
+        "components": 572,
+        "otherSource": 317,
+        "edgeFunctions": 484,
+        "migrations": 935,
+        "tests": 270,
+        "docs": 1220
       },
       "testGap": {
-        "implementationEvidence": 2811,
-        "testEvidence": 243,
-        "testCoverageRatio": 0.0571,
-        "targetTestEvidence": 86,
+        "implementationEvidence": 2857,
+        "testEvidence": 270,
+        "testCoverageRatio": 0.0621,
+        "targetTestEvidence": 87,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -331,21 +319,21 @@
     {
       "id": "security-anti-abuse",
       "label": "Security, Anti-Abuse, and Hacker Protection",
-      "evidenceCount": 3462,
+      "evidenceCount": 3517,
       "evidenceBreakdown": {
         "pages": 334,
-        "components": 447,
-        "otherSource": 125,
-        "edgeFunctions": 465,
-        "migrations": 762,
-        "tests": 152,
-        "docs": 1177
+        "components": 452,
+        "otherSource": 129,
+        "edgeFunctions": 467,
+        "migrations": 776,
+        "tests": 165,
+        "docs": 1194
       },
       "testGap": {
-        "implementationEvidence": 2133,
-        "testEvidence": 152,
-        "testCoverageRatio": 0.0439,
-        "targetTestEvidence": 70,
+        "implementationEvidence": 2158,
+        "testEvidence": 165,
+        "testCoverageRatio": 0.0469,
+        "targetTestEvidence": 71,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -380,21 +368,21 @@
     {
       "id": "legal-policy-compliance",
       "label": "Law, Policy, Compliance, and Trust",
-      "evidenceCount": 4706,
+      "evidenceCount": 4773,
       "evidenceBreakdown": {
-        "pages": 707,
-        "components": 1294,
-        "otherSource": 656,
-        "edgeFunctions": 224,
-        "migrations": 788,
-        "tests": 159,
-        "docs": 878
+        "pages": 713,
+        "components": 1303,
+        "otherSource": 674,
+        "edgeFunctions": 222,
+        "migrations": 801,
+        "tests": 168,
+        "docs": 892
       },
       "testGap": {
-        "implementationEvidence": 3669,
-        "testEvidence": 159,
-        "testCoverageRatio": 0.0338,
-        "targetTestEvidence": 95,
+        "implementationEvidence": 3713,
+        "testEvidence": 168,
+        "testCoverageRatio": 0.0352,
+        "targetTestEvidence": 96,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -452,21 +440,21 @@
     {
       "id": "frontend-graphics-speed",
       "label": "Frontend, Graphics, Design, and Speed",
-      "evidenceCount": 4128,
+      "evidenceCount": 4193,
       "evidenceBreakdown": {
-        "pages": 640,
-        "components": 791,
-        "otherSource": 469,
-        "edgeFunctions": 440,
-        "migrations": 223,
-        "tests": 131,
-        "docs": 1434
+        "pages": 645,
+        "components": 800,
+        "otherSource": 486,
+        "edgeFunctions": 442,
+        "migrations": 225,
+        "tests": 148,
+        "docs": 1447
       },
       "testGap": {
-        "implementationEvidence": 2563,
-        "testEvidence": 131,
-        "testCoverageRatio": 0.0317,
-        "targetTestEvidence": 83,
+        "implementationEvidence": 2598,
+        "testEvidence": 148,
+        "testCoverageRatio": 0.0353,
+        "targetTestEvidence": 84,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -510,21 +498,21 @@
     {
       "id": "native-mobile-release",
       "label": "Native iOS, Android, OTA, and Store Release",
-      "evidenceCount": 2643,
+      "evidenceCount": 2685,
       "evidenceBreakdown": {
-        "pages": 507,
-        "components": 529,
-        "otherSource": 242,
-        "edgeFunctions": 112,
-        "migrations": 175,
-        "tests": 95,
-        "docs": 983
+        "pages": 511,
+        "components": 535,
+        "otherSource": 245,
+        "edgeFunctions": 113,
+        "migrations": 182,
+        "tests": 102,
+        "docs": 997
       },
       "testGap": {
-        "implementationEvidence": 1565,
-        "testEvidence": 95,
-        "testCoverageRatio": 0.0359,
-        "targetTestEvidence": 53,
+        "implementationEvidence": 1586,
+        "testEvidence": 102,
+        "testCoverageRatio": 0.038,
+        "targetTestEvidence": 54,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
@@ -568,21 +556,21 @@
     {
       "id": "api-server-operations",
       "label": "API, Server Speed, Observability, and Operations",
-      "evidenceCount": 5156,
+      "evidenceCount": 5251,
       "evidenceBreakdown": {
-        "pages": 692,
-        "components": 1156,
-        "otherSource": 641,
-        "edgeFunctions": 482,
-        "migrations": 656,
-        "tests": 215,
-        "docs": 1314
+        "pages": 701,
+        "components": 1168,
+        "otherSource": 658,
+        "edgeFunctions": 484,
+        "migrations": 672,
+        "tests": 237,
+        "docs": 1331
       },
       "testGap": {
-        "implementationEvidence": 3627,
-        "testEvidence": 215,
-        "testCoverageRatio": 0.0417,
-        "targetTestEvidence": 104,
+        "implementationEvidence": 3683,
+        "testEvidence": 237,
+        "testCoverageRatio": 0.0451,
+        "targetTestEvidence": 106,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"

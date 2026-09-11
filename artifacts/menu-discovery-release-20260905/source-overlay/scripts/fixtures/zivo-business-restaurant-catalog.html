@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Restaurant catalog — isolated UI fixture</title>
+    <script>
+      const fixtureParams = new URLSearchParams(location.search);
+      localStorage.setItem("zivo_lang", fixtureParams.get("lang") === "km" ? "km" : "en");
+      document.documentElement.classList.toggle("dark", fixtureParams.get("theme") === "dark");
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/scripts/fixtures/zivo-business-restaurant-catalog.tsx"></script>
+  </body>
+</html>

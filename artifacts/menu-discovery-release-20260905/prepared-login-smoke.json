@@ -1,0 +1,24 @@
+{
+  "scope": "Anonymous local production artifact; no authentication or order forms submitted",
+  "results": [
+    {
+      "route": "/login",
+      "status": 200,
+      "finalPath": "/login",
+      "visibleText": "Skip to main content\nBack to Zivo\nZ\nZivo\n\nYour account will be saved for quick sign-in next time\n\nAdd account\nSign in with email\nOR CONTINUE WITH\nGoogle\nApple\n\nDon't have an account? Sign up\n\nProtected by enterprise-grade security",
+      "loginFields": 0,
+      "catalogRequestCount": 0
+    },
+    {
+      "route": "/app/home",
+      "status": 200,
+      "finalPath": "/login",
+      "visibleText": "Skip to main content\nBack to Zivo\nZ\nZivo\n\nYour account will be saved for quick sign-in next time\n\nAdd account\nSign in with email\nOR CONTINUE WITH\nGoogle\nApple\n\nDon't have an account? Sign up\n\nProtected by enterprise-grade security",
+      "loginFields": 0,
+      "catalogRequestCount": 0
+    }
+  ],
+  "pageErrors": [],
+  "configWarnings": [],
+  "catalogRequests": []
+}

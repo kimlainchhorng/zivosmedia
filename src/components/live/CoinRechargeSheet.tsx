@@ -228,7 +228,7 @@ export default function CoinRechargeSheet({ open, onClose, currentBalance, onPur
   const [intent, setIntent] = useState<IntentInfo | null>(null);
   const [step, setStep] = useState<"select" | "loading" | "pay">("select");
 
-  const stripePromise = useMemo(() => getStripe(), []);
+  // Stripe loads only after a user reaches the payment step.
 
   const reset = useCallback(() => {
     setSelected(null);
@@ -391,7 +391,7 @@ export default function CoinRechargeSheet({ open, onClose, currentBalance, onPur
 
             {step === "pay" && selected && intent && (
               <Elements
-                stripe={stripePromise}
+                stripe={getStripe()}
                 options={{
                   clientSecret: intent.clientSecret,
                   appearance: {

@@ -1,6 +1,7 @@
 import { useEffect, lazy, Suspense } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Capacitor } from "@capacitor/core";
+import CambodiaHome from "./CambodiaHome";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import SetupRequiredRoute from "@/components/auth/SetupRequiredRoute";
@@ -38,8 +39,8 @@ export function AppHomeLoadingState() {
 }
 
 const Index = () => {
-  const isMobile = useIsMobile();
-  const { user } = useAuth();
+  const isNative = Capacitor.isNativePlatform();
+  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const shareCode = new URLSearchParams(window.location.search).get("p");
   
@@ -73,7 +74,7 @@ const Index = () => {
     return <Navigate to={`/p/${shareCode}`} replace />;
   }
 
-  if (isMobile) {
+  if (isNative) {
     if (user) {
       return (
         <SetupRequiredRoute>
@@ -90,7 +91,8 @@ const Index = () => {
     );
   }
 
-  return <Navigate to="/feed" replace />;
+  if (isLoading) return <AppHomeLoadingState />;
+  return user ? <Navigate to="/feed" replace /> : <CambodiaHome />;
 };
 
 export default Index;

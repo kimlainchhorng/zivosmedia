@@ -12,5 +12,19 @@
         "2C:B4:10:12:26:FB:4F:C9:55:84:39:E4:82:74:EE:3C:0C:19:55:A1:FB:87:7E:46:B3:ED:6E:84:0B:8B:D9:7E"
       ]
     }
+  },
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.zivosmedia.app",
+      "sha256_cert_fingerprints": [
+        "86:83:9B:39:F4:D7:1E:0C:1E:D6:8B:15:76:6B:60:31:24:62:E9:19:F5:B7:A2:3F:93:BA:57:9C:6A:7B:AD:05",
+        "2C:B4:10:12:26:FB:4F:C9:55:84:39:E4:82:74:EE:3C:0C:19:55:A1:FB:87:7E:46:B3:ED:6E:84:0B:8B:D9:7E"
+      ]
+    }
   }
 ]

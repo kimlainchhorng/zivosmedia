@@ -8,9 +8,30 @@ import {
   isValidCodeVerifier,
   isValidRedirectUri,
   normalizeScopes,
+  publicProfileFromUser,
+  isFederatedUserActive,
   verifyCodeChallenge,
   verifyClientSecret,
 } from "./zivosmediaAuth.ts";
+
+Deno.test("federation email verification comes only from Auth-owned confirmation", () => {
+  const identity = { id: "hub-user", email: "merchant@example.test", user_metadata: { email_verified: true, email_confirmed_at: "2026-01-01", full_name: "Merchant" } };
+  if (publicProfileFromUser(identity).email_verified) throw new Error("metadata must not verify an email");
+  if (!publicProfileFromUser({ ...identity, email_confirmed_at: "2026-01-01T00:00:00Z" }).email_verified) throw new Error("Auth confirmation should verify an email");
+  if (publicProfileFromUser({ ...identity, email: null, email_confirmed_at: "2026-01-01T00:00:00Z" }).email_verified) throw new Error("confirmation without an email must not verify");
+  const profile = publicProfileFromUser(identity);
+  if (profile.display_name !== "Merchant" || profile.zivosmedia_user_id !== identity.id) throw new Error("existing profile contract changed");
+});
+
+Deno.test("disabled identities cannot redeem an earlier federation code", () => {
+  const now = Date.parse("2026-09-08T00:00:00Z");
+  for (const user of [{ id: "u", banned_until: "2027-01-01T00:00:00Z" }, { id: "u", banned_until: "invalid" }, { id: "u", deleted_at: "2026-09-07T00:00:00Z" }]) {
+    if (isFederatedUserActive(user, now)) throw new Error("disabled identity passed");
+  }
+  for (const user of [{ id: "u" }, { id: "u", banned_until: "2026-09-08T00:00:00Z" }, { id: "u", banned_until: null }]) {
+    if (!isFederatedUserActive(user, now)) throw new Error("active identity rejected");
+  }
+});
 
 Deno.test("createAuthCode returns a one-time code and hash pair", async () => {
   const first = await createAuthCode();

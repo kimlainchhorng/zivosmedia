@@ -75,14 +75,14 @@ const contracts = [
       const main = source(mainPath);
 
       for (const needle of [
-        "appId: 'com.hizovo.app'",
-        "appName: 'Zivo Media - All in one'",
+        "appId: process.env.ZIVO_NATIVE_PLATFORM === 'android' ? 'com.zivosmedia.app' : 'com.hizovo.app'",
+        "appName: 'Zivo - Media'",
         "webDir: 'dist'",
         "process.env.NODE_ENV !== 'production'",
         "CAPACITOR_DEV_SERVER_URL",
         "allowMixedContent: false",
         "overlaysWebView: true",
-        'resize: "native"',
+        'resize: KeyboardResize.Native',
         "launchAutoHide: true",
         "launchShowDuration: 0",
       ]) {
@@ -267,7 +267,7 @@ const contracts = [
 
       for (const needle of [
         'namespace = "com.hizovo.app"',
-        'applicationId "com.hizovo.app"',
+        'applicationId "com.zivosmedia.app"',
         "versionCode 2026083001",
         'versionName "1.3.0"',
         "com.google.android.play:integrity",
@@ -292,7 +292,7 @@ const contracts = [
       requireContains(
         this.id,
         listing,
-        "Package name: `com.hizovo.app`",
+        "Package name: `com.zivosmedia.app`",
         listingPath,
       );
       requireContains(
@@ -450,7 +450,7 @@ const contracts = [
         'android:autoVerify="true"',
         'android:host="zivosmedia.com"',
         'android:host="www.zivosmedia.com"',
-        'android:scheme="com.hizovo.app"',
+        'android:scheme="com.zivosmedia.app"',
       ]) {
         requireContains(this.id, androidManifest, needle, androidManifestPath);
       }

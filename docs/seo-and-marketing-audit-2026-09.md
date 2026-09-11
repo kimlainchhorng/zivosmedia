@@ -103,6 +103,39 @@ robots.txt"*: it keeps the URL, never reads the page, and lists it with no
 description. The sitemap generator now reads robots.txt and treats it as the
 final say.
 
+### Legacy URLs now 301 to the page they were meant to be
+
+Those broken shapes were all in the old sitemap, so search engines still hold
+them. `cloudflare/worker.ts` now redirects them permanently instead of letting
+them collapse into a generic landing page:
+
+| From | To |
+| --- | --- |
+| `/hotels/in-london` | `/hotels/london` |
+| `/car-rental/in-miami` | `/rent-car/miami` |
+| `/flights/to-paris` | `/flights/to/paris` |
+| `/flights/cities/tokyo` | `/flights/to/tokyo` |
+| `/flights/new-york-to-london` | `/flights/to/london` |
+| `/flights/from-atlanta-to-new-york` | `/flights/to/new-york` |
+| `/flights/from-chicago` | `/flights` |
+
+Query strings survive, so a dated hotel search still lands on the right page.
+The chat and software hosts are skipped — they do not serve travel routes.
+`src/test/legacySeoRedirects.test.ts` covers the mappings and, just as
+importantly, asserts that `/flights/results`, `/flights/live`,
+`/flights/traveler-info` and the already-correct URLs are left alone.
+
+### Structured data now names the real company profiles
+
+The `Organization` schema's `sameAs` listed only zivosmedia.com and the App
+Store. It now lists the four profiles the footer actually links — X, Instagram,
+Facebook and LinkedIn — which is how Google ties the domain to the company. A
+contract keeps the two in sync.
+
+`SEOHead` also advertised `al:android:package` as `com.zivo.app`, a fifth
+drifted package name that `appStoreLinks.ts` was created to stamp out. It now
+reads `ZIVO_ANDROID_PACKAGE` from that config.
+
 ### A gate that keeps all of it true
 
 `npm run qa:seo-contracts` — 1,627 checks — is wired into `platform:audit` and
@@ -143,6 +176,33 @@ Nothing is measurable until at least `VITE_GOOGLE_ANALYTICS_ID` is set — that
 one is the prerequisite for judging whether any of the SEO work above moved
 traffic.
 
+## Every email address on the site bounces — action needed
+
+`zivosmedia.com` has **no MX record**. `hizivo.com` does (`smtp.google.com`).
+
+```
+$ dig +short MX zivosmedia.com     # (nothing)
+$ dig +short MX hizivo.com
+1 smtp.google.com.
+```
+
+The app, the legal pages and the `Organization` structured data publish 230+
+addresses at `@zivosmedia.com` — `support@`, `privacy@`, `legal@`, `security@`,
+`gdpr@`, `press@`, `partners@`. None of them can receive mail. Google surfaces
+the `contactPoint` emails from structured data, and the GDPR, DMCA and
+vulnerability-disclosure pages are all legally expected to reach someone.
+
+Two ways to fix it, and the first is far easier:
+
+1. **Add an MX record for zivosmedia.com** pointing at the same mail host as
+   hizivo.com. One DNS change, and all 230 addresses start working.
+2. Rewrite every address to `@hizivo.com` across the app and legal text — 230+
+   occurrences, and it re-introduces a domain the rest of the codebase has
+   deliberately retired for web use.
+
+This was left for you to decide rather than changed here: option 1 is a DNS
+change only you can make, and option 2 is too large to do on an assumption.
+
 ## Backlog
 
 Ordered by expected value. Each entry says why it was not done in this pass.
@@ -165,13 +225,12 @@ generic landing. They consolidate into `/flights` via canonical, so nothing is
 broken — but the route-level content that was built for them is not being
 served.
 
-### 3. Legacy URL shapes deserve 301s
+### 3. The X handle in the Twitter card does not match the linked profile
 
-`/hotels/in-london`, `/flights/to-paris` and `/car-rental/in-miami` were all
-indexed and now resolve to a generic or mangled page. Edge 301s in
-`cloudflare/worker.ts` pointing them at `/hotels/london`, `/flights/to/paris`
-and `/rent-car/miami` would recover that link equity. Not done here because it
-changes request handling on the live domain and deserves its own change.
+`index.html` declares `twitter:site` and `twitter:creator` as `@ZivoApp`, while
+the footer links `x.com/hizovo`. One of them is wrong, and Twitter cards
+attribute to the declared handle. Left alone because only you know which account
+is the live one.
 
 ### 4. Eight admin routes are not behind `ProtectedRoute`
 
@@ -184,43 +243,24 @@ from the URL with no route-level guard. They are print/receipt views, so this
 may be deliberate — but it is a security question, not an SEO one, and needs a
 look at whether the components check authorisation themselves.
 
-### 5. `sameAs` lists no social profiles
-
-The `Organization` schema in `index.html` links only zivosmedia.com and the App
-Store listing. `sameAs` is how Google ties the entity to its Facebook,
-Instagram, X, LinkedIn, TikTok and YouTube profiles. Left alone because the
-profile URLs are not in the repo and must not be guessed.
-
-### 6. No hreflang despite four languages
+### 5. No hreflang despite four languages
 
 The app supports English, Khmer, Arabic and French, but language is switched
 client-side with no distinct URLs, so there is nothing for `hreflang` to point
 at. Real localised URLs (`/km/...`) would have to come first.
 
-### 7. `/` redirects to `/feed` above 1024px
+### 6. `/` redirects to `/feed` above 1024px
 
 `src/pages/Index.tsx` renders `AppHome` on mobile and `<Navigate to="/feed">` on
 desktop. Google indexes mobile-first so this is not urgent, but the canonical
 homepage redirecting on desktop is worth revisiting.
 
-### 8. `getCarRentalCityUrl` returns a dead path
+### 7. `RouteSEOHeader.tsx` has zero usages
 
-`src/config/programmaticSEO.ts` builds `/car-rentals/{slug}`, but no such route
-exists — the real ones are `/rent-car/:city` and `/car-rental/:city`. The
-function currently has no callers, so nothing is broken; fix or delete it before
-someone uses it.
-
-### 9. `RouteSEOHeader.tsx` has zero usages
-
-`src/components/seo/RouteSEOHeader.tsx` is imported nowhere. Wire it up or
-delete it.
-
-### 10. App Links point at a package that does not exist
-
-`src/components/SEOHead.tsx` writes `al:android:package` as `com.zivo.app`,
-while `src/config/appStoreLinks.ts` uses `com.hizovo.app`. Neither matches
-`com.myzivo.app`. Worth reconciling once the Play appeal resolves and it is
-clear which package survives.
+`src/components/seo/RouteSEOHeader.tsx` is exported from the seo barrel but
+imported nowhere. It was built for the flight route pages, which are the ones
+made unreachable by the route patterns in item 2 — so revive it with them or
+delete both together.
 
 ## Commands
 

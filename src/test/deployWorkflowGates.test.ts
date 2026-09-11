@@ -160,8 +160,22 @@ describe("deploy workflow gates", () => {
     const rotationRunbook = read("docs/supabase-secret-rotation-runbook.md");
 
     expect(packageJson.scripts["deploy:production-relevance"]).toBe("node scripts/deploy/production-deploy-relevance.mjs");
-    expect(packageJson.scripts["release:gate"]).toBe("npm run deploy:preflight:test-summary-schema && npm run deploy:preflight:check-artifacts && npm run qa:platform-readiness && npm run qa:platform-readiness:check && npm run qa:edge-function-deploy-contracts && npm run qa:edge-function-slot-readiness && npm run qa:edge-function-browser-gates && npm run security:scan");
-    expect(packageJson.scripts["release:gate"]).toContain("npm run qa:edge-function-browser-gates");
+    // Required STEPS, not an exact string — for the same reason as the
+    // production gate below. The SEO contracts and the sitemap/robots
+    // freshness checks were added here so a route change cannot ship a stale
+    // sitemap, and an equality check would have called that a failure.
+    for (const step of [
+      "npm run deploy:preflight:test-summary-schema",
+      "npm run deploy:preflight:check-artifacts",
+      "npm run qa:platform-readiness",
+      "npm run qa:platform-readiness:check",
+      "npm run qa:edge-function-deploy-contracts",
+      "npm run qa:edge-function-slot-readiness",
+      "npm run qa:edge-function-browser-gates",
+      "npm run security:scan",
+    ]) {
+      expect(packageJson.scripts["release:gate"]).toContain(step);
+    }
     // Asserted as required STEPS rather than an exact string. The production
     // gate is expected to grow — check:business-identity was added so an
     // incomplete published business address cannot reach production — and an

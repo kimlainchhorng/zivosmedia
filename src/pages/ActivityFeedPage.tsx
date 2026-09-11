@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 import SEOHead from "@/components/SEOHead";
+import { useI18n } from "@/hooks/useI18n";
 import DegradedDataBanner from "@/components/reliability/DegradedDataBanner";
 import LoadFailureCard from "@/components/reliability/LoadFailureCard";
 import { useGoBack } from "@/hooks/useGoBack";
@@ -54,6 +55,7 @@ const COLOR_MAP: Record<string, string> = {
 };
 
 export default function ActivityFeedPage() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const goBack = useGoBack("/");
   const { user } = useAuth();
@@ -161,7 +163,7 @@ export default function ActivityFeedPage() {
         {loadError && activities.length === 0 ? (
           <LoadFailureCard
             className="px-4 py-10"
-            title="Activity refresh failed"
+            title={t("feed.activity.refresh_failed", "Activity refresh failed")}
             description="We couldn&apos;t load your latest activity right now. Retry to restore notifications and account events."
             onRetry={() => void loadActivities()}
             onSecondary={() => navigate("/feed")}
@@ -210,7 +212,7 @@ export default function ActivityFeedPage() {
             {filtered.length === 0 && (
               <div className="text-center py-16">
                 <Zap className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">No activity yet</p>
+                <p className="text-muted-foreground">{t("feed.activity.none", "No activity yet")}</p>
               </div>
             )}
           </>

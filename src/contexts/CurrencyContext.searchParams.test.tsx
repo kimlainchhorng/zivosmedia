@@ -70,3 +70,25 @@ describe("CurrencyProvider route synchronization", () => {
     expect(screen.getByLabelText("Current currency")).toHaveTextContent("KHR");
   });
 });
+
+it("uses the edge country without overwriting an explicit currency preference", () => {
+  const meta = document.createElement("meta");
+  meta.name = "zivo-country"; meta.content = "KH"; document.head.append(meta);
+  localStorage.setItem("zivo_currency", "USD");
+  try {
+    renderHarness();
+    expect(screen.getByLabelText("Current currency")).toHaveTextContent("USD");
+  } finally { meta.remove(); }
+});
+
+it("defaults a new Cambodia visitor to KHR even with English selected", () => {
+  localStorage.removeItem("zivo_currency");
+  localStorage.setItem("zivo_lang", "en");
+  const meta = document.createElement("meta");
+  meta.name = "zivo-country"; meta.content = "KH"; document.head.append(meta);
+  try {
+    renderHarness();
+    expect(screen.getByLabelText("Current currency")).toHaveTextContent("KHR");
+    expect(localStorage.getItem("zivo_currency")).toBeNull();
+  } finally { meta.remove(); }
+});

@@ -5,6 +5,8 @@
 import { useState, useEffect } from "react";
 import { downloadCsv } from "@/lib/csvExport";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { WalletReadRecovery } from '@/components/wallet/WalletReadRecovery';
+import { CardReadError } from '@/lib/walletCardRead';
 import {
   Elements,
   PaymentElement,
@@ -354,8 +356,11 @@ export default function WalletPage() {
     lifetimeEarnedDollars,
     isLoading: walletLoading,
   } = useCustomerWallet();
-  const { data: stripeCards = [], isLoading: cardsLoading } =
-    useStripePaymentMethods();
+  const cardsQuery = useStripePaymentMethods();
+  const cardReadFailure = cardsQuery.error || cardsQuery.failureReason;
+  const cardsDenied = cardReadFailure instanceof CardReadError && ['unauthorized', 'forbidden'].includes(cardReadFailure.kind);
+  const stripeCards = cardsDenied ? [] : cardsQuery.data || [];
+  const cardsLoading = cardsQuery.isLoading && !cardReadFailure;
   const deleteCard = useDeleteStripeCard();
   const setDefault = useSetDefaultStripeCard();
   const { data: walletTransactions = [], isLoading: txLoading } =
@@ -853,6 +858,7 @@ export default function WalletPage() {
                   </motion.div>
                 )}
 
+                {cardReadFailure && <WalletReadRecovery error={cardReadFailure} pending={cardsQuery.isFetching} retry={() => void cardsQuery.refetch()} />}
                 {cardsLoading ? (
                   <div className="space-y-2.5">
                     {[1, 2].map((i) => (
@@ -862,7 +868,7 @@ export default function WalletPage() {
                       />
                     ))}
                   </div>
-                ) : stripeCards.length === 0 && !showAddCard ? (
+                ) : stripeCards.length === 0 && !showAddCard && !cardReadFailure ? (
                   <div className="rounded-2xl border border-dashed border-border/60 p-8 text-center">
                     <div className="w-14 h-14 rounded-2xl bg-muted/40 flex items-center justify-center mx-auto mb-3">
                       <CreditCard className="w-7 h-7 text-muted-foreground/40" />

@@ -1,26 +1,26 @@
 # Database Upgrade Readiness Report
 
-Generated: 2026-09-04T04:05:44.262Z
+Generated: 2026-09-09T16:13:14.161Z
 
 ## Summary
 
-- Supabase CLI: 2.115.0
-- Local migrations: 1178
+- Supabase CLI: 2.116.0
+- Local migrations: 1183
 - Invalid migration filenames: 0
 - Duplicate migration versions: 6
 - Allowed legacy duplicate migration versions: 6
 - New duplicate migration versions: 0
 - Duplicate SQL hashes: 0
-- Last linked drift report: local=1178, remote=1625, matched=13, near5s=585, near60s=619, oneToOne5s=584, oneToOne60s=617, unmatchedLocal=548, unmatchedRemote=995, localAfterRemoteRange=2, sharedDays=96, remoteError=no, generated=2026-09-04T04:05:43.198Z
+- Last linked drift report: local=1183, remote=1784, matched=774, near5s=4, near60s=19, oneToOne5s=3, oneToOne60s=17, unmatchedLocal=392, unmatchedRemote=995, localAfterRemoteRange=0, sharedDays=23, remoteError=no, generated=2026-09-09T16:13:13.165Z
 - Pending local migration gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 - Declared extensions: btree_gist, citext, pg_cron, pg_net, pg_trgm, pgcrypto
 - Postgres 17 unsupported extensions found: 0
-- Public tables created in migrations: 941
+- Public tables created in migrations: 943
 - Public tables needing RLS review: 0
 - Recent public tables needing Data API grant review: 0
 - Views needing security_invoker review: 0
 - SECURITY DEFINER files needing search_path review: 0
-- Hardcoded Supabase URLs in migrations: 37
+- Hardcoded Supabase URLs in migrations: 38
 - Hardcoded scheduled/function endpoint URLs: 18
 - Cron function URL remediation migration present: yes
 - Hardcoded legacy anon JWTs in migrations: 14
@@ -100,6 +100,7 @@ Generated: 2026-09-04T04:05:44.262Z
 - project-url: supabase/migrations/20260605202600_zivo_travel_backend_foundation.sql:184 (https://slirphzzwcogdbkeicff.supabase.co)
 - project-url: supabase/migrations/20260605202600_zivo_travel_backend_foundation.sql:192 (https://xbllvmpomorawkcrtbcq.supabase.co)
 - project-url: supabase/migrations/20260830163714_harden_internal_cron_auth.sql:187 (https://slirphzzwcogdbkeicff.supabase.co)
+- project-url: supabase/migrations/20260909005356_media_operations_hiring_and_monitor.sql:116 (https://slirphzzwcogdbkeicff.supabase.co)
 
 For new cron/function SQL, prefer `current_setting('app.settings.supabase_url', true)` with a deploy-time setting instead of embedding a project URL.
 

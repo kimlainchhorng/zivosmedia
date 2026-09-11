@@ -91,10 +91,14 @@ const isDisallowed = (pathname) => disallowRules.some((rule) => pathname.startsW
  * ---------------------------------------------------------------- */
 
 const sitemap = source("public/sitemap.xml");
-const sitemapPaths = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)]
+const sitemapUrls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)]
   .map((m) => m[1])
   .filter((loc) => loc.startsWith(SITE_URL))
-  .map((loc) => loc.slice(SITE_URL.length) || "/");
+  .map((loc) => new URL(loc));
+for (const url of sitemapUrls) {
+  require(`sitemap-query:${url.pathname}${url.search}`, !url.search || (url.search === '?lang=km' || url.search === '?lang=en'), 'Only explicit supported language variants may be indexed.');
+}
+const sitemapPaths = sitemapUrls.map(url => url.pathname);
 
 require("sitemap-generated", sitemap.includes("scripts/seo/generate-sitemap.mjs"),
   "public/sitemap.xml must be produced by the generator (run `npm run seo:sitemap`)");
@@ -216,6 +220,23 @@ jsonLdBlocks.forEach((block, i) => {
 
 for (const type of ["Organization", "WebSite", "MobileApplication"]) {
   require(`jsonld-type:${type}`, jsonLdTypes.has(type), `index.html is missing ${type} structured data`);
+}
+
+/**
+ * The Organization's sameAs must list the profiles the site itself links to.
+ *
+ * sameAs is how Google ties zivosmedia.com to the company's social accounts;
+ * if the footer links a profile the schema does not name, that connection is
+ * left on the table, and if the schema names one the site does not link, it is
+ * an unverifiable claim.
+ */
+const footer = source("src/components/Footer.tsx");
+const footerSocials = [...footer.matchAll(/href: "(https:\/\/(?:x|instagram|facebook|linkedin|youtube|tiktok)\.com\/[^"]+)"/g)]
+  .map((m) => m[1])
+  .filter((url) => !/\/(sharer|shareArticle|share)\b/.test(url));
+for (const profile of new Set(footerSocials)) {
+  require(`jsonld-sameas:${profile}`, indexHtml.includes(profile),
+    `index.html Organization sameAs does not list ${profile}, which the footer links`);
 }
 
 /**

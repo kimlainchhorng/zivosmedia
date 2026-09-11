@@ -77,3 +77,7 @@ check-*.ts
 .codex-*.png
 .codex-artifacts/
 eloquent-liskov-*/
+
+# Reproducible local/CI Lighthouse reports are uploaded as workflow artifacts.
+.lighthouseci/
+artifacts/lighthouse/

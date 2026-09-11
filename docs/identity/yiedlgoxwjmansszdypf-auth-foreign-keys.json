@@ -1,0 +1,196 @@
+{
+  "project": "yiedlgoxwjmansszdypf",
+  "capturedAt": "2026-09-08",
+  "scope": "Live schema only; no user rows",
+  "foreignKeys": [
+    {
+      "schema_name": "auth",
+      "table_name": "identities",
+      "column_name": "user_id",
+      "constraint_name": "identities_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "auth",
+      "table_name": "mfa_factors",
+      "column_name": "user_id",
+      "constraint_name": "mfa_factors_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "auth",
+      "table_name": "oauth_authorizations",
+      "column_name": "user_id",
+      "constraint_name": "oauth_authorizations_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "auth",
+      "table_name": "oauth_consents",
+      "column_name": "user_id",
+      "constraint_name": "oauth_consents_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "auth",
+      "table_name": "one_time_tokens",
+      "column_name": "user_id",
+      "constraint_name": "one_time_tokens_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "auth",
+      "table_name": "sessions",
+      "column_name": "user_id",
+      "constraint_name": "sessions_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "auth",
+      "table_name": "webauthn_challenges",
+      "column_name": "user_id",
+      "constraint_name": "webauthn_challenges_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "auth",
+      "table_name": "webauthn_credentials",
+      "column_name": "user_id",
+      "constraint_name": "webauthn_credentials_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "aba_khqr_admin_reviewer_mappings",
+      "column_name": "driver_reviewer_user_id",
+      "constraint_name": "aba_khqr_admin_reviewer_mappings_driver_reviewer_user_id_fkey",
+      "definition": "FOREIGN KEY (driver_reviewer_user_id) REFERENCES auth.users(id) ON DELETE RESTRICT"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "arrival_cancellation_audits",
+      "column_name": "driver_user_id",
+      "constraint_name": "arrival_cancellation_audits_driver_user_id_fkey",
+      "definition": "FOREIGN KEY (driver_user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "customer_booking_attempts",
+      "column_name": "customer_user_id",
+      "constraint_name": "customer_booking_attempts_customer_user_id_fkey",
+      "definition": "FOREIGN KEY (customer_user_id) REFERENCES auth.users(id) ON DELETE RESTRICT"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "customer_wallet_topup_requests",
+      "column_name": "user_id",
+      "constraint_name": "customer_wallet_topup_requests_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "customer_wallet_withdrawal_requests",
+      "column_name": "user_id",
+      "constraint_name": "customer_wallet_withdrawal_requests_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "device_user_links",
+      "column_name": "user_id",
+      "constraint_name": "device_user_links_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "driver_account_deletion_requests",
+      "column_name": "user_id",
+      "constraint_name": "driver_account_deletion_requests_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "driver_client_events",
+      "column_name": "user_id",
+      "constraint_name": "driver_client_events_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "driver_onboarding_events",
+      "column_name": "user_id",
+      "constraint_name": "driver_onboarding_events_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "forum_post_views",
+      "column_name": "viewer_user_id",
+      "constraint_name": "forum_post_views_viewer_user_id_fkey",
+      "definition": "FOREIGN KEY (viewer_user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "legal_acknowledgments",
+      "column_name": "user_id",
+      "constraint_name": "legal_acknowledgments_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "linked_zivosmedia_users",
+      "column_name": "local_user_id",
+      "constraint_name": "linked_zivosmedia_users_local_user_id_fkey",
+      "definition": "FOREIGN KEY (local_user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "login_sessions",
+      "column_name": "user_id",
+      "constraint_name": "login_sessions_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "merchant_dispatch_candidate_grants",
+      "column_name": "actor_user_id",
+      "constraint_name": "merchant_dispatch_candidate_grants_actor_user_id_fkey",
+      "definition": "FOREIGN KEY (actor_user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "ride_pickup_credentials",
+      "column_name": "rider_user_id",
+      "constraint_name": "ride_pickup_credentials_rider_user_id_fkey",
+      "definition": "FOREIGN KEY (rider_user_id) REFERENCES auth.users(id) ON DELETE RESTRICT"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "rider_account_deletion_requests",
+      "column_name": "user_id",
+      "constraint_name": "rider_account_deletion_requests_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "security_events",
+      "column_name": "user_id",
+      "constraint_name": "security_events_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "trusted_devices",
+      "column_name": "user_id",
+      "constraint_name": "trusted_devices_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "zivo_business_delivery_intakes",
+      "column_name": "driver_customer_id",
+      "constraint_name": "zivo_business_delivery_intakes_driver_customer_id_fkey",
+      "definition": "FOREIGN KEY (driver_customer_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    }
+  ]
+}

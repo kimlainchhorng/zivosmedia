@@ -1,0 +1,11 @@
+{
+  "src/lib/zivoBusinessRestaurantCatalog.ts": "5dd3727d16cdecff66fa6f1f6a2a0445159046e54d2839ba7a5bbe72c5cc7b3e",
+  "src/lib/zivoBusinessRestaurantCatalog.test.ts": "6910926992f7fe86d22951fe69ca6401074ef65450d33655167883744f841518",
+  "src/components/home/ZivoBusinessRestaurantCards.tsx": "fd6fc338ca10e6aec5a2427dafc9971e17ff2364cc2dab88216f2c6fc396588c",
+  "src/components/home/ZivoBusinessRestaurantCards.test.tsx": "13dd82a32b0488532d0b07aee190f3f6b9228dd2ce72be7f847577d48bc91ee7",
+  "src/pages/app/AppHome.tsx": "03fb5148f4e16452b8c33847c8a70982f6a5f631b8c6d52ae6a33bcc9f5347b1",
+  "docs/zivo-business-public-menu-discovery.md": "7494dbc52dfd6dd2788e1e91340fe6c7874f1060daf05c2638f46805869cb7e1",
+  "scripts/fixtures/zivo-business-restaurant-catalog.html": "aaef16c34f8df2b55ba21059b57cfbd29eca0dc9744ef3b270b1f5e4b270da16",
+  "scripts/fixtures/zivo-business-restaurant-catalog.tsx": "c001163b5f63ee5ab8350e12caaaeea419f55607097ca8f2220cf34e8c3ca350",
+  "scripts/qa/zivo-business-restaurant-catalog-ui.mjs": "b8c5a571ddf0a160f909edf7dda1a2be90d7be4c18aa557ec9816700bf5078b5"
+}

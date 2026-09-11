@@ -20,9 +20,9 @@ export const ANDROID_RESTORE_CREDENTIAL_PATHS = Object.freeze({
   documentation: "docs/native-android-setup.md",
 });
 
-export const ZIVO_ANDROID_PACKAGE = "com.hizovo.app";
+export const ZIVO_ANDROID_PACKAGE = "com.zivosmedia.app";
 export const ZIVO_ANDROID_PLAY_CERT_FINGERPRINT =
-  "EA:45:99:1E:91:8A:9F:30:F9:EE:C2:99:1A:7F:72:66:0E:AC:49:68:18:4B:74:16:A8:C4:0C:1E:00:EE:FA:52";
+  "86:83:9B:39:F4:D7:1E:0C:1E:D6:8B:15:76:6B:60:31:24:62:E9:19:F5:B7:A2:3F:93:BA:57:9C:6A:7B:AD:05";
 export const ZIVO_ANDROID_UPLOAD_CERT_FINGERPRINT =
   "2C:B4:10:12:26:FB:4F:C9:55:84:39:E4:82:74:EE:3C:0C:19:55:A1:FB:87:7E:46:B3:ED:6E:84:0B:8B:D9:7E";
 export const ZIVO_ANDROID_CERT_FINGERPRINTS = Object.freeze([
@@ -301,6 +301,11 @@ export function checkAndroidRestoreCredentials({
   const accountSecurity = readRequiredFile(rootDir, paths.accountSecurity);
   const packageJson = readRequiredFile(rootDir, paths.packageJson);
   const documentation = readRequiredFile(rootDir, paths.documentation);
+
+  const releasePackage = buildGradle.match(/applicationId\s+"([^"]+)"/)?.[1];
+  if (releasePackage !== ZIVO_ANDROID_PACKAGE) {
+    throw new Error(`Android credential association targets ${ZIVO_ANDROID_PACKAGE}, but the release package is ${releasePackage || "missing"}.`);
+  }
 
   const dependencyResult = validateCredentialDependencyConfig(buildGradle);
   validateRestoreCredentialsPluginSource(plugin, mainActivity);

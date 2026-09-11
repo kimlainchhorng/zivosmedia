@@ -1,4 +1,7 @@
-﻿/**
+import { formatTravelDate as format } from "@/i18n/travelDate";
+import { TravelCopy, publicTravelText } from "@/i18n/publicTravelCopy";
+import { useI18n } from "@/hooks/useI18n";
+/**
  * Flight Search Page — /flights
  * Cinematic 3D/4D immersive flight search experience
  */
@@ -41,7 +44,7 @@ import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 const AISmartDeals = lazy(() => import("@/components/home/AISmartDeals"));
 import { usePopularRoutePrices } from "@/hooks/usePopularRoutePrices";
 import { useTravelpayoutsPopularRoutes } from "@/hooks/useTravelpayoutsPopularRoutes";
-import { format, parseISO } from "date-fns";
+import { parseISO } from "date-fns";
 import { Calendar } from "lucide-react";
 import { getAirportByCode } from "@/data/airports";
 import {
@@ -114,8 +117,8 @@ const flightWorkflowSteps: Array<{ title: string; detail: string; icon: FlightIc
 
 const providerStatuses: Array<{ label: string; value: string; icon: FlightIcon; tone: "teal" | "blue" | "rose" }> = [
   { label: "ZIVO AI", value: "Auto route", icon: Bot, tone: "teal" },
-  { label: "DeepSeek", value: "Live travel", icon: Plane, tone: "blue" },
-  { label: "Fallback AI", value: "Optional", icon: Sparkles, tone: "rose" },
+  { label: "Trip ideas", value: "Plan your trip", icon: Plane, tone: "blue" },
+  { label: "More options", value: "Explore", icon: Sparkles, tone: "rose" },
 ];
 
 const destinationSpotlights: Record<string, { image: string; priceHint: string; season: string; routeHint: string }> = {
@@ -162,7 +165,7 @@ const whyZivo = [
   { icon: Globe, title: "500+ Airlines", desc: "Compare all major & low-cost carriers", color: "sky" },
   { icon: Shield, title: "Trusted Partners", desc: "Book through licensed travel partners", color: "emerald" },
   { icon: Clock, title: "Real-Time Prices", desc: "Live fares, always up to date", color: "amber" },
-  { icon: Headphones, title: "24/7 Support", desc: "Get help with your booking anytime", color: "purple" },
+  { icon: Headphones, title: "Booking support", desc: "Contact the travel team", color: "purple" },
 ];
 
 /* ─── 3D Route Card ─── */
@@ -201,7 +204,7 @@ function RouteCard3D({ route, index, onRouteClick, isFavorite, onToggleFavorite,
               <button
                 type="button"
                 onClick={onShare}
-                aria-label={justShared ? "Link copied" : "Share this route"}
+                aria-label={publicTravelText(justShared ? "Link copied" : "Share this route")}
                 className="w-7 h-7 rounded-full bg-black/40 backdrop-blur flex items-center justify-center active:scale-90 transition"
               >
                 {justShared ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Share2 className="w-3.5 h-3.5 text-white" />}
@@ -211,7 +214,7 @@ function RouteCard3D({ route, index, onRouteClick, isFavorite, onToggleFavorite,
               <button
                 type="button"
                 onClick={onToggleFavorite}
-                aria-label={isFavorite ? "Remove route from saved" : "Save route"}
+                aria-label={publicTravelText(isFavorite ? "Remove route from saved" : "Save route")}
                 aria-pressed={!!isFavorite}
                 className="w-7 h-7 rounded-full bg-black/40 backdrop-blur flex items-center justify-center active:scale-90 transition"
               >
@@ -392,21 +395,19 @@ function PopularRoutesSection({ className }: { className?: string }) {
           <TrendingUp className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h2 className="text-lg font-bold">Top routes from Cambodia</h2>
-          <p className="text-xs text-muted-foreground">
-            Live fares from Phnom Penh & Siem Reap
-            {lastUpdated ? <> · <span className="text-emerald-600">Updated {lastUpdated}</span></> : null}
+          <h2 className="text-lg font-bold"><TravelCopy text="Top routes from Cambodia" /></h2>
+          <p className="text-xs text-muted-foreground"><TravelCopy text=" Live fares from Phnom Penh & Siem Reap " />{lastUpdated ? <> · <span className="text-emerald-600"><TravelCopy text="Updated " />{lastUpdated}</span></> : null}
           </p>
         </div>
         <div className="ml-auto flex items-center gap-1.5">
           <Badge variant="outline" className={cn("text-[10px]", hasLivePrices ? "border-emerald-500/30 text-emerald-600" : "border-primary/30 text-primary")}>
-            {isLoading ? <><Loader2 className="w-2.5 h-2.5 mr-0.5 animate-spin" /> Loading</> : hasLivePrices ? <><Zap className="w-2.5 h-2.5 mr-0.5" /> Live Prices</> : <><Sparkles className="w-2.5 h-2.5 mr-0.5" /> Unavailable</>}
+            {isLoading ? <><Loader2 className="w-2.5 h-2.5 mr-0.5 animate-spin" /><TravelCopy text=" Loading" /></> : hasLivePrices ? <><Zap className="w-2.5 h-2.5 mr-0.5" /><TravelCopy text=" Live Prices" /></> : <><Sparkles className="w-2.5 h-2.5 mr-0.5" /><TravelCopy text=" Unavailable" /></>}
           </Badge>
           <button
             type="button"
             onClick={refreshPrices}
             disabled={isFetching}
-            aria-label="Refresh prices"
+            aria-label={publicTravelText("Refresh prices")}
             className="h-7 w-7 rounded-full border border-border/50 bg-card flex items-center justify-center active:scale-90 transition disabled:opacity-50"
           >
             <RefreshCw className={cn("w-3.5 h-3.5 text-foreground/70", isFetching && "animate-spin")} />
@@ -415,7 +416,7 @@ function PopularRoutesSection({ className }: { className?: string }) {
       </motion.div>
 
       {/* Origin city tabs */}
-      <div role="tablist" aria-label="Filter routes by origin airport" className="flex gap-1.5 mb-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div role="tablist" aria-label={publicTravelText("Filter routes by origin airport")} className="flex gap-1.5 mb-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {([
           { id: "all", label: "All routes" },
           ...(favorites.size > 0 ? [{ id: "saved" as const, label: `♥ Saved (${favorites.size})` }] : []),
@@ -438,7 +439,7 @@ function PopularRoutesSection({ className }: { className?: string }) {
                   : "bg-background text-foreground border-border active:bg-muted",
               )}
             >
-              {opt.label}
+              <TravelCopy text={opt.label} />
             </button>
           );
         })}
@@ -456,16 +457,13 @@ function PopularRoutesSection({ className }: { className?: string }) {
         </div>
       ) : visibleRoutes.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border/50 p-6 text-center">
-          <p className="text-sm font-semibold text-foreground">Live route prices unavailable right now</p>
-          <p className="text-[11px] text-muted-foreground mt-1">
-            Use the search form above to request current fares from travel partners.
-          </p>
+          <p className="text-sm font-semibold text-foreground"><TravelCopy text="Live route prices unavailable right now" /></p>
+          <p className="text-[11px] text-muted-foreground mt-1"><TravelCopy text=" Use the search form above to request current fares from travel partners. " /></p>
           <button
             type="button"
             onClick={() => setOriginFilter("all")}
             className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-primary"
-          >
-            Search flights <ArrowRight className="w-3 h-3" />
+          ><TravelCopy text=" Search flights " /><ArrowRight className="w-3 h-3" />
           </button>
         </div>
       ) : (
@@ -485,20 +483,18 @@ function PopularRoutesSection({ className }: { className?: string }) {
         </div>
       )}
       <p className="text-[9px] text-muted-foreground mt-3 text-center">
-        {hasTp
+        <TravelCopy text={hasTp
           ? "*Live prices in USD from Travelpayouts. No hidden fees — final price confirmed at partner checkout."
           : hasLivePrices
           ? "*Live prices in USD from Duffel. No hidden fees — final price confirmed at partner checkout."
           : bothFailed
           ? "Live prices unavailable right now. Use the search above for current fares."
-          : "*Prices loading. Final price confirmed at partner checkout."}
+          : "*Prices loading. Final price confirmed at partner checkout."} />
       </p>
 
       {/* Airlines we compare */}
       <div className="mt-5">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-semibold mb-2">
-          Top airlines we compare
-        </p>
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-semibold mb-2"><TravelCopy text=" Top airlines we compare " /></p>
         <div className="flex flex-wrap gap-1.5">
           {[
             { name: "Cambodia Angkor Air", isMore: false },
@@ -565,8 +561,8 @@ function WhyCard3D({ item, index }: { item: typeof whyZivo[0]; index: number }) 
           <item.icon className="w-5 h-5" />
         </motion.div>
         <div className="min-w-0 flex-1 sm:flex-none">
-          <p className="text-sm font-bold relative z-10" style={{ transform: "translateZ(10px)" }}>{item.title}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5 sm:mt-1 leading-snug relative z-10" style={{ transform: "translateZ(5px)" }}>{item.desc}</p>
+          <p className="text-sm font-bold relative z-10" style={{ transform: "translateZ(10px)" }}><TravelCopy text={item.title} /></p>
+          <p className="text-[11px] text-muted-foreground mt-0.5 sm:mt-1 leading-snug relative z-10" style={{ transform: "translateZ(5px)" }}><TravelCopy text={item.desc} /></p>
         </div>
       </div>
     </motion.div>
@@ -582,8 +578,8 @@ function WhyZivoSection({ className }: { className?: string }) {
           <Shield className="w-5 h-5 text-emerald-500" />
         </div>
         <div>
-          <h2 className="text-lg font-bold">Why Book with ZIVO?</h2>
-          <p className="text-xs text-muted-foreground">Trusted by travelers worldwide</p>
+          <h2 className="text-lg font-bold"><TravelCopy text="Why Book with ZIVO?" /></h2>
+          <p className="text-xs text-muted-foreground"><TravelCopy text="Trusted by travelers worldwide" /></p>
         </div>
       </motion.div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -635,6 +631,8 @@ function useFlightDeepLinkResultsSearch(initial: FlightDeepLinkInitial) {
 
 /* ─── Cinematic Desktop Hero ─── */
 function DesktopCinematicHero({ flightInitial }: { flightInitial: FlightDeepLinkInitial }) {
+  const { locale } = useI18n();
+  const text = (en: string, kh: string) => locale === "km" ? kh : en;
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start start", "end start"] });
@@ -690,18 +688,18 @@ function DesktopCinematicHero({ flightInitial }: { flightInitial: FlightDeepLink
           >
             <div className="inline-flex items-center gap-2 rounded-lg border border-teal-200 bg-white/85 px-4 py-2 text-sm font-black text-teal-900 shadow-sm backdrop-blur">
               <Sparkles className="h-4 w-4 text-teal-600" />
-              {hasPlannerHandoff ? "AI planner handoff" : "ZIVO Flights"}
+              <TravelCopy text={hasPlannerHandoff ? "AI planner handoff" : "ZIVO Flights"} />
             </div>
             <h1 className="mt-6 max-w-xl text-5xl font-black leading-[0.95] tracking-tight text-slate-950 lg:text-6xl">
-              Search Flights
+              {text("Search Flights", "ស្វែងរកជើងហោះហើរ")}
               {destination.city !== "anywhere" ? (
-                <> to <span className="text-teal-600">{destination.city}</span></>
+                <> {text("to", "ទៅកាន់")} <span className="text-teal-600">{destination.city}</span></>
               ) : (
-                <> with <span className="text-teal-600">ZIVO</span></>
+                <> {text("with", "ជាមួយ")} <span className="text-teal-600">ZIVO</span></>
               )}
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
-              Your AI trip idea is now connected to the flight engine. Confirm the route, choose dates, then compare live partner fares without rebuilding the search.
+              {text("Choose your route and dates, then compare available partner fares.", "ជ្រើសរើសផ្លូវហោះហើរ និងកាលបរិច្ឆេទ រួចប្រៀបធៀបតម្លៃដែលមានពីដៃគូ។")}
             </p>
 
             <div className="mt-7 grid gap-3 rounded-lg border border-white/70 bg-white/90 p-4 shadow-xl shadow-sky-900/10 backdrop-blur sm:grid-cols-3">
@@ -722,18 +720,14 @@ function DesktopCinematicHero({ flightInitial }: { flightInitial: FlightDeepLink
                 type="button"
                 className="h-12 gap-2 rounded-lg bg-slate-950 px-5 text-white hover:bg-slate-800"
                 onClick={() => document.getElementById("flight-live-routes")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              >
-                View live routes
-                <ArrowRight className="h-4 w-4" />
+              ><TravelCopy text=" View live routes " /><ArrowRight className="h-4 w-4" />
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 className="h-12 gap-2 rounded-lg border-slate-200 bg-white/90 px-5"
                 onClick={() => navigate(`/ai-trip-planner${plannerParams.toString() ? `?${plannerParams.toString()}` : ""}`)}
-              >
-                Tune in planner
-                <SlidersHorizontal className="h-4 w-4" />
+              ><TravelCopy text=" Tune in planner " /><SlidersHorizontal className="h-4 w-4" />
               </Button>
             </div>
           </motion.div>
@@ -768,12 +762,8 @@ function DesktopCinematicHero({ flightInitial }: { flightInitial: FlightDeepLink
 
             <div className="mt-4 rounded-lg border border-teal-100 bg-teal-50 p-4">
               <div className="flex items-center gap-2 text-sm font-black text-slate-950">
-                <Route className="h-5 w-5 text-teal-700" />
-                AI to booking workflow
-              </div>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                DeepSeek powers live travel generation now. A fallback AI can join this same route when Anthropic API access is configured.
-              </p>
+                <Route className="h-5 w-5 text-teal-700" /><TravelCopy text=" AI to booking workflow " /></div>
+              <p className="mt-2 text-sm leading-6 text-slate-600"><TravelCopy text=" Plan your itinerary and review available booking options. " /></p>
             </div>
           </motion.div>
         </div>
@@ -818,7 +808,7 @@ function FlightProviderStatus({
         <Icon className="h-5 w-5" />
       </div>
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400"><TravelCopy text={label} /></p>
         <p className="text-sm font-black text-slate-950">{value}</p>
       </div>
     </div>
@@ -832,7 +822,7 @@ function FlightHandoffTile({ icon: Icon, label, value }: { icon: FlightIcon; lab
         <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">{label}</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400"><TravelCopy text={label} /></p>
         <p className="truncate text-sm font-black text-slate-950">{value}</p>
       </div>
     </div>
@@ -855,8 +845,8 @@ function FlightWorkflowStep({
         </span>
         <Icon className="h-4 w-4 text-teal-600" />
       </div>
-      <p className="mt-3 text-sm font-black text-slate-950">{step.title}</p>
-      <p className="mt-1 text-xs leading-5 text-slate-500">{step.detail}</p>
+      <p className="mt-3 text-sm font-black text-slate-950"><TravelCopy text={step.title} /></p>
+      <p className="mt-1 text-xs leading-5 text-slate-500"><TravelCopy text={step.detail} /></p>
     </div>
   );
 }
@@ -907,7 +897,7 @@ function FlightRouteMetric({ icon: Icon, label, value }: { icon: FlightIcon; lab
     <div className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 backdrop-blur">
       <Icon className="h-4 w-4 text-teal-200" />
       <div className="min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">{label}</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/45"><TravelCopy text={label} /></p>
         <p className="truncate text-xs font-black text-white">{value}</p>
       </div>
     </div>
@@ -916,6 +906,7 @@ function FlightRouteMetric({ icon: Icon, label, value }: { icon: FlightIcon; lab
 
 /* ─── Time-of-day greeting (mobile) ─── */
 function GreetingHeader() {
+  const { locale } = useI18n();
   const greeting = useMemo(() => {
     const h = new Date().getHours();
     if (h >= 4 && h < 12) return { line: "Good morning", emoji: "☀️" };
@@ -930,11 +921,12 @@ function GreetingHeader() {
       transition={{ duration: 0.4 }}
       className="-mb-2"
     >
-      <p className="text-base font-bold text-foreground">
-        {greeting.emoji} {greeting.line}
-      </p>
+      <h2 className="text-base font-bold text-foreground">
+        <TravelCopy text={locale === "km" ? "ស្វែងរកជើងហោះហើរ" : "Search flights"} />
+      </h2>
+      <p>{greeting.emoji} {locale === "km" ? "សូមស្វាគមន៍" : greeting.line}</p>
       <p className="text-[12px] text-muted-foreground mt-0.5">
-        Where would you like to fly?
+        <TravelCopy text={locale === "km" ? "តើអ្នកចង់ហោះហើរទៅកាន់ទីណា?" : "Where would you like to fly?"} />
       </p>
     </motion.div>
   );
@@ -942,10 +934,10 @@ function GreetingHeader() {
 
 /* ─── Rotating travel-tip bar (mobile) ─── */
 const TRAVEL_TIPS: Array<{ icon: typeof Sparkles; text: string }> = [
-  { icon: TrendingUp, text: "Tuesday & Wednesday flights are usually 10–20% cheaper." },
-  { icon: Clock, text: "Book international flights 6–8 weeks ahead for the best price." },
-  { icon: Zap, text: "Pay with ABA KHQR — no card needed, e-ticket in seconds." },
-  { icon: Shield, text: "Most fares include free cancellation up to 24 hours after booking." },
+  { icon: TrendingUp, text: "Compare nearby travel dates when your plans are flexible." },
+  { icon: Clock, text: "Check baggage and change rules before choosing a fare." },
+  { icon: Zap, text: "Review the payment methods and final total at checkout." },
+  { icon: Shield, text: "Check the cancellation terms for your selected fare." },
 ];
 
 function TravelTipBar() {
@@ -974,7 +966,7 @@ function TravelTipBar() {
           transition={{ duration: 0.3 }}
           className="text-[11px] font-medium text-foreground/80 leading-snug"
         >
-          {tip.text}
+          <TravelCopy text={tip.text} />
         </motion.p>
       </AnimatePresence>
     </div>
@@ -1000,10 +992,10 @@ function MobileFlightSearch({ flightInitial }: { flightInitial: FlightDeepLinkIn
   }, []);
 
   const trustItems = [
-    { icon: Shield, title: "Free cancellation", sub: "On most flights", color: "emerald" },
-    { icon: Zap, title: "Instant confirmation", sub: "E-tickets in seconds", color: "amber" },
+    { icon: Shield, title: "Cancellation terms", sub: "Review fare rules", color: "emerald" },
+    { icon: Zap, title: "Booking confirmation", sub: "Check provider confirmation", color: "amber" },
     { icon: Star, title: "Transparent pricing", sub: "All fees shown upfront", color: "sky" },
-    { icon: Headphones, title: "24/7 support", sub: "Help anywhere, anytime", color: "purple" },
+    { icon: Headphones, title: "Booking support", sub: "Contact the travel team", color: "purple" },
   ] as const;
   const colorMap: Record<string, string> = {
     emerald: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
@@ -1053,21 +1045,21 @@ function MobileFlightSearch({ flightInitial }: { flightInitial: FlightDeepLinkIn
           { path: "/flights/bookings", icon: Ticket, color: "sky", title: "My bookings", sub: "Manage trips & e-tickets" },
           { path: "/flights/live",     icon: Radar,  color: "emerald", title: "Flight status", sub: "Track live departures" },
           { path: "/flight-price-alerts", icon: TrendingUp, color: "amber", title: "Price alerts", sub: "Get notified on drops" },
-          { path: "/support/travel-bookings", icon: Headphones, color: "purple", title: "Support", sub: "Travel help 24/7" },
+          { path: "/support/travel-bookings", icon: Headphones, color: "purple", title: "Support", sub: "Contact the travel team" },
         ].map(({ path, icon: Icon, color, title, sub }) => (
           <button
             key={path}
             type="button"
             onClick={() => navigate(path)}
-            aria-label={title}
+            aria-label={publicTravelText(title)}
             className="text-left flex items-center gap-2 rounded-2xl border border-border/40 bg-card p-3 active:scale-[0.98] transition-all duration-150 shadow-sm hover:shadow-md hover:border-border/60"
           >
             <span className={cn("w-9 h-9 shrink-0 rounded-xl border flex items-center justify-center", colorMap[color])}>
               <Icon className="w-4 h-4" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-bold text-foreground leading-tight">{title}</p>
-              <p className="text-[10px] text-muted-foreground leading-tight truncate">{sub}</p>
+              <p className="text-[12px] font-bold text-foreground leading-tight"><TravelCopy text={title} /></p>
+              <p className="text-[10px] text-muted-foreground leading-tight truncate"><TravelCopy text={sub} /></p>
             </div>
           </button>
         ))}
@@ -1089,8 +1081,8 @@ function MobileFlightSearch({ flightInitial }: { flightInitial: FlightDeepLinkIn
               <item.icon className="w-4 h-4" />
             </span>
             <div className="min-w-0">
-              <p className="text-[12px] font-bold text-foreground leading-tight truncate">{item.title}</p>
-              <p className="text-[10px] text-muted-foreground leading-tight truncate">{item.sub}</p>
+              <p className="text-[12px] font-bold text-foreground leading-tight truncate"><TravelCopy text={item.title} /></p>
+              <p className="text-[10px] text-muted-foreground leading-tight truncate"><TravelCopy text={item.sub} /></p>
             </div>
           </div>
         ))}
@@ -1108,7 +1100,7 @@ function MobileFlightSearch({ flightInitial }: { flightInitial: FlightDeepLinkIn
       <motion.button
         type="button"
         onClick={() => navigate("/hotels")}
-        aria-label="Browse hotels for your trip"
+        aria-label={publicTravelText("Browse hotels for your trip")}
         initial={{ opacity: 0, y: 12 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.4 }}
@@ -1121,14 +1113,10 @@ function MobileFlightSearch({ flightInitial }: { flightInitial: FlightDeepLinkIn
         </span>
         <div className="relative min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-bold text-foreground">Need a place to stay?</p>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-500/15 border border-emerald-500/30 rounded px-1 py-0.5 shrink-0">
-              Hotels
-            </span>
+            <p className="text-sm font-bold text-foreground"><TravelCopy text="Need a place to stay?" /></p>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-500/15 border border-emerald-500/30 rounded px-1 py-0.5 shrink-0"><TravelCopy text=" Hotels " /></span>
           </div>
-          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-            Browse hotels, resorts and guesthouses across Cambodia for your trip.
-          </p>
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug"><TravelCopy text=" Browse hotels, resorts and guesthouses across Cambodia for your trip. " /></p>
         </div>
         <ArrowRight className="relative w-4 h-4 text-emerald-600 shrink-0" />
       </motion.button>
@@ -1145,31 +1133,31 @@ function MobileFlightSearch({ flightInitial }: { flightInitial: FlightDeepLinkIn
             <Sparkles className="w-5 h-5 text-amber-500" />
           </div>
           <div>
-            <h2 className="text-lg font-bold">Frequently asked</h2>
-            <p className="text-xs text-muted-foreground">Quick answers before you book</p>
+            <h2 className="text-lg font-bold"><TravelCopy text="Frequently asked" /></h2>
+            <p className="text-xs text-muted-foreground"><TravelCopy text="Quick answers before you book" /></p>
           </div>
         </div>
         <div className="rounded-2xl border border-border/40 bg-card divide-y divide-border/40 overflow-hidden">
           {[
             {
               q: "Which payment methods are accepted?",
-              a: "Visa, Mastercard, JCB, and ABA KHQR. You'll see the available options at checkout based on the airline and partner.",
+              a: "Checkout shows the payment methods available for your booking. Review the currency and final total before confirming.",
             },
             {
               q: "When do I get my e-ticket?",
-              a: "Within seconds of a successful payment. We email it to you and store it in My bookings — show it at check-in by phone.",
+              a: "Check My bookings and your confirmation email for ticketing status. A successful payment alone does not confirm that a ticket has been issued.",
             },
             {
               q: "Can I cancel or change a flight?",
-              a: "Yes, on most fares. Refundable and changeable rules differ by airline — they're shown clearly before you confirm.",
+              a: "Cancellation, changes and any fees depend on the selected fare. Review the airline and partner terms before confirming.",
             },
             {
               q: "What documents do I need?",
-              a: "A valid passport for international flights and any visa required by your destination. Domestic Cambodia flights accept your national ID.",
+              a: "Check your airline's current identity and entry requirements for your route before booking.",
             },
             {
               q: "How much baggage is included?",
-              a: "Carry-on is included on most fares. Checked baggage depends on the airline and fare type — the limit is shown on each fare card.",
+              a: "Use the baggage allowance listed with your selected fare. Limits and extra charges vary by airline and fare type.",
             },
           ].map((item, i) => (
             <details key={i} className="group [&>summary]:list-none">
@@ -1197,16 +1185,14 @@ function MobileFlightSearch({ flightInitial }: { flightInitial: FlightDeepLinkIn
         viewport={{ once: true, amount: 0.4 }}
         transition={{ duration: 0.5, ease: ease3D }}
         className="text-left rounded-2xl border border-border/40 bg-gradient-to-br from-primary/5 via-primary/[0.03] to-transparent p-4 flex items-center gap-3 active:scale-[0.99] transition shadow-sm"
-        aria-label="Open travel-bookings support"
+        aria-label={publicTravelText("Open travel-bookings support")}
       >
         <span className="w-12 h-12 shrink-0 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
           <Headphones className="w-5 h-5 text-primary" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-foreground">Need a hand with a booking?</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-            Talk to our travel team about flights, changes, or refunds — usually under 5 min.
-          </p>
+          <p className="text-sm font-bold text-foreground"><TravelCopy text="Need a hand with a booking?" /></p>
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug"><TravelCopy text=" Talk to our travel team about flights, changes, or refunds. " /></p>
         </div>
         <ArrowRight className="w-4 h-4 text-primary shrink-0" />
       </motion.button>
@@ -1228,20 +1214,19 @@ function MobileFlightSearch({ flightInitial }: { flightInitial: FlightDeepLinkIn
               onClick={() => navigate(link.href)}
               className="text-left underline-offset-2 hover:underline active:underline"
             >
-              {link.label}
+              <TravelCopy text={link.label} />
             </button>
           ))}
         </div>
         <p className="mt-3 text-[10px] text-muted-foreground/70">
-          © {new Date().getFullYear()} ZIVO. Flight prices powered by our partners (Duffel, Travelpayouts). Final price confirmed at checkout.
-        </p>
+          © {new Date().getFullYear()}<TravelCopy text=" ZIVO. Flight prices powered by our partners (Duffel, Travelpayouts). Final price confirmed at checkout. " /></p>
       </footer>}
 
       {/* Floating "Back to search" button */}
       <button
         type="button"
         onClick={() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-        aria-label="Back to search"
+        aria-label={publicTravelText("Back to search")}
         className={cn(
           "fixed bottom-[calc(var(--zivo-safe-bottom,0px)+5rem)] right-4 z-40 h-12 px-4 rounded-full bg-ig-gradient text-white shadow-lg shadow-primary/30 inline-flex items-center gap-2 text-sm font-semibold transition-all duration-200",
           showBackToTop
@@ -1249,9 +1234,7 @@ function MobileFlightSearch({ flightInitial }: { flightInitial: FlightDeepLinkIn
             : "opacity-0 translate-y-4 pointer-events-none",
         )}
       >
-        <Plane className="w-4 h-4 -rotate-45" />
-        Search
-      </button>
+        <Plane className="w-4 h-4 -rotate-45" /><TravelCopy text=" Search " /></button>
     </div>
   );
 }
@@ -1272,6 +1255,20 @@ function Animated3DBackground() {
 
 /* ─── Main Component ─── */
 const FlightLanding = () => {
+  const { locale } = useI18n();
+  const km = locale === "km";
+  useEffect(() => {
+    const origin = isZivoTravelHost() ? "https://zivostravel.com" : "https://zivosmedia.com";
+    const links = ["en", "km"].map(language => {
+      const link = document.createElement("link");
+      link.rel = "alternate";
+      link.hreflang = language;
+      link.href = `${origin}/flights?lang=${language}`;
+      document.head.append(link);
+      return link;
+    });
+    return () => links.forEach(link => link.remove());
+  }, []);
   const navigate = useNavigate();
   const { fromCity, toCity } = useParams();
   const flightInitial = useFlightDeepLinkInitial(fromCity, toCity);
@@ -1284,8 +1281,8 @@ const FlightLanding = () => {
   const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
   const seoBrand = isTravelHost ? "Zivo Travel" : "ZIVO";
   const travelCanonicalHost = isTravelHost ? "https://zivostravel.com" : "https://zivosmedia.com";
-  const seoTitle = `Search Flights from Cambodia – ${seoBrand} | 500+ Airlines`;
-  const seoDescription = isTravelHost
+  const seoTitle = `${km ? "ស្វែងរកជើងហោះហើរពីកម្ពុជា" : "Search Flights from Cambodia"} – ${seoBrand}`;
+  const seoDescription = km ? "ស្វែងរកជើងហោះហើរពីប្រទេសកម្ពុជា។ ជ្រើសរើសគោលដៅ និងកាលបរិច្ឆេទ ដើម្បីប្រៀបធៀបតម្លៃពីដៃគូ។" : isTravelHost
     ? "Find the best flight deals from Phnom Penh and Siem Reap. Compare 500+ airlines, book direct, and track price drops on Zivo Travel."
     : "Find the best flight deals from Phnom Penh and Siem Reap. Compare 500+ airlines, book direct, and track price drops — all on ZIVO.";
 
@@ -1293,14 +1290,14 @@ const FlightLanding = () => {
     return (
       <>
         <SEOHead
-          title={seoTitle}
+          title={publicTravelText(seoTitle)}
           description={seoDescription}
           canonical="/flights"
           ogImage="/og-flights.jpg"
           appLink="zivo://flights"
         />
         <AppLayout
-          title="Flights"
+          title={publicTravelText(km ? "ជើងហោះហើរ" : "Flights")}
           showBack
           onBack={() => navigate("/", { replace: true })}
           headerRightAction={undefined}
@@ -1325,7 +1322,7 @@ const FlightLanding = () => {
     )}>
       <BundleProgressBanner step="flight" />
       <SEOHead
-        title={seoTitle}
+        title={publicTravelText(seoTitle)}
         description={seoDescription}
         canonical="/flights"
         ogImage="/og-flights.jpg"

@@ -1,15 +1,17 @@
-import { defineConfig, loadEnv, type Plugin } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { rmSync } from "fs";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 import { createRequire } from "module";
+import { requiredSupabaseConfigErrors } from "./src/config/requiredSupabaseConfig.ts";
 const _require = createRequire(import.meta.url);
 const pkg = _require("./package.json") as { version: string };
 
 const manualChunkGroups = {
-  "vendor-react": ["react", "react-dom", "react-router-dom"],
+  "vendor-runtime": ["clsx", "tailwind-merge", "class-variance-authority"],
+  "vendor-react": ["react", "react-dom", "react-router-dom", "react-is", "scheduler"],
   "vendor-supabase": ["@supabase/supabase-js"],
   "vendor-query": ["@tanstack/react-query"],
   // Keep all Radix in ONE chunk because splitting can evaluate shared internals
@@ -41,6 +43,8 @@ const packageSegment = (packageName: string) =>
 
 const manualChunks = (id: string) => {
   const normalizedId = id.replaceAll(path.sep, "/");
+  // Shared preload helpers must never be owned by an optional PDF/chart chunk.
+  if (normalizedId.includes("vite/preload-helper") || normalizedId.includes("commonjsHelpers")) return "vendor-runtime";
 
   for (const [chunkName, packageNames] of Object.entries(manualChunkGroups)) {
     if (
@@ -51,6 +55,30 @@ const manualChunks = (id: string) => {
       return chunkName;
     }
   }
+};
+
+// Check emitted imports, not source import spelling: shared helpers can pull
+// optional libraries into startup even when every feature uses dynamic imports.
+const optionalVendorBoundaryPlugin: Plugin = {
+  name: "optional-vendor-startup-boundary",
+  apply: "build",
+  generateBundle(_options, bundle) {
+    const queue = Object.values(bundle)
+      .filter(item => item.type === "chunk" && (item.isEntry || item.name === "App"))
+      .map(item => [item.fileName]);
+    const seen = new Set<string>();
+    while (queue.length) {
+      const chain = queue.pop()!;
+      const file = chain[chain.length - 1];
+      if (seen.has(file)) continue;
+      seen.add(file);
+      if (/vendor-(pdf|charts)/.test(file)) {
+        this.error(`Optional vendor loaded by the app startup graph: ${chain.join(" -> ")}`);
+      }
+      const chunk = bundle[file];
+      if (chunk?.type === "chunk") queue.push(...chunk.imports.map(file => [...chain, file]));
+    }
+  },
 };
 
 const pwaPrecacheGlobPatterns = [
@@ -79,25 +107,15 @@ const pwaPrecacheGlobIgnores = [
   "**/destinations/**",
 ];
 
-// Build-time guard: warn (don't fail) when a production build is missing the
-// Supabase env vars and would silently fall back to the bundled public project.
-// The hard requirement is enforced in scripts/deploy/env-preflight.mjs.
-const supabaseEnvWarnPlugin: Plugin = {
-  name: "warn-missing-supabase-env",
-  config(_config, env) {
-    if (env.command === "build" && env.mode === "production") {
-      const supaEnv = loadEnv(env.mode, process.cwd(), "VITE_");
-      const missing = ["VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY"].filter(
-        (key) => !supaEnv[key],
-      );
-      if (missing.length > 0) {
-        console.warn(
-          `\n⚠️  [zivosmedia] Production build is missing ${missing.join(", ")} — ` +
-            `the app will use the bundled public Supabase fallback at runtime. ` +
-            `Set these in the deploy pipeline (see scripts/deploy/env-preflight.mjs).\n`,
-        );
-      }
-    }
+// Enforce at Vite itself so direct builds and custom modes cannot bypass it.
+const requiredSupabaseEnvPlugin: Plugin = {
+  name: "require-supabase-env",
+  configResolved(config) {
+    if (config.command !== "build") return;
+    const errors = requiredSupabaseConfigErrors(config.env);
+    if (errors.length) throw new Error(
+      `[zivosmedia] Build stopped: ${errors.join(" ")} Set build-time variables and rebuild. See DEPLOY.md.`,
+    );
   },
 };
 
@@ -138,15 +156,24 @@ export default defineConfig(({ mode }) => ({
     reportCompressedSize: false,
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
+      preserveEntrySignatures: false,
       output: {
-        manualChunks,
+        // Claim shared dependencies before optional vendors can capture them.
+        codeSplitting: {
+          groups: [
+            { name: "vendor-runtime", test: id => manualChunks(id) === "vendor-runtime", priority: 200 },
+            { name: "vendor-react", test: id => manualChunks(id) === "vendor-react", priority: 100 },
+            { name: manualChunks, priority: 0 },
+          ],
+        },
       },
     },
     cssCodeSplit: true,
     sourcemap: mode === 'production' ? false : 'hidden',
   },
   plugins: [
-    supabaseEnvWarnPlugin,
+    requiredSupabaseEnvPlugin,
+    optionalVendorBoundaryPlugin,
     react(),
     mode === "development" && componentTagger(),
     VitePWA({

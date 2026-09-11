@@ -87,5 +87,6 @@ export function useStoriesFeed() {
     queryFn: () => fetchStoriesFeed(user!.id),
     enabled: !!user?.id,
     staleTime: 60_000,
+    retry: false,
   });
 }

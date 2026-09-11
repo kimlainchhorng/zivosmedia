@@ -65,6 +65,21 @@ interface FlightSearchFormProProps {
   className?: string;
 }
 
+const FOCUSABLE = 'input,button,select,textarea,[tabindex]:not([tabindex="-1"])';
+
+/**
+ * Move focus to the first invalid field. `data-flight-field` marks the field's
+ * *wrapper*, and a bare `div` takes no focus — calling `.focus()` on it left the
+ * caret on `<body>`, so the error was announced to nobody and the keyboard user
+ * was stranded at the top of the form. Focus the control inside instead.
+ */
+function focusField(field: string) {
+  const scope = document.querySelector<HTMLElement>(`[data-flight-field="${field}"]`);
+  if (!scope) return;
+  const control = scope.matches(FOCUSABLE) ? scope : scope.querySelector<HTMLElement>(FOCUSABLE);
+  control?.focus();
+}
+
 export default function FlightSearchFormPro({
   initialFrom = "",
   initialTo = "",
@@ -82,7 +97,8 @@ export default function FlightSearchFormPro({
   const isMobile = useIsMobile();
   const { search: searchAirports, getPopular, getByCode, allOptions } = useAirportSearch();
   const { trackSearchStarted } = useFlightFunnel();
-  const { t } = useTranslation("flights");
+  const { t, locale } = useTranslation("flights");
+  const text = (en: string, kh: string) => locale === "km" ? kh : en;
 
   // Trip type
   const [tripType, setTripType] = useState<TripType>(initialTripType);
@@ -164,17 +180,20 @@ export default function FlightSearchFormPro({
   // Validate form
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!fromOption) newErrors.from = "Please choose an airport from the list.";
-    if (!toOption) newErrors.to = "Please choose an airport from the list.";
+    if (!fromOption) newErrors.from = text("Choose a departure city", "ជ្រើសរើសទីក្រុងចេញដំណើរ");
+    if (!toOption) newErrors.to = text("Choose an arrival city", "ជ្រើសរើសទីក្រុងមកដល់");
     if (fromOption && toOption && fromOption.value === toOption.value) {
       newErrors.to = "Destination must differ from origin";
     }
-    if (!departDate) newErrors.depart = "Select departure date";
-    if (tripType === "roundtrip" && !returnDate) newErrors.return = "Select return date";
+    if (!departDate) newErrors.depart = text("Select a date", "ជ្រើសរើសកាលបរិច្ឆេទ");
+    if (tripType === "roundtrip" && !returnDate) newErrors.return = text("Select a return date", "ជ្រើសរើសកាលបរិច្ឆេទត្រឡប់");
     if (tripType === "roundtrip" && departDate && returnDate && isBefore(returnDate, departDate)) {
       newErrors.return = "Return must be after departure";
     }
     setErrors(newErrors);
+    if (Object.keys(newErrors).length) {
+      window.setTimeout(() => focusField(Object.keys(newErrors)[0]), 0);
+    }
     return Object.keys(newErrors).length === 0;
   };
 
@@ -234,19 +253,11 @@ export default function FlightSearchFormPro({
     });
   };
 
-  const isFormValid = useMemo(() => {
-    const hasFrom = !!fromOption;
-    const hasTo = !!toOption;
-    const hasDepart = !!departDate;
-    const hasReturn = tripType === "oneway" || tripType === "multicity" || !!returnDate;
-    return hasFrom && hasTo && hasDepart && hasReturn;
-  }, [fromOption, toOption, departDate, returnDate, tripType]);
-
   const cabinOptions: { value: CabinClass; label: string }[] = [
-    { value: "economy", label: "Economy" },
-    { value: "premium", label: "Premium Economy" },
-    { value: "business", label: "Business" },
-    { value: "first", label: "First Class" },
+    { value: "economy", label: text("Economy", "ថ្នាក់សន្សំសំចៃ") },
+    { value: "premium", label: text("Premium Economy", "ថ្នាក់សន្សំសំចៃពិសេស") },
+    { value: "business", label: text("Business", "ថ្នាក់អាជីវកម្ម") },
+    { value: "first", label: text("First Class", "ថ្នាក់ទីមួយ") },
   ];
 
   return (
@@ -283,7 +294,7 @@ export default function FlightSearchFormPro({
         {[
           { id: "roundtrip" as TripType, label: t("flights.roundtrip"), icon: RefreshCw },
           { id: "oneway" as TripType, label: t("flights.oneway"), icon: Plane },
-          { id: "multicity" as TripType, label: "Multi-City", icon: MapPin },
+          { id: "multicity" as TripType, label: text("Multi-City", "ច្រើនទីក្រុង"), icon: MapPin },
         ].map((type) => (
           <button type="button"
             key={type.id}
@@ -317,6 +328,7 @@ export default function FlightSearchFormPro({
           <div className="relative space-y-4">
             {/* Row 1: From / Swap / To */}
             <div className="grid grid-cols-1 md:grid-cols-[1fr,auto,1fr] gap-3 items-end">
+              <div data-flight-field="from">
               <LocationAutocomplete
                 value={fromOption?.value || ""}
                 displayValue={fromDisplay}
@@ -325,13 +337,14 @@ export default function FlightSearchFormPro({
                 options={allOptions}
                 searchFn={searchAirports}
                 popularFn={getPopular}
-                placeholder="From where?"
+                placeholder={text("From where?", "ចេញពីទីណា?")}
                 label={t("flights.from")}
                 icon="plane"
                 accentColor="sky"
                 error={errors.from}
                 required
               />
+              </div>
 
               <Button
                 type="button"
@@ -339,11 +352,12 @@ export default function FlightSearchFormPro({
                 size="icon"
                 onClick={handleSwap}
                 className="h-11 sm:h-12 w-11 sm:w-12 rounded-full border-dashed hover:border-border hover:bg-secondary shrink-0 transition-all hover:rotate-180 duration-500 hidden md:flex shadow-md hover:shadow-lg active:scale-[0.95] active:shadow-sm"
-                aria-label="Swap cities"
+                aria-label={text("Swap cities", "ប្ដូរទីក្រុង")}
               >
                 <ArrowLeftRight className="w-4 h-4" />
               </Button>
 
+              <div data-flight-field="to">
               <LocationAutocomplete
                 value={toOption?.value || ""}
                 displayValue={toDisplay}
@@ -352,13 +366,14 @@ export default function FlightSearchFormPro({
                 options={allOptions.filter(o => o.value !== fromOption?.value)}
                 searchFn={(q, l) => searchAirports(q, l).filter(o => o.value !== fromOption?.value)}
                 popularFn={(l) => getPopular(l).filter(o => o.value !== fromOption?.value)}
-                placeholder="To where?"
+                placeholder={text("To where?", "ទៅកាន់ទីណា?")}
                 label={t("flights.to")}
                 icon="plane"
                 accentColor="sky"
                 error={errors.to}
                 required
               />
+              </div>
             </div>
 
             {/* Mobile swap button */}
@@ -369,11 +384,11 @@ export default function FlightSearchFormPro({
               className="w-full h-11 md:hidden rounded-xl border-dashed gap-2 shadow-sm hover:shadow-md active:scale-[0.97] transition-all"
             >
               <ArrowLeftRight className="w-4 h-4" />
-              Swap
+              {text("Swap", "ប្ដូរ")}
             </Button>
 
             {/* Row 2: Dates */}
-            <div>
+            <div data-flight-field="depart">
               <Label className="text-xs font-semibold text-foreground/80 mb-1.5 block">
                 {tripType === "roundtrip" ? `${t("flights.departure")} & ${t("flights.return")}` : t("flights.departure")}
                 <span className="text-destructive"> *</span>
@@ -403,12 +418,13 @@ export default function FlightSearchFormPro({
                           <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
                             {t("flights.departure")}
                           </span>
-                          <span>{departDate ? format(departDate, "EEE, MMM d") : "Select date"}</span>
+                          <span>{departDate ? format(departDate, "EEE, MMM d") : text("Select date", "ជ្រើសរើសកាលបរិច្ឆេទ")}</span>
                         </div>
                       </Button>
 
                       {tripType === "roundtrip" && (
                         <Button
+                          data-flight-field="depart"
                           variant="ghost"
                           type="button"
                           onClick={() => setDepartSheetOpen(true)}
@@ -422,7 +438,7 @@ export default function FlightSearchFormPro({
                             <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
                               {t("flights.return")}
                             </span>
-                            <span>{returnDate ? format(returnDate, "EEE, MMM d") : "Select date"}</span>
+                            <span>{returnDate ? format(returnDate, "EEE, MMM d") : text("Select date", "ជ្រើសរើសកាលបរិច្ឆេទ")}</span>
                           </div>
                         </Button>
                       )}
@@ -470,7 +486,7 @@ export default function FlightSearchFormPro({
                               <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
                                 {t("flights.departure")}
                               </span>
-                              <span>{departDate ? format(departDate, "EEE, MMM d") : "Select date"}</span>
+                              <span>{departDate ? format(departDate, "EEE, MMM d") : text("Select date", "ជ្រើសរើសកាលបរិច្ឆេទ")}</span>
                             </div>
                           </Button>
                         </PopoverTrigger>
@@ -507,7 +523,7 @@ export default function FlightSearchFormPro({
                                 <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
                                   {t("flights.return")}
                                 </span>
-                                <span>{returnDate ? format(returnDate, "EEE, MMM d") : "Select date"}</span>
+                                <span>{returnDate ? format(returnDate, "EEE, MMM d") : text("Select date", "ជ្រើសរើសកាលបរិច្ឆេទ")}</span>
                               </div>
                             </Button>
                           </PopoverTrigger>
@@ -551,14 +567,14 @@ export default function FlightSearchFormPro({
               {isMobile ? (
                 <>
                   <div className="col-span-2">
-                    <Label className="text-xs text-muted-foreground mb-1.5 block">Travelers & Cabin</Label>
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">{text("Travelers & Cabin", "អ្នកដំណើរ និងថ្នាក់កៅអី")}</Label>
                     <Button
                       variant="outline"
                       onClick={() => setPassengerSheetOpen(true)}
                       className="w-full h-14 justify-start text-left font-normal rounded-2xl touch-manipulation shadow-sm border-border/30 hover:shadow-md transition-all active:scale-[0.98]"
                     >
                       <Users className="w-4 h-4 mr-2 text-foreground" />
-                      {passengers} {passengers === 1 ? "Traveler" : "Travelers"} • {cabin.charAt(0).toUpperCase() + cabin.slice(1)}
+                      {passengers} {text(passengers === 1 ? "Traveler" : "Travelers", "អ្នកដំណើរ")} • {cabinOptions.find(option => option.value === cabin)?.label ?? cabin}
                     </Button>
                     <MobilePassengerCabinSheet
                       open={passengerSheetOpen}
@@ -577,11 +593,12 @@ export default function FlightSearchFormPro({
                     <Popover open={isPassengerOpen} onOpenChange={setIsPassengerOpen}>
                       <PopoverTrigger asChild>
                         <Button
+                          data-flight-field="return"
                           variant="outline"
                           className="w-full h-11 sm:h-12 justify-start text-left font-normal rounded-2xl shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
                         >
                           <Users className="w-4 h-4 mr-2 text-foreground" />
-                          {passengers} {passengers === 1 ? "Traveler" : "Travelers"}
+                          {passengers} {text(passengers === 1 ? "Traveler" : "Travelers", "អ្នកដំណើរ")}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-56 p-4" align="start">
@@ -666,7 +683,6 @@ export default function FlightSearchFormPro({
           {/* Search Button — solid, high-contrast */}
           <Button
             onClick={handleSearch}
-            disabled={!isFormValid}
             size="lg"
             className={cn(
               "relative w-full h-13 sm:h-14 mt-6 font-bold text-base sm:text-lg rounded-2xl overflow-hidden",
@@ -675,7 +691,6 @@ export default function FlightSearchFormPro({
               "shadow-[0_8px_24px_-6px_hsl(var(--flights)/0.55),inset_0_1px_0_rgba(255,255,255,0.18)]",
               "hover:shadow-[0_12px_32px_-6px_hsl(var(--flights)/0.65)]",
               "hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0 active:scale-[0.98]",
-              "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
             )}
           >
             <Search className="relative z-10 w-5 h-5 mr-2" />

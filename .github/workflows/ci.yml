@@ -88,7 +88,21 @@ jobs:
       - name: Production build
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
         run: npm run build
+
+      - name: Mobile homepage Lighthouse budgets
+        run: npx --yes @lhci/cli@0.15.1 autorun --config=lighthouserc.cjs
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: lighthouse-${{ github.sha }}
+          path: artifacts/lighthouse/
+          retention-days: 7
 
       # ── Upload build artifacts (for other jobs or debugging) ────────────────
       - name: Upload dist

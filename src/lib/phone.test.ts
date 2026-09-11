@@ -54,6 +54,11 @@ describe("normalizePhoneE164", () => {
 });
 
 describe("buildPhoneE164", () => {
+  it("accepts Cambodian national prefixes and Khmer digits", () => {
+    expect(buildPhoneE164("+855", "012 345 678")).toBe("+85512345678");
+    expect(buildPhoneE164("+855", "០១២ ៣៤៥ ៦៧៨")).toBe("+85512345678");
+    expect(buildPhoneE164("+855", "12 345 678")).toBe("+85512345678");
+  });
   it("normalizes dial code and local number independently then joins behind one '+'", () => {
     expect(buildPhoneE164("+1", "800-555")).toBe("+1800555");
     expect(buildPhoneE164(fw("44"), "20 7946")).toBe("+44207946");

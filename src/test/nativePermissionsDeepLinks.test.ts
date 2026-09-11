@@ -48,7 +48,7 @@ describe("native permissions, deep links, and push contracts", () => {
       'android:autoVerify="true"',
       'android:host="zivosmedia.com"',
       'android:host="www.zivosmedia.com"',
-      'android:scheme="com.hizovo.app"',
+      'android:scheme="com.zivosmedia.app"',
     ]) {
       expect(manifest).toContain(needle);
     }

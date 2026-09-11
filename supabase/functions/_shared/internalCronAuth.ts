@@ -14,7 +14,8 @@ import { createClient } from "./deps.ts";
 export type InternalCronFunctionName =
   | "auto-cancel-stale-orders"
   | "close-trip-call-sessions"
-  | "marketing-automations-tick";
+  | "marketing-automations-tick"
+  | "media-operations";
 
 export type InternalCronPurpose = "execute" | "readiness";
 

@@ -262,7 +262,7 @@ jobs:
 
       - name: Sync Capacitor
         run: |
-          npx cap sync android
+          ZIVO_NATIVE_PLATFORM=android npx cap sync android
           node scripts/native/check-web-sync.mjs --platform android
 
       - name: Install Android Firebase config

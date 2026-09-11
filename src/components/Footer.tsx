@@ -1,3 +1,4 @@
+import { TravelCopy, publicTravelText } from "@/i18n/publicTravelCopy";
 /**
  * Footer - Premium dark navy footer with refined layout & motion
  */
@@ -16,7 +17,6 @@ import ZivoLogo from "./ZivoLogo";
 import ZivoTravelLogo from "./ZivoTravelLogo";
 import { COMPANY_INFO, formatPostalAddress } from "@/config/legalContent";
 import { isZivoTravelHost } from "@/config/zivoTravelDomain";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Capacitor } from "@capacitor/core";
 
@@ -178,9 +178,7 @@ const Footer = ({
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
-  const handleAppStore = (store: string) => {
-    toast("Coming soon!", { description: `The ${brand} ${store} app is launching soon.`, duration: 3000 });
-  };
+
 
   // Subtle, accessibility-aware scroll-in motion. Returns no animation props
   // when the user prefers reduced motion, so the footer renders statically.
@@ -221,9 +219,7 @@ const Footer = ({
                 <ZivoLogo size="md" />
               )}
             </Link>
-            <p className={cn("text-sm max-w-xs leading-relaxed", mutedCopy)}>
-              Book flights, hotels, and car rentals with transparent pricing and secure checkout. Your next adventure starts here.
-            </p>
+            <p className={cn("text-sm max-w-xs leading-relaxed", mutedCopy)}><TravelCopy text=" Book flights, hotels, and car rentals with transparent pricing and secure checkout. Your next adventure starts here. " /></p>
 
             {/* Merchant contact details, in the footer of every page.
                 A payment-processor review looks for a reachable business here
@@ -256,30 +252,11 @@ const Footer = ({
               )}
             </div>
 
-            {/* App Store + Google Play — premium badges */}
-            <div className="flex flex-wrap justify-center lg:justify-start gap-3">
-              <button type="button"
-                onClick={() => handleAppStore("App Store")}
-                aria-label="Download ZIVO on the App Store"
-                className="group inline-flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-xl bg-primary-foreground/[0.06] ring-1 ring-inset ring-primary-foreground/10 hover:bg-primary-foreground/10 hover:ring-primary-foreground/25 active:scale-[0.97] transition-all touch-manipulation min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1629]"
-              >
-                <svg className="w-6 h-6 text-primary-foreground/90 transition-transform group-hover:scale-105" fill="currentColor" viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
-                <span className="flex flex-col items-start leading-none">
-                  <span className={cn("text-[9px] uppercase tracking-[0.12em]", isTravel ? "text-primary-foreground/70" : "text-primary-foreground/45")}>Download on the</span>
-                  <span className="mt-0.5 text-sm font-semibold text-primary-foreground/90">App Store</span>
-                </span>
-              </button>
-              <button type="button"
-                onClick={() => handleAppStore("Google Play")}
-                aria-label="Get ZIVO on Google Play"
-                className="group inline-flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-xl bg-primary-foreground/[0.06] ring-1 ring-inset ring-primary-foreground/10 hover:bg-primary-foreground/10 hover:ring-primary-foreground/25 active:scale-[0.97] transition-all touch-manipulation min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1629]"
-              >
-                <svg className="w-6 h-6 text-primary-foreground/90 transition-transform group-hover:scale-105" fill="currentColor" viewBox="0 0 24 24"><path d="M3.609 1.814L13.792 12 3.609 22.186a.996.996 0 01-.299-.71V2.524a1 1 0 01.299-.71zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.198l2.807 1.626a1 1 0 010 1.73l-2.808 1.626L15.39 12l2.308-2.491zM5.864 2.658L16.802 8.99l-2.302 2.302-8.636-8.634z"/></svg>
-                <span className="flex flex-col items-start leading-none">
-                  <span className={cn("text-[9px] uppercase tracking-[0.12em]", isTravel ? "text-primary-foreground/70" : "text-primary-foreground/45")}>Get it on</span>
-                  <span className="mt-0.5 text-sm font-semibold text-primary-foreground/90">Google Play</span>
-                </span>
-              </button>
+            {/* Offer the available web install flow until store releases have verified URLs. */}
+            <div className="flex justify-center lg:justify-start">
+              <Link to="/install" className="inline-flex min-h-12 items-center rounded-xl border border-primary-foreground/25 px-5 py-3 font-semibold text-primary-foreground hover:bg-primary-foreground/10">
+                <TravelCopy text="Add to home screen" />
+              </Link>
             </div>
 
             {/* Social */}
@@ -319,7 +296,7 @@ const Footer = ({
                   <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary-foreground/[0.06] ring-1 ring-inset ring-primary-foreground/10">
                     <section.icon className="w-3.5 h-3.5 text-primary" />
                   </span>
-                  {section.title}
+                  <TravelCopy text={section.title} />
                 </h4>
                 <ul className="space-y-2">
                   {section.links.map((link) => (
@@ -332,7 +309,7 @@ const Footer = ({
                         )}
                       >
                         <span className="h-1 w-0 rounded-full bg-ig-gradient transition-all duration-300 group-hover/link:w-3" aria-hidden />
-                        {link.name}
+                        <TravelCopy text={link.name} />
                       </Link>
                     </li>
                   ))}
@@ -354,7 +331,7 @@ const Footer = ({
                   legalCopy,
                 )}
               >
-                {link.name}
+                <TravelCopy text={link.name} />
               </Link>
             ))}
           </div>
@@ -364,9 +341,8 @@ const Footer = ({
         <div className="pt-10 pb-[calc(2.5rem+env(safe-area-inset-bottom))] border-t border-primary-foreground/10">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className={cn("text-sm flex items-center gap-1.5", mutedCopy)}>
-              © {new Date().getFullYear()} {isTravel ? "Zivo Travel — a ZIVO LLC company" : "ZIVO LLC"}. Made with{" "}
-              <Heart className="w-3.5 h-3.5 text-primary fill-primary" /> for travelers.
-            </p>
+              © {new Date().getFullYear()} {isTravel ? "Zivo Travel — a ZIVO LLC company" : "ZIVO LLC"}<TravelCopy text=". Made with" />{" "}
+              <Heart className="w-3.5 h-3.5 text-primary fill-primary" /><TravelCopy text=" for travelers. " /></p>
 
             <button type="button"
               onClick={scrollToTop}
@@ -375,19 +351,15 @@ const Footer = ({
                 mutedCopy,
               )}
             >
-              <ChevronUp className="w-4 h-4 group-hover/top:-translate-y-0.5 transition-transform" />{" "}
-              Back to Top
-            </button>
+              <ChevronUp className="w-4 h-4 group-hover/top:-translate-y-0.5 transition-transform" />{" "}<TravelCopy text=" Back to Top " /></button>
           </div>
 
           {/* OTA Disclosure */}
           <div className="mt-6 pt-6 border-t border-primary-foreground/5 text-center space-y-2">
             <p className={cn("text-xs max-w-2xl mx-auto", disclosureCopy)}>
-              {brand} is an online travel agency. {brand} processes payments and issues travel services using authorized suppliers.
-            </p>
+              {brand}<TravelCopy text=" is an online travel agency. " />{brand}<TravelCopy text=" processes payments and issues travel services using authorized suppliers. " /></p>
             <p className={cn("text-xs max-w-2xl mx-auto flex items-center justify-center gap-1.5", secondaryDisclosureCopy)}>
-              <CheckCircle2 className="w-3 h-3 text-primary/60" /> Registered Seller of Travel where required. CA SOT: pending · FL SOT: pending
-            </p>
+              <CheckCircle2 className="w-3 h-3 text-primary/60" /><TravelCopy text=" Registered Seller of Travel where required. CA SOT: pending · FL SOT: pending " /></p>
           </div>
         </div>
       </div>

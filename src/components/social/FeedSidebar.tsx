@@ -17,22 +17,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { optimizeAvatar } from "@/utils/optimizeAvatar";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { useOwnerStores } from "@/hooks/useOwnerStoreProfile";
-import { resolveBusinessDashboardRoute } from "@/lib/business/dashboardRoute";
+import OwnerBusinessList from "./OwnerBusinessList";
 import { useZivoPlus } from "@/contexts/ZivoPlusContext";
 import { useSocialNotifications } from "@/hooks/useSocialNotifications";
 import SwitchAccountSheet from "@/components/social/SwitchAccountSheet";
-
-const storeLetterBg = (name: string, category: string | null | undefined): string => {
-  const cat = (category || "").toLowerCase();
-  if (cat.includes("hotel") || cat.includes("resort")) return "bg-amber-500/15 text-amber-700";
-  if (cat.includes("bus") || cat.includes("transport")) return "bg-emerald-500/15 text-emerald-700";
-  if (cat.includes("restaurant") || cat.includes("cafe")) return "bg-orange-500/15 text-orange-700";
-  if (cat.includes("shop")) return "bg-blue-500/15 text-blue-700";
-  if (cat.includes("software")) return "bg-sky-500/15 text-sky-700";
-  const POOL = ["bg-purple-500/15 text-purple-700","bg-indigo-500/15 text-indigo-700","bg-teal-500/15 text-teal-700","bg-rose-500/15 text-rose-700"];
-  return POOL[(name || "A").charCodeAt(0) % POOL.length];
-};
 
 const NAV_ITEMS = [
   { label: "Reels", icon: Film, path: "/reels" },
@@ -98,17 +86,10 @@ export default function FeedSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { data: profile } = useUserProfile();
-  const { data: ownerStores = [] } = useOwnerStores();
   const { isPlus: isMember } = useZivoPlus();
   const { unreadCount: socialUnread = 0 } = useSocialNotifications();
   const [showSwitch, setShowSwitch] = useState(false);
-  const [showAllStores, setShowAllStores] = useState(false);
   const [showMoreNav, setShowMoreNav] = useState(false);
-
-  const isPlaceholderStoreName = (name: string | null | undefined) => {
-    const n = (name || "").trim();
-    return !n || n === "Untitled Store" || n === "Untitled page";
-  };
 
   const goToItem = (path: string) => {
     navigate(path);
@@ -203,66 +184,7 @@ export default function FeedSidebar() {
           </div>
         )}
 
-        {/* Business Pages */}
-        {user && ownerStores.length > 0 && (
-          <div className="space-y-0.5 px-1">
-            <p className={SECTION_LABEL}>Business pages</p>
-            {(showAllStores ? ownerStores : ownerStores.slice(0, 3)).map((store) => {
-              const placeholder = isPlaceholderStoreName(store.name);
-              const displayName = placeholder ? "Setup" : store.name;
-              const subtitle = placeholder
-                ? "Finish setup"
-                : (store.normalizedCategory || "Business");
-              const dashboard = resolveBusinessDashboardRoute(store.category, store.id);
-              const handleClick = () => {
-                if (dashboard.externalUrl) {
-                  window.location.assign(dashboard.externalUrl);
-                  return;
-                }
-                navigate(dashboard.path);
-              };
-              return (
-                <button type="button"
-                  key={store.id}
-                  onClick={handleClick}
-                  title={store.name || displayName}
-                  className="w-full flex items-center gap-3 rounded-xl px-2.5 py-2 text-foreground hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                >
-                  <Avatar className="h-9 w-9 shrink-0">
-                    <AvatarImage src={store.logo_url || undefined} />
-                    <AvatarFallback className={cn("text-[11px] font-bold", placeholder ? "bg-amber-500/15 text-amber-700" : storeLetterBg(store.name || "", store.normalizedCategory))}>
-                      {placeholder ? "!" : (store.name || "B").charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className="truncate text-[14px] font-medium text-foreground">{displayName}</p>
-                    <p className="truncate text-[12px] capitalize text-muted-foreground">{subtitle}</p>
-                  </div>
-                </button>
-              );
-            })}
-            {ownerStores.length > 3 && (
-              <button type="button"
-                onClick={() => setShowAllStores((v) => !v)}
-                className={cn(ROW_BASE, "text-[14px] text-muted-foreground hover:text-foreground hover:bg-muted/40")}
-              >
-                <span className={cn(CHIP_BASE, "bg-muted/60 text-muted-foreground")}>
-                  <ChevronRight className={cn("h-[18px] w-[18px] transition-transform", showAllStores && "rotate-90")} />
-                </span>
-                <span>{showAllStores ? "Show less" : `See ${ownerStores.length - 3} more`}</span>
-              </button>
-            )}
-            <button type="button"
-              onClick={() => navigate("/business/new?new=1")}
-              className={cn(ROW_BASE, "font-medium text-primary hover:bg-primary/8")}
-            >
-              <span className={cn(CHIP_BASE, "bg-primary/8 text-primary")}>
-                <Building2 className="h-[18px] w-[18px] shrink-0" />
-              </span>
-              <span>Add Business</span>
-            </button>
-          </div>
-        )}
+        <OwnerBusinessList />
 
         {/* Navigation */}
         <div className="space-y-0.5 px-1">

@@ -228,9 +228,15 @@ export function getHotelCityUrl(city: DestinationCity): string {
   return `/hotels/${city.slug}`;
 }
 
-/** Generate URL for car rental city page */
+/**
+ * Generate URL for car rental city page.
+ *
+ * `/car-rentals/...` (plural) is not a route and never was — the real one is
+ * `/rent-car/:city`. The function had no callers, so nothing shipped broken,
+ * but the next caller would have.
+ */
 export function getCarRentalCityUrl(city: DestinationCity): string {
-  return `/car-rentals/${city.slug}`;
+  return `/rent-car/${city.slug}`;
 }
 
 /** Generate URL for seasonal deal page */

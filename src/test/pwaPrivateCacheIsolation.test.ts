@@ -57,7 +57,8 @@ const captureServiceWorkerRoutes = () => {
       expiration: { ExpirationPlugin: class {} },
       precaching: {
         createHandlerBoundToURL: () => () => undefined,
-        precacheAndRoute: () => {},
+        precache: () => {},
+        addRoute: () => {},
       },
       routing: {
         registerRoute: (

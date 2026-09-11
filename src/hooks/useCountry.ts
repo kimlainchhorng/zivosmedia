@@ -1,3 +1,4 @@
+import { visitorCountry } from "@/lib/visitorLocale";
 /**
  * useCountry — manages the user's selected country/location independently from language.
  * Stored in localStorage as "zivo_country" (e.g. "US" or "KH").
@@ -24,7 +25,7 @@ const DEFAULT_COUNTRY: CountryCode = "US";
 let listeners: (() => void)[] = [];
 
 function getSnapshot(): CountryCode {
-  return (localStorage.getItem(STORAGE_KEY) as CountryCode) || DEFAULT_COUNTRY;
+  return visitorCountry() === "KH" ? "KH" : "US";
 }
 
 function subscribe(listener: () => void) {
@@ -46,7 +47,7 @@ export function useCountry() {
   const country = useSyncExternalStore(subscribe, getSnapshot, () => DEFAULT_COUNTRY);
 
   const setCountry = useCallback((code: CountryCode) => {
-    localStorage.setItem(STORAGE_KEY, code);
+    try { localStorage.setItem(STORAGE_KEY, code); } catch { /* Storage unavailable. */ }
     notify();
   }, []);
 

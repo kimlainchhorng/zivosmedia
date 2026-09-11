@@ -64,7 +64,11 @@ const Header = () => {
   const { currentLanguage, changeLanguage, t } = useI18n();
   const { data: supportedLanguages } = useSupportedLanguages(true);
   const activeLanguages = (supportedLanguages || []).filter(l => l.is_active);
-  const currentLangData = activeLanguages.find(l => l.code === currentLanguage);
+  const languageOptions = activeLanguages.length ? activeLanguages : [
+    { code: "en", name: "English", native_name: "English", flag_emoji: "🇺🇸", flag_svg: null, is_active: true },
+    { code: "km", name: "Khmer", native_name: "ភាសាខ្មែរ", flag_emoji: "🇰🇭", flag_svg: null, is_active: true },
+  ];
+  const currentLangData = languageOptions.find((l) => l.code === currentLanguage) || languageOptions[0];
   const isTravel = typeof window !== "undefined" && isZivoTravelHost();
   const headerSafeTop = getZivoHeaderSafeTop();
 
@@ -139,7 +143,7 @@ const Header = () => {
                     </div>
                   </div>
                   <div className="overflow-y-auto max-h-[360px] p-1">
-                    {activeLanguages.map((lang) => (
+                    {languageOptions.map((lang) => (
                       <button type="button"
                         key={lang.code}
                         onClick={() => { changeLanguage(lang.code); setIsLangOpen(false); }}

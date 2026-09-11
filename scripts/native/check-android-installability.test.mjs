@@ -13,7 +13,7 @@ const expected = Object.freeze({
   versionName: "1.3.0",
   minSdk: "24",
   targetSdk: "36",
-  appLabel: "Zivo Media - All in one",
+  appLabel: "Zivo - Media",
   launchableActivity: "com.hizovo.app.MainActivity",
 });
 
@@ -21,8 +21,8 @@ const badgingOutput = [
   "package: name='com.hizovo.app' versionCode='2026083001' versionName='1.3.0' compileSdkVersion='36'",
   "minSdkVersion:'24'",
   "targetSdkVersion:'36'",
-  "application-label:'Zivo Media - All in one'",
-  "launchable-activity: name='com.hizovo.app.MainActivity' label='Zivo Media - All in one' icon=''",
+  "application-label:'Zivo - Media'",
+  "launchable-activity: name='com.hizovo.app.MainActivity' label='Zivo - Media' icon=''",
   "native-code: 'arm64-v8a' 'armeabi-v7a' 'x86' 'x86_64'",
 ].join("\n");
 

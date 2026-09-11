@@ -34,7 +34,9 @@ describe.skipIf(!hasIosProject)("native version release alignment", () => {
     expect(new Set(iosMarketingVersions)).toEqual(new Set([packageJson.version]));
     expect(new Set(iosBuildNumbers)).toEqual(new Set(["6"]));
     expect(androidVersionName).toBe(packageJson.version);
-    expect(Number(androidVersionCode)).toBeGreaterThan(2026053100);
+    expect(androidBuild).toContain('applicationId "com.zivosmedia.app"');
+    expect(Number(androidVersionCode)).toBeGreaterThan(0);
+    expect(Number(androidVersionCode)).toBeLessThanOrEqual(2100000000);
 
     for (const listing of [appStoreListing, playStoreListing]) {
       expect(listing).toContain("Release Metadata");

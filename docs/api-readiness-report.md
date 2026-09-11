@@ -1,25 +1,25 @@
 # API Readiness Report
 
-Generated: 2026-09-03T18:57:06.418Z
+Generated: 2026-09-09T16:13:15.144Z
 
 ## Summary
 
 - Critical findings: 0
-- Warnings: 2
-- Edge Functions inventoried: 466
+- Warnings: 0
+- Edge Functions inventoried: 467
 - High-risk Edge Functions: 177
-- Functions using withSecurity(): 466
-- Functions using strictCorsHeaders(): 466
-- Method-gated Edge Functions: 466
-- Functions using service role: 351
+- Functions using withSecurity(): 467
+- Functions using strictCorsHeaders(): 467
+- Method-gated Edge Functions: 467
+- Functions using service role: 353
 - Loose Edge Function security backlog: 0
 - Method gate backlog: 0
 - Required public env documented: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_SUPABASE_PROJECT_ID
 - Recommended backend env documented: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 - API operations runbook: present (0 missing topics)
-- Supabase migration drift: reportLocal=1176, currentLocal=1176, remote=1625, matched=13, duplicateVersions=6, allowedDuplicateVersions=6, newDuplicateVersions=0, remoteError=no, mcpVerified=no
-
-- Supabase migration near-match diagnostics: near5s=585, near60s=619, oneToOne5s=584, oneToOne60s=617, unmatchedLocal=546, unmatchedRemote=995, localAfterRemoteRange=0, sharedDays=95
+- Supabase migration drift: reportLocal=1183, currentLocal=1183, remote=1784, matched=774, duplicateVersions=6, allowedDuplicateVersions=6, newDuplicateVersions=0, remoteError=no, mcpVerified=yes
+- Supabase MCP migration history: remote=1784, first=20260126182101, latest=20260909005602, verified=20260722192749, 20260722193417, 20260722193446, 20260830165252, 20260830165904, 20260830174518, 20260830180554, 20260908225412, 20260909005356, 20260909005359, 20260909005602
+- Supabase migration near-match diagnostics: near5s=4, near60s=19, oneToOne5s=3, oneToOne60s=17, unmatchedLocal=392, unmatchedRemote=995, localAfterRemoteRange=0, sharedDays=23
 - Pending local migration risk gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 
 ## Critical
@@ -28,8 +28,7 @@ Generated: 2026-09-03T18:57:06.418Z
 
 ## Warnings
 
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (src/lib/zivoBusinessRestaurantCatalog.ts:15)
-- [stale-mcp-migration-history-report] Supabase MCP migration-history verification is missing required current production details. (docs/supabase-mcp-migration-history-report.json)
+- No warnings found.
 
 ## High-Risk Functions Missing withSecurity()
 
@@ -46,7 +45,7 @@ Generated: 2026-09-03T18:57:06.418Z
 ## Next Hardening Moves
 
 - Reconcile Supabase migration history before running production schema pushes.
-- Keep `SUPABASE_ACCESS_TOKEN` available in production readiness jobs so remote migration history remains comparable.
+- Supabase MCP migration history is verified for this run; keep `SUPABASE_ACCESS_TOKEN` available in CI so the CLI report can also compare remote history.
 - Configure `app.settings.supabase_url` and `app.settings.supabase_anon_key` per Supabase project before relying on database cron jobs.
 - Run `npm run supabase:upgrade-readiness` before a Postgres major-version upgrade or production schema push.
 - Keep new high-risk Edge Functions on `withSecurity()` and strict CORS from the first commit.

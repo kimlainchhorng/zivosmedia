@@ -1,3 +1,4 @@
+import { ApiUnavailable } from "@/components/shared/ApiUnavailable";
 /**
  * FeedStoryRing — Horizontal scrollable story rings for the feed page.
  * Tapping a ring opens the shared StoryViewer via a deep-linked URL
@@ -55,8 +56,9 @@ export default function FeedStoryRing() {
   const { data: myProfile } = useUserProfile();
   const haptic = useHaptic();
 
-  const { data: rawStories = [] } = useQuery({
-    queryKey: ["feed-story-users"],
+  const { data: rawStories = [], isError: storiesError, refetch: retryStories, isFetching: storiesFetching } = useQuery({
+    queryKey: ["feed-story-users", user?.id],
+    retry: false,
     enabled: !!user,
     refetchInterval: 30000,
     refetchOnWindowFocus: true,
@@ -69,7 +71,7 @@ export default function FeedStoryRing() {
           .select(select)
           .gt("expires_at", new Date().toISOString());
         if (includeHiddenFilter) query = query.is("hidden_at", null);
-        return query.order("created_at", { ascending: true });
+        return query.order("created_at", { ascending: true }).limit(200);
       };
       let { data, error } = await queryStories(selectWithSafety, true);
       if (error && isStorySafetySchemaDriftError(error)) {
@@ -88,7 +90,7 @@ export default function FeedStoryRing() {
   const profileKey = useMemo(() => [...userIds].sort().join(","), [userIds]);
 
   const { data: profileMap = new Map() } = useQuery({
-    queryKey: ["feed-story-profiles", profileKey],
+    queryKey: ["feed-story-profiles", user?.id, profileKey],
     enabled: userIds.length > 0,
     queryFn: async () => {
       const { data } = await supabase
@@ -187,6 +189,7 @@ export default function FeedStoryRing() {
 
   return (
     <>
+      {storiesError && <ApiUnavailable area="stories" retry={() => void retryStories()} busy={storiesFetching} />}
       <div className="mx-3 mt-3 overflow-x-auto rounded-2xl border border-border/30 bg-background/92 px-2.5 py-3 shadow-sm scrollbar-none">
         <div className="mb-2.5 flex items-center justify-between px-1.5">
           <span className="text-[13px] font-semibold text-foreground">Stories</span>

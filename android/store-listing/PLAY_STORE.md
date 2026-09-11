@@ -4,19 +4,19 @@
 
 Play Console → ZIVO → Grow → Store presence → Main store listing
 
-Package name: `com.hizovo.app`
+Package name: `com.zivosmedia.app`
 
 ---
 
 ## 1. App Name (max 30 characters)
 
 ```
-Zivo Media - All in one
+Zivo - Media
 ```
 
-23 characters. Keep this EXACTLY as written, character for character, and identical to
+12 characters. Keep this EXACTLY as written, character for character, and identical to
 `android/app/src/main/res/values/strings.xml` `app_name`, the Capacitor `appName`,
-and the iOS display name. A listing name that differs from the installed launcher
+for the Android release. A listing name that differs from the installed launcher
 label is the Misleading Claims rejection this account already took on
 `com.myzivo.app` and `com.zivo.driver`.
 
@@ -29,7 +29,7 @@ Social, messaging, and travel search in one ZIVO account.
 ## 3. Full Description (max 4000 characters)
 
 ```
-ZIVO brings social discovery, messaging, and travel search into one app.
+Zivo - Media brings social discovery, messaging, and travel search into one app.
 
 SOCIAL
 • Browse posts and short videos
@@ -49,17 +49,15 @@ TRAVEL
 ACCOUNT & PRIVACY
 • Manage sign-in, profile, and security settings
 • Request account deletion in the app or on the ZIVO website
-• Access ZIVO's privacy, terms, and support resources
+• Access privacy, terms, and support resources
 
-Feature availability varies by location, provider, account, and internet connection. Prices and inventory appear only when returned by the relevant travel provider. ZIVO does not guarantee that every service is available to every user.
+Feature availability varies by location, provider, account, and internet connection. Prices and inventory appear only when returned by the relevant travel provider. Zivo - Media does not guarantee that every service is available to every user.
 
-—
-ZIVO LLC is a registered booking agent. Airlines, hotels, and car suppliers are the merchants of record for their inventory.
-
-Support:  support@zivosmedia.com
-Website:  https://zivosmedia.com
-Privacy:  https://zivosmedia.com/legal/privacy
-Terms:    https://zivosmedia.com/legal/terms
+Support: support@zivosmedia.com
+Website: https://zivosmedia.com
+Privacy: https://zivosmedia.com/legal/privacy
+Terms: https://zivosmedia.com/legal/terms
+Account deletion: https://zivosmedia.com/delete-account
 ```
 
 ## 4. What's New / Release Notes (max 500 characters — UPDATE EVERY RELEASE)
@@ -167,8 +165,8 @@ through a Play test track on a real supported Android device.
 
 ```
 Version: 1.4.0
-Version code: 2026090101
-Package name: com.hizovo.app
+Version code: 2
+Package name: com.zivosmedia.app
 Target SDK: 36 (Android 16)
 ```
 

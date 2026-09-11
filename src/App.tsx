@@ -8,7 +8,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { MotionConfig } from "framer-motion";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-const PartnerSignupSheet = lazy(
+const PartnerSignupSheet = connectionDeferred(
   () => import("@/components/partner/PartnerSignupSheet"),
 );
 const AffiliateRedirectPage = lazy(
@@ -33,32 +33,36 @@ const VoiceRoomDetailPage = lazy(
 const CreateSupportTicketPage = lazy(
   () => import("@/pages/support/CreateSupportTicketPage"),
 );
-const TwoFactorSetupSheet = lazy(
+const TwoFactorSetupSheet = connectionDeferred(
   () => import("@/components/security/TwoFactorSetupSheet"),
 );
-const OnboardingTour = lazy(
+const OnboardingTour = connectionDeferred(
   () => import("@/components/onboarding/OnboardingTour"),
 );
-const BugReportSheet = lazy(
+const BugReportSheet = connectionDeferred(
   () => import("@/components/support/BugReportSheet"),
 );
-const CurrencyPickerSheet = lazy(
+const CurrencyPickerSheet = connectionDeferred(
   () => import("@/components/currency/CurrencyPickerSheet"),
 );
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { connectionDeferred } from "@/lib/connectionDeferred";
+import LiveUpdatesNotice from "@/components/shared/LiveUpdatesNotice";
+import WalletRouteBoundary from '@/components/wallet/WalletRouteBoundary';
+import BackgroundToolsRecoveryNotice from "@/components/shared/BackgroundToolsRecoveryNotice";
 import { useVerificationRealtime } from "@/hooks/useVerificationRealtime";
 import { useOTAUpdate } from "@/hooks/useOTAUpdate";
 import { useTabSwipeNavigation } from "@/hooks/useTabSwipeNavigation";
 import SwipeNavHint from "@/components/app/SwipeNavHint";
 // OTA banner pulls framer-motion — keep it out of the root chunk; it only
 // renders on native when an update is queued.
-const OTAUpdateBanner = lazy(
+const OTAUpdateBanner = connectionDeferred(
   () => import("@/components/shared/OTAUpdateBanner"),
 );
-const NavigationProgressBar = lazy(
+const NavigationProgressBar = connectionDeferred(
   () => import("@/components/app/NavigationProgressBar"),
 );
-const ScrollRestoration = lazy(
+const ScrollRestoration = connectionDeferred(
   () => import("@/components/app/ScrollRestoration"),
 );
 
@@ -110,7 +114,7 @@ import { lazyWithRetry } from "@/lib/lazyWithRetry";
 const CookieConsent = lazyWithRetry(
   () => import("./components/common/CookieConsent"),
 );
-const PWAUpdatePrompt = lazyWithRetry(() =>
+const PWAUpdatePrompt = connectionDeferred(() =>
   import("./components/shared/PWAUpdatePrompt").then((m) => ({
     default: m.PWAUpdatePrompt,
   })),
@@ -137,32 +141,30 @@ const ChatNotificationListener = lazyWithRetry(
 const RuntimeSecurityGuard = lazyWithRetry(
   () => import("@/components/security/RuntimeSecurityGuard"),
 );
-const GlobalAutoTranslator = lazyWithRetry(
+const GlobalAutoTranslator = connectionDeferred(
   () => import("@/components/common/GlobalAutoTranslator"),
 );
 const StoryDebugPanel = lazyWithRetry(
   () => import("@/components/stories/StoryDebugPanel"),
 );
-const PostShareSheet = lazyWithRetry(
+const PostShareSheet = connectionDeferred(
   () => import("@/components/social/PostShareSheet"),
 );
-const ShareToChatSheet = lazyWithRetry(
+const ShareToChatSheet = connectionDeferred(
   () => import("@/components/chat/ShareToChatSheet"),
 );
 // Chrome / passive overlays — deferred so they don't block first paint.
-const OfflineBanner = lazyWithRetry(
-  () => import("@/components/chat/OfflineBanner"),
-);
-const OutboxFlusher = lazyWithRetry(
+import OfflineBanner from "@/components/chat/OfflineBanner";
+const OutboxFlusher = connectionDeferred(
   () => import("@/components/chat/OutboxFlusher"),
 );
-const FloatingReactionsOverlay = lazyWithRetry(
+const FloatingReactionsOverlay = connectionDeferred(
   () => import("@/components/chat/FloatingReactionsOverlay"),
 );
-const ReactedByHost = lazyWithRetry(
+const ReactedByHost = connectionDeferred(
   () => import("@/components/chat/ReactedByHost"),
 );
-const GlobalDesktopNav = lazyWithRetry(
+const GlobalDesktopNav = connectionDeferred(
   () => import("@/components/app/GlobalDesktopNav"),
 );
 const AdminShellRoute = lazyWithRetry(() =>
@@ -197,7 +199,7 @@ if (ENABLE_DEV_ROUTES) {
 }
 
 import { SkipToContent } from "./components/shared/SkipToContent";
-const RoutePrefetcher = lazy(
+const RoutePrefetcher = connectionDeferred(
   () => import("./components/shared/RoutePrefetcher"),
 );
 import { GlobalViewportMeta } from "@/components/shared/GlobalViewportMeta";
@@ -927,6 +929,7 @@ const LoyaltyPage = lazy(() => import("./pages/account/LoyaltyPage"));
 
 // Flights
 const FlightBooking = lazy(() => import("./pages/FlightBooking"));
+const CambodiaGuide = lazy(() => import("./pages/CambodiaGuide"));
 const FlightLanding = lazy(() => import("./pages/FlightLanding"));
 const FlightResults = lazy(() => import("./pages/FlightResults"));
 const FlightDetails = lazy(() => import("./pages/FlightDetails"));
@@ -1893,6 +1896,7 @@ function RouteAwareGlobalUI() {
     "/verify-otp",
     "/verify-new-device",
     "/auth-callback",
+    "/offline",
   ];
   const hideGlobalUI = blockedRoutes.some((route) =>
     location.pathname.startsWith(route),
@@ -1937,8 +1941,9 @@ function DeferredPassiveChatOverlays() {
 }
 
 function DeferredRoutePrefetcher() {
+  const { pathname } = useLocation();
   const ready = useAfterFirstPaint(3600);
-  return ready ? (
+  return ready && pathname !== "/offline" ? (
     <Suspense fallback={null}>
       <RoutePrefetcher />
     </Suspense>
@@ -1959,8 +1964,10 @@ function PaymentReturnBootstrap() {
 }
 
 function DeferredGlobalSheets() {
+  const { pathname } = useLocation();
   const ready = useAfterFirstPaint(2400);
   if (
+    pathname === "/offline" ||
     isCurrentZivoSoftwareHost() ||
     isCurrentZivoChatHost() ||
     isCurrentZivoTravelHost() ||
@@ -1980,8 +1987,10 @@ function DeferredGlobalSheets() {
 }
 
 function DeferredCurrencyPicker() {
+  const { pathname } = useLocation();
   const ready = useAfterFirstPaint(2400);
   if (
+    pathname === "/offline" ||
     isCurrentZivoSoftwareHost() ||
     isCurrentZivoChatHost() ||
     isCurrentZivoTravelHost() ||
@@ -2326,6 +2335,7 @@ const App = () => (
                 <SkipToContent />
                 <Toaster />
                 <Sonner />
+                <BackgroundToolsRecoveryNotice />
                 <Suspense fallback={null}>
                   <GlobalAutoTranslator />
                 </Suspense>
@@ -2338,6 +2348,7 @@ const App = () => (
                 >
                   {/* Keep the update controller mounted on auth routes so an
                     already-open login page cannot stay pinned to an old build. */}
+                  <LiveUpdatesNotice />
                   <Suspense fallback={null}>
                     <PWAUpdatePrompt />
                   </Suspense>
@@ -2528,7 +2539,7 @@ const App = () => (
                                         <ZivoTravelWallet />
                                       ) : (
                                         <ProtectedRoute>
-                                          <AccountWalletPage />
+                                          <WalletRouteBoundary><AccountWalletPage /></WalletRouteBoundary>
                                         </ProtectedRoute>
                                       )
                                     }
@@ -3910,6 +3921,18 @@ const App = () => (
                 <Route path="/ground-transport" element={<PreserveQueryRedirect to="/car-rental" />} />
                 <Route path="/insurance" element={<PreserveQueryRedirect to="/travel-insurance" />} />
 
+                <Route path="/cambodia" element={<CambodiaGuide />} />
+                <Route path="/cambodia/phnom-penh" element={<CambodiaGuide />} />
+                <Route path="/cambodia/siem-reap" element={<CambodiaGuide />} />
+                <Route path="/cambodia/kampot" element={<CambodiaGuide />} />
+                <Route path="/cambodia/sihanoukville" element={<CambodiaGuide />} />
+                <Route path="/cambodia/battambang" element={<CambodiaGuide />} />
+                <Route path="/flights/phnom-penh-siem-reap" element={<CambodiaGuide />} />
+                <Route path="/airports/kti" element={<CambodiaGuide />} />
+                <Route path="/airports/pnh" element={<CambodiaGuide />} />
+                <Route path="/airports/sai" element={<CambodiaGuide />} />
+                <Route path="/airports/rep" element={<CambodiaGuide />} />
+                <Route path="/airports/kos" element={<CambodiaGuide />} />
                                   {/* Flights */}
                                   <Route
                                     path="/flights"

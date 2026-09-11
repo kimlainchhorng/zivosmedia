@@ -17,7 +17,9 @@ const clearPrivateRuntimeCaches = () =>
 if (workbox) {
   console.log('[SW] Workbox loaded successfully');
 
-  workbox.precaching.precacheAndRoute(precacheManifest || []);
+  // Populate the offline cache now, but register its route after navigation.
+  // Otherwise the directory-index match for / wins and serves stale HTML.
+  workbox.precaching.precache(precacheManifest || []);
 
   // Cache Google Fonts stylesheets
   workbox.routing.registerRoute(
@@ -105,6 +107,8 @@ if (workbox) {
       }
     }
   );
+
+  workbox.precaching.addRoute();
 
   // Authenticated Supabase API/auth/functions traffic is account-owned data.
   // Never put it in shared Cache Storage: a timeout after logout or account

@@ -16,7 +16,7 @@ describe("native safe-area bridge contracts", () => {
       "StatusBar: {",
       "overlaysWebView: true",
       "style: 'DARK'",
-      'resize: "native"',
+      'resize: KeyboardResize.Native',
       "resizeOnFullScreen: true",
       // Was "launchAutoHide: false" until 2026-08-11. That pinned the defect
       // rather than the behaviour: with autoHide off the plugin never hides the

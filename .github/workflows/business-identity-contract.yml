@@ -1,0 +1,32 @@
+name: Business identity contract
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/functions/_shared/zivosmediaAuth*'
+      - 'supabase/functions/zivosmedia-auth-validate-code/**'
+      - 'scripts/qa/zivosmedia-identity.test.mjs'
+      - '.github/workflows/business-identity-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  identity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with:
+          deno-version: v2.x
+      - name: Identity helper contracts
+        run: DENO_NO_PACKAGE_JSON=1 deno test --no-config --no-lock supabase/functions/_shared/zivosmediaAuth_test.ts
+      - name: Production exchange handler with isolated persistence
+        run: node --experimental-strip-types --test scripts/qa/zivosmedia-identity.test.mjs
