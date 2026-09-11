@@ -18,8 +18,8 @@ describe("native app release workflow", () => {
     const packageJson = read("package.json");
     const main = read("src/main.tsx");
 
-    expect(config).toContain("appId: 'com.hizovo.app'");
-    expect(config).toContain("appName: 'Zivo Media - All in one'");
+    expect(config).toContain("appId: process.env.ZIVO_NATIVE_PLATFORM === 'android' ? 'com.zivosmedia.app' : 'com.hizovo.app'");
+    expect(config).toContain("appName: 'Zivo - Media'");
     expect(config).toContain("webDir: 'dist'");
     expect(config).toContain("process.env.NODE_ENV !== 'production'");
     expect(config).toContain("CAPACITOR_DEV_SERVER_URL");
@@ -130,8 +130,8 @@ describe("native app release workflow", () => {
     const setup = read("docs/native-android-setup.md");
 
     expect(build).toContain('namespace = "com.hizovo.app"');
-    expect(build).toContain('applicationId "com.hizovo.app"');
-    expect(build).toContain("versionCode 2026090101");
+    expect(build).toContain('applicationId "com.zivosmedia.app"');
+    expect(build).toContain("versionCode 2");
     expect(build).toContain('versionName "1.4.0"');
     expect(build).toContain("com.google.android.play:integrity");
     expect(build).toContain("keystore.properties");
@@ -141,7 +141,7 @@ describe("native app release workflow", () => {
     expect(variables).toContain("compileSdkVersion = 36");
     expect(variables).toContain("targetSdkVersion = 36");
 
-    expect(listing).toContain("Package name: `com.hizovo.app`");
+    expect(listing).toContain("Package name: `com.zivosmedia.app`");
     expect(listing).toContain("Target SDK: 36 (Android 16)");
     expect(listing).toContain("Privacy Policy URL");
     expect(listing).toContain("Account Deletion URL");

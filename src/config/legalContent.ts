@@ -57,11 +57,11 @@ export const COMPANY_INFO = {
    * "does this business really operate where it says" is looking for this one.
    */
   operationsAddress: {
-    line1: "",
-    line2: "",
+    line1: "Building 18, VANN Office Premises",
+    line2: "Street 578",
     city: "Phnom Penh",
     region: "",
-    postalCode: "",
+    postalCode: "12152",
     country: "Cambodia",
   },
 

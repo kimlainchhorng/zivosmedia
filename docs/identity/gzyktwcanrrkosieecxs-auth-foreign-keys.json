@@ -1,0 +1,875 @@
+{
+  "project": "gzyktwcanrrkosieecxs",
+  "capturedAt": "2026-09-08",
+  "scope": "Live schema only; no user rows",
+  "foreignKeys": [
+    {
+      "schema_name": "auth",
+      "table_name": "identities",
+      "column_name": "user_id",
+      "constraint_name": "identities_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "auth",
+      "table_name": "mfa_factors",
+      "column_name": "user_id",
+      "constraint_name": "mfa_factors_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "auth",
+      "table_name": "oauth_authorizations",
+      "column_name": "user_id",
+      "constraint_name": "oauth_authorizations_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "auth",
+      "table_name": "oauth_consents",
+      "column_name": "user_id",
+      "constraint_name": "oauth_consents_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "auth",
+      "table_name": "one_time_tokens",
+      "column_name": "user_id",
+      "constraint_name": "one_time_tokens_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "auth",
+      "table_name": "sessions",
+      "column_name": "user_id",
+      "constraint_name": "sessions_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "auth",
+      "table_name": "webauthn_challenges",
+      "column_name": "user_id",
+      "constraint_name": "webauthn_challenges_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "auth",
+      "table_name": "webauthn_credentials",
+      "column_name": "user_id",
+      "constraint_name": "webauthn_credentials_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "ar_document_share_links",
+      "column_name": "created_by",
+      "constraint_name": "ar_document_share_links_created_by_fkey",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "ar_expenses",
+      "column_name": "created_by",
+      "constraint_name": "ar_expenses_created_by_fkey",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "ar_payouts",
+      "column_name": "created_by",
+      "constraint_name": "ar_payouts_created_by_fkey",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "business_public_shop_pages",
+      "column_name": "owner_id",
+      "constraint_name": "business_public_shop_pages_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "business_sales_members",
+      "column_name": "user_id",
+      "constraint_name": "business_sales_members_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "cafe_card_attempt_inventory_requirements",
+      "column_name": "owner_id",
+      "constraint_name": "cafe_card_attempt_inventory_requirements_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "cafe_card_checkout_requests",
+      "column_name": "owner_id",
+      "constraint_name": "cafe_card_checkout_requests_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "cafe_card_payment_attempts",
+      "column_name": "owner_id",
+      "constraint_name": "cafe_card_payment_attempts_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "cafe_inventory_items",
+      "column_name": "owner_id",
+      "constraint_name": "cafe_inventory_items_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "cafe_loyalty_awards",
+      "column_name": "owner_id",
+      "constraint_name": "cafe_loyalty_awards_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "cafe_loyalty_members",
+      "column_name": "owner_id",
+      "constraint_name": "cafe_loyalty_members_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "cafe_menu_items",
+      "column_name": "owner_id",
+      "constraint_name": "cafe_menu_items_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "cafe_menu_recipes",
+      "column_name": "owner_id",
+      "constraint_name": "cafe_menu_recipes_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "cafe_modifier_options",
+      "column_name": "owner_id",
+      "constraint_name": "cafe_modifier_options_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "cafe_orders",
+      "column_name": "owner_id",
+      "constraint_name": "cafe_orders_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "cafe_payments",
+      "column_name": "owner_id",
+      "constraint_name": "cafe_payments_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "cafe_refunds",
+      "column_name": "created_by",
+      "constraint_name": "cafe_refunds_created_by_fkey",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "cafe_refunds",
+      "column_name": "owner_id",
+      "constraint_name": "cafe_refunds_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "cafe_staff",
+      "column_name": "owner_id",
+      "constraint_name": "cafe_staff_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "cafe_staff_time_logs",
+      "column_name": "owner_id",
+      "constraint_name": "cafe_staff_time_logs_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "cafe_workspace_profiles",
+      "column_name": "owner_id",
+      "constraint_name": "cafe_workspace_profiles_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "car_rental_customers",
+      "column_name": "owner_id",
+      "constraint_name": "car_rental_customers_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "car_rental_maintenance",
+      "column_name": "owner_id",
+      "constraint_name": "car_rental_maintenance_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "car_rental_payments",
+      "column_name": "owner_id",
+      "constraint_name": "car_rental_payments_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "car_rental_reservations",
+      "column_name": "owner_id",
+      "constraint_name": "car_rental_reservations_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "car_rental_settings",
+      "column_name": "owner_id",
+      "constraint_name": "car_rental_settings_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "car_rental_vehicles",
+      "column_name": "owner_id",
+      "constraint_name": "car_rental_vehicles_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "hotel_activity",
+      "column_name": "owner_id",
+      "constraint_name": "hotel_activity_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "hotel_cutluy_payments",
+      "column_name": "owner_id",
+      "constraint_name": "hotel_cutluy_payments_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "hotel_folio_entries",
+      "column_name": "owner_id",
+      "constraint_name": "hotel_folio_entries_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "hotel_housekeeping_tasks",
+      "column_name": "owner_id",
+      "constraint_name": "hotel_housekeeping_tasks_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "hotel_incidents",
+      "column_name": "owner_id",
+      "constraint_name": "hotel_incidents_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "hotel_lost_found",
+      "column_name": "owner_id",
+      "constraint_name": "hotel_lost_found_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "hotel_messages",
+      "column_name": "owner_id",
+      "constraint_name": "hotel_messages_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "hotel_payment_refunds",
+      "column_name": "owner_id",
+      "constraint_name": "hotel_payment_refunds_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "hotel_payments",
+      "column_name": "owner_id",
+      "constraint_name": "hotel_payments_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "hotel_reservations",
+      "column_name": "owner_id",
+      "constraint_name": "hotel_reservations_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "hotel_room_inspections",
+      "column_name": "owner_id",
+      "constraint_name": "hotel_room_inspections_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "hotel_rooms",
+      "column_name": "owner_id",
+      "constraint_name": "hotel_rooms_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "hotel_service_orders",
+      "column_name": "owner_id",
+      "constraint_name": "hotel_service_orders_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "hotel_settings",
+      "column_name": "owner_id",
+      "constraint_name": "hotel_settings_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "hotel_shift_handoffs",
+      "column_name": "owner_id",
+      "constraint_name": "hotel_shift_handoffs_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "hotel_supply_items",
+      "column_name": "owner_id",
+      "constraint_name": "hotel_supply_items_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "merchant_payout_accounts",
+      "column_name": "owner_id",
+      "constraint_name": "merchant_payout_accounts_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "partner_identities",
+      "column_name": "user_id",
+      "constraint_name": "partner_identities_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_campaigns",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_campaigns_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_closeouts",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_closeouts_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_customers",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_customers_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_cutluy_payments",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_cutluy_payments_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_driver_connection_requests",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_driver_connection_requests_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_driver_handoffs",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_driver_handoffs_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_guest_feedback",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_guest_feedback_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_inventory",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_inventory_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_kitchen_log",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_kitchen_log_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_kitchen_tickets",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_kitchen_tickets_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_loyalty_members",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_loyalty_members_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_loyalty_programs",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_loyalty_programs_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_loyalty_redemptions",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_loyalty_redemptions_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_menu_items",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_menu_items_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_online_order_items",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_online_order_items_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_online_order_status_tokens",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_online_order_status_tokens_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_online_orders",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_online_orders_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_order_items",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_order_items_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_orders",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_orders_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_payments",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_payments_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_promo_codes",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_promo_codes_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_purchase_orders",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_purchase_orders_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_recipe_components",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_recipe_components_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_reservations",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_reservations_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_service_events",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_service_events_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_settings",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_settings_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_staff",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_staff_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_subscription_profiles",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_subscription_profiles_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_tables",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_tables_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_time_entries",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_time_entries_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "restaurant_waitlist",
+      "column_name": "owner_id",
+      "constraint_name": "restaurant_waitlist_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "salon_appointment_checkin_tokens",
+      "column_name": "owner_id",
+      "constraint_name": "salon_appointment_checkin_tokens_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "salon_appointment_checkin_tokens",
+      "column_name": "used_by",
+      "constraint_name": "salon_appointment_checkin_tokens_used_by_fkey",
+      "definition": "FOREIGN KEY (used_by) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "salon_appointment_status_tokens",
+      "column_name": "owner_id",
+      "constraint_name": "salon_appointment_status_tokens_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "salon_booking_notification_outbox",
+      "column_name": "owner_id",
+      "constraint_name": "salon_booking_notification_outbox_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "salon_campaigns",
+      "column_name": "owner_id",
+      "constraint_name": "salon_campaigns_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "salon_closeouts",
+      "column_name": "owner_id",
+      "constraint_name": "salon_closeouts_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "salon_inventory",
+      "column_name": "owner_id",
+      "constraint_name": "salon_inventory_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "salon_loyalty_log",
+      "column_name": "owner_id",
+      "constraint_name": "salon_loyalty_log_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "salon_promo_codes",
+      "column_name": "owner_id",
+      "constraint_name": "salon_promo_codes_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "salon_slug_history",
+      "column_name": "owner_id",
+      "constraint_name": "salon_slug_history_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "salon_staff_cash_tips",
+      "column_name": "owner_id",
+      "constraint_name": "salon_staff_cash_tips_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "salon_staff_payment_records",
+      "column_name": "owner_id",
+      "constraint_name": "salon_staff_payment_records_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "salon_staff_schedules",
+      "column_name": "owner_id",
+      "constraint_name": "salon_staff_schedules_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "salon_staff_services",
+      "column_name": "owner_id",
+      "constraint_name": "salon_staff_services_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "salon_staff_time_entries",
+      "column_name": "owner_id",
+      "constraint_name": "salon_staff_time_entries_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "software_payment_audit_events",
+      "column_name": "user_id",
+      "constraint_name": "software_payment_audit_events_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "software_subscription_requests",
+      "column_name": "user_id",
+      "constraint_name": "software_subscription_requests_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "store_ad_campaigns",
+      "column_name": "created_by",
+      "constraint_name": "store_ad_campaigns_created_by_fkey",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "store_documents",
+      "column_name": "uploaded_by",
+      "constraint_name": "store_documents_uploaded_by_fkey",
+      "definition": "FOREIGN KEY (uploaded_by) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "store_employee_rules",
+      "column_name": "created_by",
+      "constraint_name": "store_employee_rules_created_by_fkey",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "store_employees",
+      "column_name": "user_id",
+      "constraint_name": "store_employees_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "store_post_comments",
+      "column_name": "user_id",
+      "constraint_name": "store_post_comments_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "store_post_distribution_jobs",
+      "column_name": "created_by",
+      "constraint_name": "store_post_distribution_jobs_created_by_fkey",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "store_profiles",
+      "column_name": "owner_id",
+      "constraint_name": "store_profiles_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "store_training_programs",
+      "column_name": "created_by",
+      "constraint_name": "store_training_programs_created_by_fkey",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "tire_shop_customers",
+      "column_name": "owner_id",
+      "constraint_name": "tire_shop_customers_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "tire_shop_fitment_sessions",
+      "column_name": "created_by_user_id",
+      "constraint_name": "tire_shop_fitment_sessions_created_by_user_id_fkey",
+      "definition": "FOREIGN KEY (created_by_user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "tire_shop_fitment_sessions",
+      "column_name": "owner_id",
+      "constraint_name": "tire_shop_fitment_sessions_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "tire_shop_install_jobs",
+      "column_name": "owner_id",
+      "constraint_name": "tire_shop_install_jobs_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "tire_shop_inventory",
+      "column_name": "owner_id",
+      "constraint_name": "tire_shop_inventory_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "tire_shop_payment_sessions",
+      "column_name": "created_by_user_id",
+      "constraint_name": "tire_shop_payment_sessions_created_by_user_id_fkey",
+      "definition": "FOREIGN KEY (created_by_user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "tire_shop_payments",
+      "column_name": "owner_id",
+      "constraint_name": "tire_shop_payments_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "tire_shop_payments",
+      "column_name": "taken_by_user_id",
+      "constraint_name": "tire_shop_payments_taken_by_user_id_fkey",
+      "definition": "FOREIGN KEY (taken_by_user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "tire_shop_quotes",
+      "column_name": "created_by_user_id",
+      "constraint_name": "tire_shop_quotes_created_by_user_id_fkey",
+      "definition": "FOREIGN KEY (created_by_user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "tire_shop_quotes",
+      "column_name": "owner_id",
+      "constraint_name": "tire_shop_quotes_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "tire_shop_settings",
+      "column_name": "owner_id",
+      "constraint_name": "tire_shop_settings_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "tire_shop_technician_time_logs",
+      "column_name": "owner_id",
+      "constraint_name": "tire_shop_technician_time_logs_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "tire_shop_technicians",
+      "column_name": "owner_id",
+      "constraint_name": "tire_shop_technicians_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "user_roles",
+      "column_name": "user_id",
+      "constraint_name": "user_roles_user_id_fkey",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "zivo_shop_merchants",
+      "column_name": "owner_id",
+      "constraint_name": "zivo_shop_merchants_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    }
+  ]
+}

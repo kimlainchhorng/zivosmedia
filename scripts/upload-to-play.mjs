@@ -17,9 +17,9 @@ const aabPath = path.resolve(
 const buildGradlePath = path.resolve(root, "android/app/build.gradle");
 
 const defaultDeveloperId = "5585425195147923232";
-const defaultAppId = "4973331690915375954";
-const defaultTrackId = "4697386757642451497";
-const defaultReleaseId = "2";
+const defaultAppId = "4975172017680024293";
+const defaultTrackId = "";
+const defaultReleaseId = "";
 
 const developerId = process.env.PLAY_CONSOLE_DEVELOPER_ID || defaultDeveloperId;
 const appId = process.env.PLAY_CONSOLE_APP_ID || defaultAppId;
@@ -28,7 +28,7 @@ const releaseId = process.env.PLAY_CONSOLE_RELEASE_ID || defaultReleaseId;
 const base = `https://play.google.com/console/u/0/developers/${developerId}/app/${appId}`;
 const releaseUrl =
   process.env.PLAY_CONSOLE_RELEASE_URL ||
-  `${base}/tracks/${trackId}/releases/${releaseId}/prepare`;
+  (trackId && releaseId ? `${base}/tracks/${trackId}/releases/${releaseId}/prepare` : "");
 const profileDir =
   process.env.PLAYWRIGHT_PROFILE_DIR ||
   path.resolve(root, ".playwright/play-console-profile");
@@ -141,6 +141,10 @@ async function main() {
       "ZIVO_PLAY_UPLOAD_CONFIRM=UPLOAD_DRAFT node scripts/upload-to-play.mjs",
     );
     return;
+  }
+
+  if (!releaseUrl) {
+    throw new Error("Set PLAY_CONSOLE_RELEASE_URL to the verified new-app release draft before uploading.");
   }
 
   const context = await chromium.launchPersistentContext(profileDir, {

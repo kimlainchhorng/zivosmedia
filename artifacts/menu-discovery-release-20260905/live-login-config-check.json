@@ -1,0 +1,9 @@
+{
+  "status": 200,
+  "url": "https://zivosmedia.com/login",
+  "missingEnvironmentConsole": [
+    "[supabase/client] Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY — using a disabled placeholder endpoint until the site is re-published with env vars."
+  ],
+  "pageErrors": [],
+  "loginFields": 0
+}

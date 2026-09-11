@@ -28,12 +28,11 @@ android {
     namespace = "com.hizovo.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.hizovo.app"
+        applicationId "com.zivosmedia.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Google Play requires monotonic version codes; preserve the existing date-based lineage.
-        //noinspection HighAppVersionCode
-        versionCode 2026090101
+        // New Play package: start a new monotonic version-code sequence.
+        versionCode 2
         versionName "1.4.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

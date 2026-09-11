@@ -92,6 +92,7 @@ export function timingSafeEqual(a: string, b: string): boolean {
 export function publicProfileFromUser(user: {
   id: string;
   email?: string | null;
+  email_confirmed_at?: string | null;
   phone?: string | null;
   user_metadata?: Record<string, unknown> | null;
 }) {
@@ -99,10 +100,24 @@ export function publicProfileFromUser(user: {
   return {
     zivosmedia_user_id: user.id,
     email: user.email ?? null,
+    // Only Supabase Auth can establish mailbox ownership, never user_metadata.
+    email_verified: Boolean(user.email && user.email_confirmed_at),
     phone: user.phone ?? null,
     display_name: stringOrNull(metadata.full_name) ?? stringOrNull(metadata.name) ?? stringOrNull(metadata.display_name),
     avatar_url: stringOrNull(metadata.avatar_url) ?? stringOrNull(metadata.picture),
   };
+}
+
+/** Recheck at exchange time: a code may have been issued before a ban/deletion. */
+export function isFederatedUserActive(user: {
+  id: string;
+  banned_until?: string | null;
+  deleted_at?: string | null;
+}, now = Date.now()): boolean {
+  if (user.deleted_at) return false;
+  if (!user.banned_until) return true;
+  const until = Date.parse(user.banned_until);
+  return Number.isFinite(until) && until <= now;
 }
 
 function stringOrNull(value: unknown): string | null {

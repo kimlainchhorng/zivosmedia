@@ -1,0 +1,92 @@
+{
+  "preparedAt": "2026-09-05T14:40:21.514237+00:00",
+  "status": "built_pending_identity_and_types",
+  "sourceHead": "6a12e202ee8c67035c16c4f57f84ca3dfb8f158b",
+  "sourceDirectory": "/tmp/zivo-media-menu-discovery-release-20260905/frozen",
+  "productionWorker": "zivo",
+  "domains": [
+    "zivosmedia.com",
+    "www.zivosmedia.com"
+  ],
+  "previousVersion": "6792b2b0-c00f-4267-bde6-69a3767f3943",
+  "previousDeployment": "8164f994-01d7-4922-b5a2-0b04816590dc",
+  "previousWorkerSha256": "157c8e0aea748d1f4329ffbeec97740f9115378da984f0eea0f42345b06f3dc9",
+  "publicBuildSetting": {
+    "VITE_ZIVO_BUSINESS_CATALOG_URL": "https://gzyktwcanrrkosieecxs.supabase.co/functions/v1/public-merchant-catalog"
+  },
+  "nativeUpload": false,
+  "merchantOptInWrites": false,
+  "releaseSourceFiles": [
+    "src/lib/zivoBusinessRestaurantCatalog.ts",
+    "src/lib/zivoBusinessRestaurantCatalog.test.ts",
+    "src/components/home/ZivoBusinessRestaurantCards.tsx",
+    "src/components/home/ZivoBusinessRestaurantCards.test.tsx",
+    "src/pages/app/AppHome.tsx",
+    "docs/zivo-business-public-menu-discovery.md",
+    "scripts/fixtures/zivo-business-restaurant-catalog.html",
+    "scripts/fixtures/zivo-business-restaurant-catalog.tsx",
+    "scripts/qa/zivo-business-restaurant-catalog-ui.mjs"
+  ],
+  "baselineEvidence": {
+    "workerByteParity": true,
+    "vendorReactByteParity": true,
+    "vendorSupabaseByteParity": true,
+    "vendorQueryByteParity": true,
+    "homeNormalizedImportParity": true,
+    "sharedDependencyTreeMatchedLock": false,
+    "isolatedDependencyTreeMatchesLock": true,
+    "liveLoginMissingFrontendConfigConfirmed": true
+  },
+  "restoredExistingBuildEnvNames": [
+    "VITE_SUPABASE_URL",
+    "VITE_SUPABASE_PUBLISHABLE_KEY",
+    "VITE_ZIVO_SOFTWARE_SUPABASE_URL",
+    "VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY"
+  ],
+  "unchangedCanonicalRideEnvName": "VITE_ZIVO_RIDE_APP_URL",
+  "paymentActivation": false,
+  "workerConfigSha256": "252dab7dc02404490c5d6103f9c0ff8ae93577d50250356c0cec9d07a8e68f2b",
+  "lockedDependenciesSha256": "deec2e8e87996cd3b7f2c4ec6ce9e57f8e6efe0f0b983fe2308788aedf6f0aa9",
+  "checks": {
+    "focusedTests": "41/41 passed",
+    "scopedLint": "passed",
+    "browserFixtures": "EN/Km 320/390/1024px, state/retry checks passed",
+    "strictPreflight": "passed; zero warnings/blockers",
+    "productionReleaseGate": "blocked by unchanged missing company identity details",
+    "fullUpdate": "pending; clean and normal incremental app type checks interrupted due severe shared-host memory pressure, without diagnostics; no pass claimed",
+    "configuredBuild": "passed in 17.65 seconds; PWA 18 precache entries",
+    "cloudflareDryRun": "passed; all existing bindings preserved, compiled Worker byte-identical to current production",
+    "remainingUpdateChecks": "all seven passed: Worker types, Ride 52, production boundary 6, schema 6, linked devices 4, native splash 4, QA 165",
+    "anonymousPreparedArtifactSmoke": "login and protected Home redirect rendered; no config warnings or page errors; no auth submissions; protected Home did not request catalog anonymously",
+    "livePublicCatalog": "HTTP 200; 1 merchant, 8 products, 0 menu links"
+  },
+  "releaseBlockers": [
+    {
+      "guard": "scripts/deploy/check-business-identity.mjs",
+      "configuration": "src/config/legalContent.ts",
+      "requiredVerifiedFields": [
+        "COMPANY_INFO.registeredAddress.line1 (with city/postalCode)",
+        "COMPANY_INFO.operationsAddress.line1 (with postalCode)",
+        "COMPANY_INFO.supportPhone"
+      ],
+      "preExisting": true
+    },
+    {
+      "guard": "npm run update / type-check",
+      "status": "pending",
+      "reason": "Shared-host memory pressure made standard broad app type analysis too slow; interrupted own process to prepare final artifact. Reuse existing normal incremental cache; no compiler-rule bypass."
+    }
+  ],
+  "resumeFullUpdate": "PATH=/Users/kimlain/.local/share/fnm/node-versions/v24.19.0/installation/bin:$PATH node ../run-with-public-build-env.mjs npm run update",
+  "completedPreparationAt": "2026-09-05T15:08:55.045441+00:00",
+  "userPublicationAuthorization": "Already approved for exact three-app menu-discovery release; no new generic deployment permission required",
+  "artifact": {
+    "distFiles": 2522,
+    "distTotalBytes": 166069541,
+    "indexSha256": "96ef2dc1a37e89c330350857d04ca0be3967b8012377cdd96a2851f5877f00df",
+    "workerSha256": "157c8e0aea748d1f4329ffbeec97740f9115378da984f0eea0f42345b06f3dc9",
+    "workerByteIdenticalToPreviousLive": true
+  },
+  "privateEnvCopyRemoved": true,
+  "releaseEnvironmentFile": "Only public VITE_ZIVO_BUSINESS_CATALOG_URL remains in frozen/.env.production.local"
+}

@@ -3,6 +3,7 @@
  * Captures unhandled errors and rejections, logs them to Supabase for admin review.
  */
 // Lazy-import supabase to avoid pulling the vendor chunk into the critical path
+import { reportToSentry } from "./sentryReporting";
 let _supabase: typeof import("@/integrations/supabase/client").supabase | null = null;
 async function getSupabase() {
   if (!_supabase) {
@@ -68,6 +69,7 @@ function isDuplicate(key: string): boolean {
 async function reportError(report: ErrorReport): Promise<void> {
   const dedupeKey = `${report.type}:${report.message}`;
   if (isDuplicate(dedupeKey)) return;
+  void reportToSentry(new Error(report.message), report.type);
 
   // Log locally
   console.error(`[ErrorMonitor] ${report.type}: ${report.message}`);
@@ -91,6 +93,7 @@ async function reportError(report: ErrorReport): Promise<void> {
 }
 
 export function reportBoundaryError(input: BoundaryErrorReportInput): string {
+  void reportToSentry(input.error, input.boundary);
   const reportId = createReportId();
   const page = typeof window !== "undefined" ? window.location.href : "";
   const message = input.error.message || "Unknown render error";

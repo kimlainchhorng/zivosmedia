@@ -278,6 +278,7 @@ function InfiniteScrollSentinel({
   onSwitchMode?: () => void;
   feedMode?: "foryou" | "following";
 }) {
+  const { t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
   const lastFiredAt = useRef(0);
 
@@ -308,7 +309,7 @@ function InfiniteScrollSentinel({
       {isFetching ? (
         <div className="flex flex-col items-center gap-3 text-white/70">
           <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="text-sm font-medium">Loading more reels…</span>
+          <span className="text-sm font-medium">{t("feed.reels.loading_more")}</span>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-5 max-w-sm text-center">
@@ -463,6 +464,7 @@ function ReelCard({
   /** Pre-fetched follow state — avoids a per-card RPC call on mount. */
   initialIsFollowing?: boolean;
 }) {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const haptic = useHaptic();
@@ -1400,7 +1402,7 @@ function ReelCard({
             </p>
           )}
           {hasImageError && (
-            <p className="mt-3 text-white/50 text-xs">Image could not be loaded</p>
+            <p className="mt-3 text-white/50 text-xs">{t("feed.media.image_failed")}</p>
           )}
         </div>
       )}
@@ -1584,7 +1586,7 @@ function ReelCard({
       {/* Playback error */}
       {hasPlaybackError && !isRepairing && !isBlobLoading && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 bg-black/70 px-8 text-center">
-          <p className="text-sm font-semibold text-white">Video is loading slowly</p>
+          <p className="text-sm font-semibold text-white">{t("feed.media.video_slow")}</p>
           <p className="text-xs text-white/70">
             Tap once to retry playback.
           </p>
@@ -1841,7 +1843,7 @@ function ReelCard({
                   className="flex items-center gap-1.5 mb-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-primary text-white text-[11px] font-bold active:scale-95 transition-transform shadow-lg"
                 >
                   <Flame className="w-3.5 h-3.5" />
-                  <span>Join Challenge</span>
+                  <span>{t("feed.challenge.join")}</span>
                 </button>
               )}
             </>
@@ -1862,7 +1864,7 @@ function ReelCard({
             type="button"
             onClick={(e) => { e.stopPropagation(); setLikedByOpen(true); }}
             className="block text-white/85 text-xs font-medium drop-shadow mb-2 active:opacity-70"
-            aria-label="View who liked this post"
+            aria-label={t("feed.post.view_likers")}
           >
             Liked by{" "}
             <span className="font-bold underline decoration-white/40 underline-offset-2">
@@ -2120,7 +2122,7 @@ function ReelCard({
               onStartDuet?.(post);
             }}
             className="hidden sm:flex flex-col items-center gap-0.5 min-w-[44px] min-h-[44px]"
-            aria-label="Duet this video"
+            aria-label={t("feed.reel.duet")}
             title="Duet"
           >
             <Scissors className="w-7 h-7 text-white drop-shadow-lg" />
@@ -2139,8 +2141,8 @@ function ReelCard({
             else setShowMoreMenu(true);
           }}
           className="flex flex-col items-center gap-0.5 min-w-[44px] min-h-[44px]"
-          aria-label="More options"
-          title="More options"
+          aria-label={t("feed.more_options")}
+          title={t("feed.more_options")}
         >
           <div className="zivo-feed-action-orb w-11 h-11 rounded-full flex items-center justify-center">
             <MoreHorizontal className="w-5 h-5 text-white" />
@@ -2314,7 +2316,7 @@ function ReelCard({
         zIndex={1600}
         title={
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-500">Reel tools</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-500">{t("feed.reel.tools")}</p>
             <h3 className="text-base font-black tracking-tight text-foreground">Actions</h3>
           </div>
         }
@@ -2343,14 +2345,14 @@ function ReelCard({
                   className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl"
                 >
                   <Link2 className="h-5 w-5 text-foreground" />
-                  <span className="text-sm font-medium text-foreground">Copy link</span>
+                  <span className="text-sm font-medium text-foreground">{t("feed.copy_link")}</span>
                 </button>
                 <button type="button"
                   onClick={() => { setShowMoreMenu(false); setShowSpeedPicker(true); }}
                   className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl"
                 >
                   <Gauge className="h-5 w-5 text-foreground" />
-                  <span className="text-sm font-medium text-foreground flex-1 text-left">Playback speed</span>
+                  <span className="text-sm font-medium text-foreground flex-1 text-left">{t("feed.playback_speed")}</span>
                   <span className="text-xs font-semibold text-muted-foreground tabular-nums">{playbackSpeed}×</span>
                 </button>
                 <button type="button"
@@ -2467,7 +2469,7 @@ function ReelCard({
                     className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl"
                   >
                     <Layers className="h-5 w-5 text-foreground" />
-                    <span className="text-sm font-medium text-foreground">Share to Story</span>
+                    <span className="text-sm font-medium text-foreground">{t("feed.share_to_story")}</span>
                   </button>
                 )}
                 {userId && post.author_id && userId === post.author_id && (
@@ -2504,7 +2506,7 @@ function ReelCard({
                   className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl"
                 >
                   <EyeOff className="h-5 w-5 text-foreground" />
-                  <span className="text-sm font-medium text-foreground">Not interested</span>
+                  <span className="text-sm font-medium text-foreground">{t("feed.not_interested")}</span>
                 </button>
                 <button type="button"
                   onClick={() => {
@@ -2530,7 +2532,7 @@ function ReelCard({
         title={
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-500">Playback</p>
-            <h3 className="text-base font-black tracking-tight text-foreground">Speed control</h3>
+            <h3 className="text-base font-black tracking-tight text-foreground">{t("feed.speed_control")}</h3>
           </div>
         }
         headerAction={
@@ -2571,8 +2573,8 @@ function ReelCard({
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setShowSpeedPicker(true); }}
-          aria-label="Change playback speed"
-          title="Change playback speed"
+          aria-label={t("feed.change_playback_speed")}
+          title={t("feed.change_playback_speed")}
           className="absolute right-3 top-[calc(var(--zivo-safe-top-overlay,80px)+0.25rem)] z-30 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 active:scale-95 transition-transform"
         >
           <span className="text-white text-[11px] font-bold tabular-nums">{playbackSpeed}×</span>
@@ -2618,6 +2620,7 @@ function CommentSheet({
   userId: string | null;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -2899,8 +2902,8 @@ function CommentSheet({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close comments"
-            title="Close comments"
+            aria-label={t("feed.comments.close")}
+            title={t("feed.comments.close")}
             className="zivo-social-icon-button"
           >
             <XIcon className="h-4 w-4 text-muted-foreground" />
@@ -2944,7 +2947,7 @@ function CommentSheet({
             <div className="flex justify-center py-8">
               <div className="zivo-social-module-tile flex items-center gap-2 rounded-full px-4 py-2">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                <span className="text-sm font-black text-muted-foreground">Loading comments...</span>
+                <span className="text-sm font-black text-muted-foreground">{t("feed.comments.loading")}</span>
               </div>
             </div>
           ) : comments.length === 0 ? (
@@ -2952,8 +2955,8 @@ function CommentSheet({
               <span className="zivo-social-share-orb h-14 w-14">
                 <MessageCircle className="h-6 w-6" />
               </span>
-              <p className="text-sm font-black text-foreground">No comments yet</p>
-              <p className="text-xs font-semibold text-muted-foreground">Start the conversation.</p>
+              <p className="text-sm font-black text-foreground">{t("feed.comments.empty")}</p>
+              <p className="text-xs font-semibold text-muted-foreground">{t("feed.comments.start")}</p>
             </div>
           ) : (() => {
             // Group comments into top-level + replies-by-parent
@@ -3012,8 +3015,8 @@ function CommentSheet({
                           onChange={(e) => setEditingText(e.target.value)}
                           autoFocus
                           rows={2}
-                          aria-label="Edit comment"
-                          placeholder="Edit your comment"
+                          aria-label={t("feed.comments.edit")}
+                          placeholder={t("feed.comments.edit_yours")}
                           className="zivo-social-sheet-input w-full resize-none rounded-2xl px-3 py-2 text-sm text-foreground outline-none"
                         />
                         <div className="flex gap-2">
@@ -3135,11 +3138,11 @@ function CommentSheet({
         {/* Input */}
         <div className="border-t border-border/35 px-4 pt-3 pb-[calc(var(--zivo-safe-bottom,0px)+12px)]">
           {!userId ? (
-            <p className="text-center text-sm text-muted-foreground py-1">Sign in to comment</p>
+            <p className="text-center text-sm text-muted-foreground py-1">{t("feed.comments.sign_in")}</p>
           ) : !isVerified ? (
             <div className="flex items-center gap-2 justify-center py-1">
               <ShieldCheck className="w-4 h-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Only verified accounts can comment</p>
+              <p className="text-sm text-muted-foreground">{t("feed.comments.verified_only")}</p>
             </div>
           ) : (
             <>
@@ -3153,7 +3156,7 @@ function CommentSheet({
                     type="button"
                     onClick={() => setReplyTo(null)}
                     className="rounded-full p-1 text-primary hover:bg-primary/20 active:scale-90 transition-transform"
-                    aria-label="Cancel reply"
+                    aria-label={t("feed.comments.cancel_reply")}
                   >
                     <XIcon className="h-3.5 w-3.5" />
                   </button>
@@ -3202,7 +3205,7 @@ function CommentSheet({
                 onClick={handleSubmit}
                 disabled={!commentText.trim() || submitting}
                 className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-cyan-400 via-primary to-fuchsia-500 shadow-[0_14px_30px_hsl(189_94%_43%/0.2)] transition-transform disabled:opacity-40 active:scale-95 sm:h-10 sm:w-10"
-                aria-label="Send comment"
+                aria-label={t("feed.comments.send")}
               >
                 <Send className="w-4 h-4 text-primary-foreground" />
               </button>
@@ -3341,6 +3344,7 @@ function FeedQuickLaunchButton({
 }
 
 function FeedSearchOverlay({ onClose, onNavigate }: { onClose: () => void; onNavigate: (path: string) => void }) {
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -3416,7 +3420,7 @@ function FeedSearchOverlay({ onClose, onNavigate }: { onClose: () => void; onNav
           type="button"
           whileTap={{ scale: 0.88 }}
           onClick={onClose}
-          aria-label="Close search"
+          aria-label={t("feed.search.close")}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full zivo-social-module-tile touch-manipulation"
         >
           <ArrowLeft className="w-4 h-4 text-foreground" />
@@ -3427,11 +3431,11 @@ function FeedSearchOverlay({ onClose, onNavigate }: { onClose: () => void; onNav
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search apps, rides, food, hotels, people..."
+            placeholder={t("feed.search.placeholder")}
             className="h-10 w-full bg-transparent pl-9 pr-9 text-[13px] font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
           {query && (
-            <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-muted/60 touch-manipulation">
+            <button type="button" onClick={() => setQuery("")} aria-label={t("feed.search.clear")} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-muted/60 touch-manipulation">
               <XIcon className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
           )}
@@ -3482,7 +3486,7 @@ function FeedSearchOverlay({ onClose, onNavigate }: { onClose: () => void; onNav
         {hasQuery && !isLoading && !hasResults && (
           <div className="px-4 py-10 text-center">
             <p className="text-sm font-black text-foreground">No results for "{debouncedQuery}"</p>
-            <p className="mt-1 text-[11px] font-semibold text-muted-foreground">Try a person, shop, service, or app name.</p>
+            <p className="mt-1 text-[11px] font-semibold text-muted-foreground">{t("feed.search.hint")}</p>
           </div>
         )}
 
@@ -3559,6 +3563,7 @@ function SoundOverlay({
   onUseSound: () => void;
   currentPosts: FeedPost[];
 }) {
+  const { t } = useI18n();
   // Check if this is a generated "Original Sound" name (not stored in DB)
   const isOriginalSound = soundName.startsWith("Original Sound - ");
 
@@ -3678,7 +3683,7 @@ function SoundOverlay({
                 {reelCount} reel{reelCount !== 1 ? "s" : ""} • Tap to watch
               </p>
             </div>
-            <motion.button whileTap={{ scale: 0.88 }} type="button" onClick={onClose} aria-label="Close sound overlay" title="Close sound overlay" className="zivo-social-icon-button -mr-1">
+            <motion.button whileTap={{ scale: 0.88 }} type="button" onClick={onClose} aria-label={t("feed.sound.close")} title={t("feed.sound.close")} className="zivo-social-icon-button -mr-1">
               <XIcon className="h-5 w-5 text-muted-foreground" />
             </motion.button>
           </div>
@@ -3706,7 +3711,7 @@ function SoundOverlay({
               <div className="flex justify-center py-10">
                 <div className="zivo-social-module-tile flex items-center gap-2 rounded-full px-4 py-2">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  <span className="text-sm font-black text-muted-foreground">Loading reels...</span>
+                  <span className="text-sm font-black text-muted-foreground">{t("feed.reels.loading")}</span>
                 </div>
               </div>
             ) : reelCount === 0 ? (
@@ -3714,8 +3719,8 @@ function SoundOverlay({
                 <span className="bg-ig-gradient h-14 w-14 flex items-center justify-center rounded-2xl shadow-[0_4px_14px_rgba(236,72,153,0.2)]">
                   <Play className="h-5 w-5 text-white" />
                 </span>
-                <p className="text-sm font-black text-foreground">No reels with this sound yet</p>
-                <p className="text-xs font-semibold text-muted-foreground">Be the first to create with this audio.</p>
+                <p className="text-sm font-black text-foreground">{t("feed.sound.empty")}</p>
+                <p className="text-xs font-semibold text-muted-foreground">{t("feed.sound.be_first")}</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -3780,6 +3785,7 @@ function SoundOverlay({
 
 // ── Discover People Overlay ─────────────────────────────────────────────────
 function DiscoverPeopleOverlay({ onClose, onNavigate }: { onClose: () => void; onNavigate: (path: string) => void }) {
+  const { t } = useI18n();
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -3833,13 +3839,13 @@ function DiscoverPeopleOverlay({ onClose, onNavigate }: { onClose: () => void; o
       className="zivo-social-surface fixed inset-0 z-[1500] flex flex-col"
     >
       <div data-testid="feed-discover-header" className="zivo-social-header-glass safe-area-top flex items-center gap-3 px-4 py-3">
-        <button type="button" onClick={onClose} aria-label="Close discover people" title="Close discover people" className="zivo-social-icon-button">
+        <button type="button" onClick={onClose} aria-label={t("feed.discover.close")} title={t("feed.discover.close")} className="zivo-social-icon-button">
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-500">Social graph</p>
-          <h2 className="text-lg font-black tracking-tight text-foreground">Discover People</h2>
-          <p className="text-xs font-semibold text-muted-foreground">Find people to follow on ZIVO</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-500">{t("feed.discover.social_graph")}</p>
+          <h2 className="text-lg font-black tracking-tight text-foreground">{t("feed.discover.title")}</h2>
+          <p className="text-xs font-semibold text-muted-foreground">{t("feed.discover.subtitle")}</p>
         </div>
       </div>
 
@@ -3848,7 +3854,7 @@ function DiscoverPeopleOverlay({ onClose, onNavigate }: { onClose: () => void; o
           <div className="flex justify-center py-16">
             <div className="zivo-social-module-tile flex items-center gap-2 rounded-full px-4 py-2">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <span className="text-sm font-black text-muted-foreground">Finding people...</span>
+              <span className="text-sm font-black text-muted-foreground">{t("feed.discover.loading")}</span>
             </div>
           </div>
         ) : (
@@ -3926,6 +3932,7 @@ function ReelReportDialog({
   onClose: () => void;
   onReported: () => void;
 }) {
+  const { t } = useI18n();
   const [reason, setReason] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -3977,14 +3984,14 @@ function ReelReportDialog({
         </div>
         <div className="flex items-center justify-between border-b border-border/35 px-5 pb-3 pt-1">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-destructive">Safety review</p>
-            <h3 className="text-base font-black tracking-tight text-foreground">Report post</h3>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-destructive">{t("feed.report.safety_review")}</p>
+            <h3 className="text-base font-black tracking-tight text-foreground">{t("feed.report.title")}</h3>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="zivo-social-icon-button"
-            aria-label="Close report dialog"
+            aria-label={t("feed.report.close")}
           >
             <XIcon className="h-4 w-4 text-muted-foreground" />
           </button>
@@ -5078,7 +5085,7 @@ export default function FeedPage() {
     // loading a separate Skeleton bundle. Renders on first paint with no
     // network/JS waterfall. The IG-gradient pulse hints at the reels theme.
     return (
-      <div className="fixed inset-0 bg-black z-50 flex flex-col" aria-busy="true" aria-label="Loading reels">
+      <div className="fixed inset-0 bg-black z-50 flex flex-col" aria-busy="true" aria-label={t("feed.reels.loading_label")}>
         <div className="flex-1 relative overflow-hidden">
           <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-pink-400/[0.05] via-violet-500/[0.04] to-transparent" />
           <div className="absolute bottom-32 left-4 right-16 space-y-3">
@@ -5104,8 +5111,8 @@ export default function FeedPage() {
       <div className="fixed inset-0 bg-black flex flex-col items-center justify-center gap-4 z-50 px-8 text-center">
         <LoadFailureCard
           className="w-full max-w-xl"
-          title="Feed is having trouble loading"
-          description="We could not load reels right now. Your connection or a service may be temporarily unstable."
+          title={t("feed.error.title")}
+          description={t("feed.error.description")}
           onRetry={() => {
             void queryClient.invalidateQueries({ queryKey: ["customer-feed"] });
           }}
@@ -5125,7 +5132,7 @@ export default function FeedPage() {
           <Film className="h-8 w-8 text-white/80" />
         </div>
         <div>
-          <p className="text-white font-semibold">No reels yet</p>
+          <p className="text-white font-semibold">{t("feed.reels.empty")}</p>
           <p className="mt-1 text-white/50 text-sm">
             Reels are videos from people and stores. Record one or check back after new videos publish.
           </p>
@@ -5151,8 +5158,8 @@ export default function FeedPage() {
             Refresh
           </button>
           <button type="button" onClick={() => navigate("/trending")} className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white active:scale-95">Trending</button>
-          <button type="button" onClick={() => navigate("/audio-rooms")} className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white active:scale-95">Live rooms</button>
-          <button type="button" onClick={() => navigate("/feed")} className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white active:scale-95">Browse feed</button>
+          <button type="button" onClick={() => navigate("/audio-rooms")} className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white active:scale-95">{t("feed.live_rooms")}</button>
+          <button type="button" onClick={() => navigate("/feed")} className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white active:scale-95">{t("feed.browse")}</button>
         </div>
         <ZivoMobileNav />
         {reelComposerModal}
@@ -5191,8 +5198,8 @@ export default function FeedPage() {
         <EmptyState
           icon={UserPlus}
           tone="brand"
-          title="No reels from people you follow"
-          description="Follow creators to see their reels here, or jump back to For You to discover new ones."
+          title={t("feed.following.empty")}
+          description={t("feed.following.empty_description")}
           action={
             <button
               type="button"
@@ -5326,7 +5333,7 @@ export default function FeedPage() {
           <div
             className="relative flex items-center gap-6 px-2"
             role="tablist"
-            aria-label="Reel feed mode"
+            aria-label={t("feed.mode_label")}
           >
             {feedMode === "following" ? (
               <>
@@ -5373,7 +5380,7 @@ export default function FeedPage() {
                   }}
                   className="relative py-2 text-[15px] sm:text-base font-semibold tracking-tight whitespace-nowrap transition-colors duration-200 active:scale-[0.97] text-white/55 hover:text-white/80"
                 >
-                  <span className="relative z-10 drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]">For You</span>
+                  <span className="relative z-10 drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]">{t("feed.for_you")}</span>
                 </button>
               </>
             ) : (
@@ -5416,7 +5423,7 @@ export default function FeedPage() {
                   }}
                   className="relative py-2 text-[15px] sm:text-base font-semibold tracking-tight whitespace-nowrap transition-colors duration-200 active:scale-[0.97] text-white"
                 >
-                  <span className="relative z-10 drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]">For You</span>
+                  <span className="relative z-10 drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]">{t("feed.for_you")}</span>
                   <motion.span
                     layoutId="reel-tab-underline"
                     transition={{ type: "spring", damping: 28, stiffness: 380 }}
@@ -5465,8 +5472,8 @@ export default function FeedPage() {
         <button
           type="button"
           onClick={() => setShowDiscover(true)}
-          aria-label="Discover people"
-          title="Discover people"
+          aria-label={t("feed.discover.open")}
+          title={t("feed.discover.open")}
           className="zivo-feed-action-orb hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full items-center justify-center"
         >
           <UserPlus className="w-5 h-5 text-white" />
@@ -5484,7 +5491,7 @@ export default function FeedPage() {
           <button
             type="button"
             onClick={() => openReelComposer({ mode: "reel" })}
-            aria-label="Create post"
+            aria-label={t("feed.create_post")}
             title="Create"
             className="zivo-feed-action-orb zivo-feed-primary-orb w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center"
           >
@@ -5499,8 +5506,8 @@ export default function FeedPage() {
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent("zivo-reel-open-speed"))}
-          aria-label="Playback speed"
-          title="Playback speed"
+          aria-label={t("feed.playback_speed")}
+          title={t("feed.playback_speed")}
           className="zivo-feed-action-orb hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full items-center justify-center"
         >
           <Gauge className="w-5 h-5 text-white" />
@@ -5591,7 +5598,7 @@ export default function FeedPage() {
                 <div className="zivo-feed-primary-orb mb-5 flex h-16 w-16 items-center justify-center">
                   <UserPlus className="h-7 w-7 text-white" />
                 </div>
-                <p className="text-lg font-black text-white mb-1">Your following feed is empty</p>
+                <p className="text-lg font-black text-white mb-1">{t("feed.following.empty_title")}</p>
                 <p className="max-w-xs text-sm font-semibold leading-relaxed text-white/60">
                   Follow some creators or shops and their posts will show up here.
                 </p>
@@ -5654,7 +5661,7 @@ export default function FeedPage() {
                             <AlertTriangle className="h-6 w-6 text-amber-200" />
                           </div>
                           <p className="font-black text-foreground mb-1">This reel couldn't load</p>
-                          <p className="text-sm font-semibold text-muted-foreground mb-4">Something went wrong rendering this reel. Swipe to keep watching.</p>
+                          <p className="text-sm font-semibold text-muted-foreground mb-4">{t("feed.reel.render_error")}</p>
                           <button
                             type="button"
                             onClick={() => {
@@ -5759,22 +5766,22 @@ export default function FeedPage() {
           <aside className="zivo-social-nav-glass hidden h-full shrink-0 gap-4 overflow-y-auto rounded-l-[1.75rem] px-3 py-6 lg:flex lg:w-[300px] lg:flex-col xl:w-[340px]">
             {ownerStore?.isLodging && lodgingCompletion && (
               <div className="zivo-social-module p-3">
-                <div className="flex items-start justify-between gap-2"><div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-500">Owner tools</p><h3 className="text-sm font-black text-foreground">Hotel / Resort Admin</h3><p className="mt-0.5 truncate text-xs font-semibold text-muted-foreground">{ownerStore.name}</p></div><span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary">{lodgingCompletion.percent}%</span></div>
+                <div className="flex items-start justify-between gap-2"><div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-500">{t("feed.owner.tools")}</p><h3 className="text-sm font-black text-foreground">{t("feed.owner.hotel_admin")}</h3><p className="mt-0.5 truncate text-xs font-semibold text-muted-foreground">{ownerStore.name}</p></div><span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary">{lodgingCompletion.percent}%</span></div>
                 <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/55"><motion.div className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-primary to-fuchsia-500" animate={{ width: `${lodgingCompletion.percent}%` }} transition={{ duration: 0.25, ease: "easeOut" }} /></div>
                 <p className="mt-2 text-[11px] font-semibold text-muted-foreground">Next: {lodgingCompletion.nextBestAction.actionLabel}</p>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs"><button type="button" onClick={() => navigate(`/admin/stores/${ownerStore.id}?tab=lodge-overview`)} className="rounded-2xl bg-gradient-to-r from-cyan-400 via-primary to-fuchsia-500 px-2 py-2 font-black text-white shadow-[0_14px_30px_hsl(189_94%_43%/0.18)]">Open Hotel Admin</button><button type="button" onClick={() => navigate("/admin/lodging/qa-checklist")} className="zivo-social-module-tile rounded-2xl px-2 py-2 font-black text-foreground">Run QA</button><button type="button" onClick={() => navigate("/admin/lodging/qa-checklist")} className="zivo-social-module-tile col-span-2 rounded-2xl px-2 py-2 font-black text-foreground">View QA Report</button></div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs"><button type="button" onClick={() => navigate(`/admin/stores/${ownerStore.id}?tab=lodge-overview`)} className="rounded-2xl bg-gradient-to-r from-cyan-400 via-primary to-fuchsia-500 px-2 py-2 font-black text-white shadow-[0_14px_30px_hsl(189_94%_43%/0.18)]">{t("feed.owner.open_hotel_admin")}</button><button type="button" onClick={() => navigate("/admin/lodging/qa-checklist")} className="zivo-social-module-tile rounded-2xl px-2 py-2 font-black text-foreground">{t("feed.owner.run_qa")}</button><button type="button" onClick={() => navigate("/admin/lodging/qa-checklist")} className="zivo-social-module-tile col-span-2 rounded-2xl px-2 py-2 font-black text-foreground">{t("feed.owner.view_qa_report")}</button></div>
               </div>
             )}
             <div className="px-1">
               <p className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-500">People</p>
-              <h3 className="mb-2 text-sm font-black text-foreground">Suggested for you</h3>
+              <h3 className="mb-2 text-sm font-black text-foreground">{t("feed.suggested")}</h3>
               <Suspense fallback={<div className="h-40" />}>
                 <SuggestedUsersCarousel variant="inline" />
               </Suspense>
             </div>
             <div className="zivo-social-module mt-2 p-3">
               <p className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-500">Explore</p>
-              <h3 className="mb-2 text-sm font-black text-foreground">Quick links</h3>
+              <h3 className="mb-2 text-sm font-black text-foreground">{t("feed.quick_links")}</h3>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <button type="button" onClick={() => navigate("/flights")} className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-2 py-2 text-left font-black text-foreground"><Plane className="w-4 h-4 text-primary shrink-0" /> Flights</button>
                 <button type="button" onClick={() => navigate("/hotels")} className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-2 py-2 text-left font-black text-foreground"><Building2 className="w-4 h-4 text-primary shrink-0" /> Hotels</button>
@@ -5798,7 +5805,7 @@ export default function FeedPage() {
             }}
             disabled={activeIndex === 0}
             className="zivo-feed-action-orb flex h-12 w-12 items-center justify-center text-white transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0"
-            aria-label="Previous reel"
+            aria-label={t("feed.reel.previous")}
           >
             <ChevronUp className="w-6 h-6" />
           </button>
@@ -5810,7 +5817,7 @@ export default function FeedPage() {
             }}
             disabled={activeIndex >= visiblePosts.length - 1}
             className="zivo-feed-action-orb flex h-12 w-12 items-center justify-center text-white transition-all hover:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0"
-            aria-label="Next reel"
+            aria-label={t("feed.reel.next")}
           >
             <ChevronDown className="w-6 h-6" />
           </button>
@@ -6097,7 +6104,7 @@ export default function FeedPage() {
             onClick={() => setShowShortcutsHelp(false)}
             className="fixed inset-0 z-[1500] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6"
             role="dialog"
-            aria-label="Keyboard shortcuts"
+            aria-label={t("feed.keyboard_shortcuts")}
           >
             <motion.div
               initial={{ scale: 0.92, opacity: 0 }}
@@ -6108,7 +6115,7 @@ export default function FeedPage() {
               className="w-full max-w-md rounded-2xl bg-background border border-border/30 shadow-2xl p-5"
             >
               <div className="flex items-start justify-between mb-4">
-                <h2 className="text-base font-bold text-foreground">Keyboard shortcuts</h2>
+                <h2 className="text-base font-bold text-foreground">{t("feed.keyboard_shortcuts")}</h2>
                 <button
                   type="button"
                   onClick={() => setShowShortcutsHelp(false)}

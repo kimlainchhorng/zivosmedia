@@ -1,0 +1,8 @@
+{
+  "compilerVersion": "6.0.3",
+  "configByteIdentical": true,
+  "relativeFilePaths": true,
+  "cacheFileCount": 5283,
+  "cacheSha256": "939e7b1b95b5efb85b9e882daddccf8a29e7957a38d6eafa56c71e3fac99d49d",
+  "note": "Interrupted only slow clean release check; standard unchanged tsc incremental will validate source hashes and dependency differences."
+}

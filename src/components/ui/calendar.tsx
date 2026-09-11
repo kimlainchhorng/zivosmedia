@@ -2,12 +2,17 @@ import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import { cn } from "@/lib/utils";
+import { km as khmerDateLocale } from "date-fns/locale/km";
+import { useI18n } from "@/hooks/useI18n";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
 function Calendar({ className, classNames, showOutsideDays = false, ...props }: CalendarProps) {
+  const { locale } = useI18n();
   return (
     <DayPicker
+      locale={locale === "km" ? khmerDateLocale : undefined}
+      labels={locale === "km" ? { labelNext: () => "ខែបន្ទាប់", labelPrevious: () => "ខែមុន", labelMonthDropdown: () => "ជ្រើសរើសខែ", labelYearDropdown: () => "ជ្រើសរើសឆ្នាំ" } : undefined}
       showOutsideDays={showOutsideDays}
       className={cn("p-4 pointer-events-auto select-none", className)}
       classNames={{

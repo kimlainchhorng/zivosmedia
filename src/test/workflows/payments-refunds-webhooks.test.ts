@@ -196,7 +196,7 @@ describe("payments, refunds, and webhook workflow", () => {
   it("keeps saved payment method metadata mutations behind server-side ownership checks", () => {
     const stripeManage = source(
       "supabase/functions/manage-payment-methods/index.ts",
-    );
+    ) + source("supabase/functions/manage-payment-methods/handler.ts");
     const manage = source(
       "supabase/functions/zivo-payment-method-manage/index.ts",
     );
@@ -206,11 +206,13 @@ describe("payments, refunds, and webhook workflow", () => {
     const localMethods = source("src/hooks/useLocalPaymentMethods.ts");
     const walletMethods = source("src/hooks/useZivoWallet.ts");
 
-    expect(stripeManage).toContain('withSecurity("manage-payment-methods"');
-    expect(stripeManage).toContain("strictCors: true");
-    expect(stripeManage).toContain('allowedMethods: ["POST"]');
-    expect(stripeManage).toContain('rateLimit: "payment"');
-    expect(stripeManage).toContain('trackNetwork: "suspicious"');
+    expect(stripeManage).toMatch(/withSecurity\(['"]manage-payment-methods['"]/);
+    expect(stripeManage).toMatch(/strictCors:\s*true/);
+    expect(stripeManage).toMatch(/allowedMethods:\s*\[['"]POST['"]\]/);
+    expect(stripeManage).toContain("rate_limit_check");
+    expect(stripeManage).toContain("payment_methods_read");
+    expect(stripeManage).toContain("payment_methods_write");
+    expect(stripeManage).toMatch(/trackNetwork:\s*['"]suspicious['"]/);
     expect(stripeManage).toContain("paymentMethods.detach");
     expect(stripeManage).not.toContain('"Access-Control-Allow-Origin": "*"');
 

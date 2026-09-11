@@ -61,8 +61,8 @@ try {
   process.exit(1);
 }
 
-if (generatedConfig.appId !== "com.hizovo.app") {
-  console.error(`Android build stopped: generated appId is ${generatedConfig.appId || "missing"}, expected com.hizovo.app.`);
+if (generatedConfig.appId !== "com.zivosmedia.app") {
+  console.error(`Android build stopped: generated appId is ${generatedConfig.appId || "missing"}, expected com.zivosmedia.app.`);
   process.exit(1);
 }
 

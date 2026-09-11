@@ -10,6 +10,11 @@ describe("pathFromNativeOpenUrl", () => {
     expect(pathFromNativeOpenUrl("com.myzivo.app:///chat?thread=abc#latest")).toBe("/chat?thread=abc#latest");
   });
 
+  it("accepts the new Media package scheme", () => {
+    expect(pathFromNativeOpenUrl("com.zivosmedia.app://app/home?source=play")).toBe("/app/home?source=play");
+    expect(pathFromNativeOpenUrl("com.zivosmedia.app:///chat?thread=abc#latest")).toBe("/chat?thread=abc#latest");
+  });
+
   it("accepts the legacy app scheme", () => {
     expect(pathFromNativeOpenUrl("com.hizovo.app://app/home")).toBe("/app/home");
   });

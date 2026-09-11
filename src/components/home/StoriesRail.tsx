@@ -1,3 +1,4 @@
+import { ApiUnavailable } from "@/components/shared/ApiUnavailable";
 /**
  * StoriesRail — Instagram-style horizontal stories carousel for Home.
  *
@@ -21,7 +22,7 @@ export default function StoriesRail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: profile } = useUserProfile();
-  const { data: stories = [], isLoading } = useStoriesFeed();
+  const { data: stories = [], isLoading, isError, refetch, isFetching } = useStoriesFeed();
 
   // Local optimistic-watch overlay so a tap immediately desaturates the ring,
   // even before the story_views write round-trips.
@@ -46,6 +47,7 @@ export default function StoriesRail() {
 
   return (
     <div className={cn(hasOthers && "border-b border-border")}>
+      {isError && <ApiUnavailable area="stories" retry={() => void refetch()} busy={isFetching} />}
       <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 py-3">
         {/* "Your story" — only shown to signed-in users (tile routes to auth-only /feed/new) */}
         {user && (

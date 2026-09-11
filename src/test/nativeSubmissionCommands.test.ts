@@ -12,13 +12,13 @@ describe("native submission commands", () => {
     const packageJson = read("package.json");
 
     for (const script of [
-      '"native:sync": "npm run build && npx cap sync ios && npx cap sync android"',
+      '"native:sync": "npm run build && npx cap sync ios && ZIVO_NATIVE_PLATFORM=android npx cap sync android"',
       '"ios:sync": "npm run build && npx cap sync ios"',
       '"ios:build:sim": "npm run native:doctor -- --ios-only && xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -destination',
       '"ios:archive:store": "npm run native:doctor -- --ios-only && node scripts/native/run-ios-store.mjs archive"',
       '"ios:export:store": "node scripts/native/run-ios-store.mjs export"',
       '"ios:upload:app-store": "node scripts/upload-to-app-store.mjs"',
-      '"android:sync": "npm run build && npx cap sync android"',
+      '"android:sync": "npm run build && ZIVO_NATIVE_PLATFORM=android npx cap sync android"',
       '"android:icons:generate": "node scripts/generate-launcher-icons.mjs"',
       '"android:icons:check": "node scripts/native/check-android-launcher-identity.mjs"',
       '"android:build:debug": "npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs assembleDebug"',

@@ -15,6 +15,8 @@ export interface Airport {
 
 // Major international hubs
 export const airports: Airport[] = [
+  // SAI operator: english.sai-airport.com; coordinates: ourairports.com/airports/VDSA/ (2026-09-08).
+  { code: 'SAI', name: 'Siem Reap-Angkor International', city: 'Siem Reap', country: 'Cambodia', region: 'Asia', timezone: 'ICT', lat: 13.369740, lng: 104.223831, type: 'international', popularity: 9 },
   // North America
   { code: 'JFK', name: 'John F. Kennedy International', city: 'New York', country: 'USA', region: 'North America', timezone: 'EST', lat: 40.6413, lng: -73.7781, type: 'international', popularity: 10 },
   { code: 'LAX', name: 'Los Angeles International', city: 'Los Angeles', country: 'USA', region: 'North America', timezone: 'PST', lat: 33.9425, lng: -118.4081, type: 'international', popularity: 10 },

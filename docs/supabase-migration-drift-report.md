@@ -1,20 +1,20 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-09-05T22:22:26.463Z
+Generated: 2026-09-09T16:13:13.165Z
 
 ## Summary
 
-- Local migrations: 1179
+- Local migrations: 1183
 - Invalid filenames: 0
 - Duplicate versions: 6
 - Allowed duplicate versions: 6
 - New duplicate versions: 0
 - Duplicate SQL hashes: 0
-- SUPABASE_ACCESS_TOKEN configured: no
-- Local version range: 20260126182101 to 20260904210000
-- Remote version range: 20260126182101 to 20260904210000
-- Remote migrations: 1780
-- Matched versions: 770
+- SUPABASE_ACCESS_TOKEN configured: yes
+- Local version range: 20260126182101 to 20260909005602
+- Remote version range: 20260126182101 to 20260909005602
+- Remote migrations: 1784
+- Matched versions: 774
 - Local-only pending: 409
 - Remote-only missing locally: 1012
 - Near timestamp pairs within 5 seconds: 4
@@ -59,7 +59,7 @@ Generated: 2026-09-05T22:22:26.463Z
 
 ## Remote Query
 
-- Auth token: SUPABASE_ACCESS_TOKEN was not present for this run.
+- Auth token: SUPABASE_ACCESS_TOKEN was present for this run.
 - Linked remote migration history was read successfully.
 
 

@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { buildPhoneE164, normalizePhoneDigits } from "@/lib/phone";
+import { visitorCountry } from "@/lib/visitorLocale";
 
 interface CountryCode {
   code: string;
@@ -155,7 +156,11 @@ export const CountryPhoneInput = forwardRef<HTMLInputElement, CountryPhoneInputP
 ) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState<CountryCode>(COUNTRY_CODES[0]);
+  const [selectedCountry, setSelectedCountry] = useState<CountryCode>(() => {
+    let country = visitorCountry();
+    try { country = localStorage.getItem("zivo_phone_country") || country; } catch { /* Storage is optional. */ }
+    return COUNTRY_CODES.find(item => item.code === country) || COUNTRY_CODES[0];
+  });
   const [localNumber, setLocalNumber] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -212,6 +217,7 @@ export const CountryPhoneInput = forwardRef<HTMLInputElement, CountryPhoneInputP
   };
 
   const handleCountrySelect = (country: CountryCode) => {
+    try { localStorage.setItem("zivo_phone_country", country.code); } catch { /* Keep the in-memory choice. */ }
     setSelectedCountry(country);
     const e164 = buildPhoneE164(country.dial, localNumber);
     lastEmittedRef.current = e164;
@@ -222,6 +228,7 @@ export const CountryPhoneInput = forwardRef<HTMLInputElement, CountryPhoneInputP
   const handleNumberChange = (num: string) => {
     const cleaned = num
       .normalize("NFKD")
+      .replace(/[០-៩]/g, (digit) => String(digit.charCodeAt(0) - 0x17e0))
       .replace(/[０-９]/g, (digit) => String.fromCharCode(digit.charCodeAt(0) - 65248))
       .replace(/[^\d\s-]/g, "");
 

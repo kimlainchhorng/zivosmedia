@@ -1,0 +1,17 @@
+{
+  "publicBuildVariableNames": [
+    "VITE_SUPABASE_PUBLISHABLE_KEY",
+    "VITE_SUPABASE_URL",
+    "VITE_ZIVO_BUSINESS_CATALOG_URL",
+    "VITE_ZIVO_RIDE_APP_URL",
+    "VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY",
+    "VITE_ZIVO_SOFTWARE_SUPABASE_URL"
+  ],
+  "catalogEmbedded": true,
+  "mediaProjectEmbedded": true,
+  "privateInputValuesInBuiltAssetsOrLogs": false,
+  "originalEnvCopyRemoved": true,
+  "releaseConfigRetainsOnlyPublicCatalogSetting": true,
+  "warningLiteralAbsentFromAllChunks": false,
+  "anonymousRuntimeConfigWarnings": 0
+}

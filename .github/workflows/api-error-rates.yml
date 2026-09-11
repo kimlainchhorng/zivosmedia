@@ -1,0 +1,49 @@
+name: Production API error rates
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: production-api-error-rates
+  cancel-in-progress: false
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24
+      - name: Check aggregate endpoint rates
+        id: rates
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/monitoring/api-error-rates.mjs
+      - name: Retain aggregate evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: api-error-rates
+          path: artifacts/monitoring/api-error-rates.json
+          retention-days: 7
+      - name: Open one alert issue on failure
+        if: steps.rates.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          TITLE='Production API endpoint error-rate alert'
+          COUNT=$(gh issue list --state open --search "$TITLE in:title" --json number --jq length)
+          if [ "$COUNT" = '0' ]; then
+            printf 'API endpoint 4xx rate exceeded 5%% with at least 3 failures in 15 minutes, or the monitor itself is unavailable. Inspect aggregate job evidence: %s\n\nNo user identifiers, query strings, tokens or response bodies are recorded. Close after investigation; later failures will open a new issue.\n' "$RUN_URL" > /tmp/api-alert.md
+            gh issue create --title "$TITLE" --body-file /tmp/api-alert.md
+          fi
+          exit 1

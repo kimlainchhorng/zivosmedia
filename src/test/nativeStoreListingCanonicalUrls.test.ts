@@ -13,17 +13,17 @@ describe("native store listing canonical URLs", () => {
     const capacitorConfig = read("capacitor.config.ts");
     const playStore = read("android/store-listing/PLAY_STORE.md");
 
-    expect(androidStrings).toContain('<string name="app_name">Zivo Media - All in one</string>');
+    expect(androidStrings).toContain('<string name="app_name">Zivo - Media</string>');
     expect(androidStrings).toContain(
-      '<string name="title_activity_main">Zivo Media - All in one</string>',
+      '<string name="title_activity_main">Zivo - Media</string>',
     );
     expect(androidStrings).not.toMatch(
       /<string name="(?:app_name|title_activity_main)">Zivo<\/string>/,
     );
-    expect(capacitorConfig).toContain("appId: 'com.hizovo.app'");
-    expect(capacitorConfig).toContain("appName: 'Zivo Media - All in one'");
-    expect(playStore).toContain("Package name: `com.hizovo.app`");
-    expect(playStore).toMatch(/## 1\. App Name[\s\S]*?```\nZivo Media - All in one\n```/);
+    expect(capacitorConfig).toContain("appId: process.env.ZIVO_NATIVE_PLATFORM === 'android' ? 'com.zivosmedia.app' : 'com.hizovo.app'");
+    expect(capacitorConfig).toContain("appName: 'Zivo - Media'");
+    expect(playStore).toContain("Package name: `com.zivosmedia.app`");
+    expect(playStore).toMatch(/## 1\. App Name[\s\S]*?```\nZivo - Media\n```/);
     expect(playStore).not.toContain("ZIVO – Travel, Social & Shop");
   });
 

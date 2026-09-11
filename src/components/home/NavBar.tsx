@@ -122,7 +122,11 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
   const { unreadCount: notificationUnread } = useNotifications(20);
   const { data: supportedLanguages } = useSupportedLanguages(true);
   const activeLanguages = (supportedLanguages || []).filter((l) => l.is_active);
-  const currentLangData = activeLanguages.find((l) => l.code === currentLanguage);
+  const languageOptions = activeLanguages.length ? activeLanguages : [
+    { code: "en", name: "English", native_name: "English", flag_emoji: "🇺🇸", flag_svg: null, is_active: true },
+    { code: "km", name: "Khmer", native_name: "ភាសាខ្មែរ", flag_emoji: "🇰🇭", flag_svg: null, is_active: true },
+  ];
+  const currentLangData = languageOptions.find((l) => l.code === currentLanguage) || languageOptions[0];
 
   // Fetch user profile avatar
   useEffect(() => {
@@ -383,7 +387,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                       </div>
                     </div>
                     <div className="overflow-y-auto max-h-[360px] p-1">
-                      {activeLanguages.map((lang) => (
+                      {languageOptions.map((lang) => (
                         <button type="button"
                           key={lang.code}
                           onClick={() => { changeLanguage(lang.code); setIsLangOpen(false); }}

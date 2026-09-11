@@ -1,11 +1,11 @@
 {
-  "generated": "2026-08-30T23:51:18Z",
+  "generated": "2026-09-09T01:06:46.510435+00:00",
   "projectRef": "slirphzzwcogdbkeicff",
   "source": "supabase-mcp",
-  "localMigrations": 1166,
-  "remoteMigrations": 1622,
-  "firstRemoteVersion": "20260126182059",
-  "latestRemoteVersion": "20260830180554",
+  "localMigrations": 1183,
+  "remoteMigrations": 1784,
+  "firstRemoteVersion": "20260126182101",
+  "latestRemoteVersion": "20260909005602",
   "verifiedAppliedMigrations": [
     {
       "version": "20260722192749",
@@ -34,6 +34,22 @@
     {
       "version": "20260830180554",
       "name": "cutover_internal_cron_hmac_jobs"
+    },
+    {
+      "version": "20260908225412",
+      "name": "postdeploy_story_payout_read_contract"
+    },
+    {
+      "version": "20260909005356",
+      "name": "media_operations_hiring_and_monitor"
+    },
+    {
+      "version": "20260909005359",
+      "name": "media_social_realtime_visibility"
+    },
+    {
+      "version": "20260909005602",
+      "name": "activate_media_operations_monitor"
     }
   ]
 }

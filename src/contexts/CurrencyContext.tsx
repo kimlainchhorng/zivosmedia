@@ -1,3 +1,4 @@
+import { visitorCurrency } from "@/lib/visitorLocale";
 /**
  * ZIVO Global Currency Context
  * Manages user currency preference with persistence and exchange rates
@@ -8,7 +9,6 @@ import type { ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   SUPPORTED_CURRENCIES,
-  DEFAULT_CURRENCY,
   getCurrencyConfig,
   FALLBACK_RATES,
   type CurrencyConfig,
@@ -64,42 +64,6 @@ interface CurrencyContextValue {
 
 const CurrencyContext = createContext<CurrencyContextValue | undefined>(undefined);
 
-function detectBrowserCurrency(): string {
-  try {
-    const locale = navigator.language || "en-US";
-    const parts = locale.split("-");
-    const region = parts[parts.length - 1].toUpperCase();
-    
-    // Map common regions to currencies
-    const regionCurrencyMap: Record<string, string> = {
-      US: "USD",
-      GB: "GBP",
-      UK: "GBP",
-      EU: "EUR",
-      DE: "EUR",
-      FR: "EUR",
-      IT: "EUR",
-      ES: "EUR",
-      CA: "CAD",
-      AU: "AUD",
-      JP: "JPY",
-      KR: "KRW",
-      SG: "SGD",
-      TH: "THB",
-      KH: "KHR",
-      KM: "KHR",
-    };
-    
-    const detected = regionCurrencyMap[region];
-    if (detected && SUPPORTED_CURRENCIES.some(c => c.code === detected)) {
-      return detected;
-    }
-  } catch {
-    // Ignore detection errors
-  }
-  return DEFAULT_CURRENCY;
-}
-
 function loadCachedRates(): RatesCache | null {
   try {
     const cached = localStorage.getItem(RATES_CACHE_KEY);
@@ -136,7 +100,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     ? requestedCurrency
     : null;
   
-  // Initialize currency from URL > localStorage > browser locale > default
+  // Initialize currency from URL > localStorage > visitor country > market default
   const [currency, setCurrencyState] = useState<string>(() => {
     // 1. Check URL param
     if (routeCurrency) return routeCurrency;
@@ -151,8 +115,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       // Ignore storage errors
     }
     
-    // 3. Detect from browser
-    return detectBrowserCurrency();
+    // 3. Display currency follows country, never interface language
+    return visitorCurrency();
   });
   
   const [rates, setRates] = useState<ExchangeRates>(() => {

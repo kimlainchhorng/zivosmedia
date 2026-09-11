@@ -44,7 +44,7 @@ const validAssetLinks = JSON.stringify([
     ],
     target: {
       namespace: "android_app",
-      package_name: "com.hizovo.app",
+      package_name: "com.zivosmedia.app",
       sha256_cert_fingerprints: [...ZIVO_ANDROID_CERT_FINGERPRINTS],
     },
   },
@@ -131,7 +131,7 @@ test("requires the Android create, restore, clear, and E2EE fallback flow", () =
 test("derives the Play and upload Android native passkey origins", () => {
   assert.equal(
     computeAndroidAppOrigin(ZIVO_ANDROID_PLAY_CERT_FINGERPRINT),
-    "android:apk-key-hash:6kWZHpGKnzD57sKZGn9yZg6sSWgYS3QWqMQMHgDu-lI",
+    "android:apk-key-hash:hoObOfTXHgwe1osVdmtgMSRi6Rn1t6I_k7pXnGp7rQU",
   );
   assert.equal(
     computeAndroidAppOrigin(ZIVO_ANDROID_UPLOAD_CERT_FINGERPRINT),
@@ -141,7 +141,7 @@ test("derives the Play and upload Android native passkey origins", () => {
 
 test("requires the Digital Asset Links login-credentials relation", () => {
   assert.deepEqual(validateAssetLinks(validAssetLinks).androidOrigins, [
-    "android:apk-key-hash:6kWZHpGKnzD57sKZGn9yZg6sSWgYS3QWqMQMHgDu-lI",
+    "android:apk-key-hash:hoObOfTXHgwe1osVdmtgMSRi6Rn1t6I_k7pXnGp7rQU",
     "android:apk-key-hash:LLQQEib7T8lVhDnkgnTuPAwZVaH7h35Gs-1uhAuL2X4",
   ]);
   const missingLoginRelation = JSON.parse(validAssetLinks);
@@ -181,7 +181,7 @@ test("the checked-in Restore Credentials foundation passes its complete guard", 
   const result = checkAndroidRestoreCredentials();
   assert.equal(result.dependencyVersion, "1.6.0");
   assert.deepEqual(result.androidOrigins, [
-    "android:apk-key-hash:6kWZHpGKnzD57sKZGn9yZg6sSWgYS3QWqMQMHgDu-lI",
+    "android:apk-key-hash:hoObOfTXHgwe1osVdmtgMSRi6Rn1t6I_k7pXnGp7rQU",
     "android:apk-key-hash:LLQQEib7T8lVhDnkgnTuPAwZVaH7h35Gs-1uhAuL2X4",
   ]);
 });

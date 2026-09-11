@@ -1,3 +1,6 @@
+import { formatTravelDate as format } from "@/i18n/travelDate";
+import { TravelCopy, publicTravelText } from "@/i18n/publicTravelCopy";
+import { useI18n } from "@/hooks/useI18n";
 /**
  * HotelsLandingPage
  * Booking-style discovery: tighter hero, dates+guests, quick filters,
@@ -10,7 +13,7 @@ import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { format, addDays, differenceInCalendarDays } from "date-fns";
+import { addDays, differenceInCalendarDays } from "date-fns";
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left";
 import Heart from "lucide-react/dist/esm/icons/heart";
 import Clock from "lucide-react/dist/esm/icons/clock";
@@ -191,6 +194,9 @@ function haversineDist(lat1: number, lon1: number, lat2: number, lon2: number): 
 }
 
 export default function HotelsLandingPage() {
+  const { locale } = useI18n();
+  const km = locale === "km";
+  const text = (en: string, kh: string) => km ? kh : en;
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -200,8 +206,8 @@ export default function HotelsLandingPage() {
   const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
   const seoOrigin = isTravelHost ? ZIVO_TRAVEL_ORIGIN : "https://zivosmedia.com";
   const seoBrand = isTravelHost ? "Zivo Travel" : "ZIVO";
-  const seoTitle = `Hotels & Resorts - Find Your Stay | ${seoBrand}`;
-  const seoDescription = isTravelHost
+  const seoTitle = `${text("Hotels & Resorts - Find Your Stay", "សណ្ឋាគារ និងរមណីយដ្ឋាន - ស្វែងរកកន្លែងស្នាក់នៅ")} | ${seoBrand}`;
+  const seoDescription = km ? "ស្វែងរកសណ្ឋាគារ រមណីយដ្ឋាន និងផ្ទះសំណាក់នៅភ្នំពេញ សៀមរាប ក្រុងព្រះសីហនុ និងទីក្រុងផ្សេងៗក្នុងប្រទេសកម្ពុជា។" : isTravelHost
     ? "Discover hotels, resorts, and guesthouses with Zivo Travel. Search stays, compare dates and guests, and keep trips connected with flights, cars, and bus booking."
     : "Discover hotels, resorts and guesthouses. Browse properties in Phnom Penh, Siem Reap, Sihanoukville and more. Book direct on ZIVO.";
   const seoCanonical = `${seoOrigin}/hotels`;
@@ -860,6 +866,8 @@ export default function HotelsLandingPage() {
         <title>{seoTitle}</title>
         <meta name="description" content={seoDescription} />
         <link rel="canonical" href={seoCanonical} />
+        <link rel="alternate" hrefLang="en" href={`${seoCanonical}?lang=en`} />
+        <link rel="alternate" hrefLang="km" href={`${seoCanonical}?lang=km`} />
         <meta property="og:title" content={seoTitle} />
         <meta property="og:description" content={seoDescription} />
         <meta property="og:image" content={seoImage} />
@@ -909,7 +917,7 @@ export default function HotelsLandingPage() {
           <div className="flex items-center gap-2">
             <button type="button"
               onClick={smartBack}
-              aria-label="Back"
+              aria-label={publicTravelText("Back")}
               className="h-11 w-11 -ml-1 rounded-full flex items-center justify-center bg-white/15 backdrop-blur active:bg-white/25 transition touch-manipulation"
             >
               <ArrowLeft className="w-5 h-5 text-white" />
@@ -918,24 +926,24 @@ export default function HotelsLandingPage() {
               <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
                 <Link
                   to="/"
-                  aria-label="Zivo Travel home"
+                  aria-label={publicTravelText("Zivo Travel home")}
                   className="rounded-lg bg-white/90 px-2 py-1 shadow-sm backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   <ZivoTravelLogo size="sm" />
                 </Link>
-                <h1 className="truncate text-sm font-bold text-white drop-shadow-lg">Hotels</h1>
+                <h1 className="truncate text-sm font-bold text-white drop-shadow-lg">{text("Hotels", "សណ្ឋាគារ")}</h1>
               </div>
             ) : (
-              <h1 className="text-base font-bold text-white flex-1 truncate drop-shadow-lg">Hotels & Resorts</h1>
+              <h1 className="text-base font-bold text-white flex-1 truncate drop-shadow-lg">{text("Hotels & Resorts", "សណ្ឋាគារ និងរមណីយដ្ឋាន")}</h1>
             )}
           </div>
 
           <div className="mt-3 mb-3">
             <h2 className="text-[22px] sm:text-[26px] font-extrabold text-white leading-tight drop-shadow-lg">
-              Find your perfect stay
+              {text("Find your perfect stay", "ស្វែងរកកន្លែងស្នាក់នៅដែលស័ក្តិសមសម្រាប់អ្នក")}
             </h2>
             <p className="mt-1 text-[13px] text-white/90 drop-shadow-md">
-              Hotels, resorts and guesthouses across Cambodia.
+              {text("Hotels, resorts and guesthouses across Cambodia.", "សណ្ឋាគារ រមណីយដ្ឋាន និងផ្ទះសំណាក់ទូទាំងប្រទេសកម្ពុជា។")}
             </p>
             {showSoftwareBridge ? (
               <a
@@ -946,9 +954,7 @@ export default function HotelsLandingPage() {
                 }}
                 className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-full border border-white/25 bg-white/18 px-4 text-[12px] font-extrabold text-white shadow-lg backdrop-blur transition hover:bg-white/28"
               >
-                <HotelIcon className="h-4 w-4" />
-                Manage in ZIVO Software
-                <ChevronRight className="h-4 w-4" />
+                <HotelIcon className="h-4 w-4" /><TravelCopy text=" Manage in ZIVO Software " /><ChevronRight className="h-4 w-4" />
               </a>
             ) : null}
           </div>
@@ -981,8 +987,8 @@ export default function HotelsLandingPage() {
                   (e.target as HTMLInputElement).blur();
                 }
               }}
-              placeholder="Search city, hotel name..."
-              aria-label="Search hotels and destinations"
+              placeholder={text("Search city, hotel name...", "ស្វែងរកទីក្រុង ឬឈ្មោះសណ្ឋាគារ...")}
+              aria-label={text("Search hotels and destinations", "ស្វែងរកសណ្ឋាគារ និងគោលដៅ")}
               className="w-full h-11 pl-10 pr-9 rounded-2xl bg-white text-foreground placeholder:text-muted-foreground shadow-lg outline-none text-sm focus:ring-2 focus:ring-primary/40 transition [&::-webkit-search-cancel-button]:appearance-none"
             />
             {search && (
@@ -990,7 +996,7 @@ export default function HotelsLandingPage() {
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setSearch("")}
-                aria-label="Clear search"
+                aria-label={publicTravelText("Clear search")}
                 className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted active:scale-95 transition z-10"
               >
                 <span className="text-base leading-none">×</span>
@@ -1052,7 +1058,7 @@ export default function HotelsLandingPage() {
                   <CalendarIcon className="w-4 h-4 text-primary shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">
-                      {nights} night{nights > 1 ? "s" : ""}
+                      {nights} {text(nights > 1 ? "nights" : "night", "យប់")}
                     </p>
                     <p className="text-[12px] font-semibold text-foreground truncate leading-tight">
                       {format(checkIn, "MMM d")} – {format(checkOut, "MMM d")}
@@ -1063,7 +1069,7 @@ export default function HotelsLandingPage() {
               <PopoverContent className="w-auto p-0 max-w-[92vw]" align="start">
                 <div className="p-2 border-b">
                   <p className="text-[11px] font-semibold text-muted-foreground">
-                    Pick check-in & check-out
+                    {text("Pick check-in & check-out", "ជ្រើសរើសថ្ងៃចូល និងថ្ងៃចេញ")}
                   </p>
                 </div>
                 <Calendar
@@ -1090,21 +1096,21 @@ export default function HotelsLandingPage() {
                   <Users className="w-4 h-4 text-primary shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">
-                      Guests · Rooms
+                      {text("Guests · Rooms", "ភ្ញៀវ · បន្ទប់")}
                     </p>
                     <p className="text-[12px] font-semibold text-foreground truncate leading-tight">
-                      {guests + children} guest{guests + children > 1 ? "s" : ""} · {rooms} room{rooms > 1 ? "s" : ""}
+                      {guests + children} {text(guests + children > 1 ? "guests" : "guest", "ភ្ញៀវ")} · {rooms} {text(rooms > 1 ? "rooms" : "room", "បន្ទប់")}
                     </p>
                   </div>
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-64 p-3" align="end">
                 <div className="space-y-3">
-                  <Stepper label="Adults" value={guests} min={1} max={20} onChange={setGuests} />
-                  <Stepper label="Children" value={children} min={0} max={10} onChange={setChildren} />
-                  <Stepper label="Rooms" value={rooms} min={1} max={10} onChange={setRooms} />
+                  <Stepper label={text("Adults", "មនុស្សពេញវ័យ")} value={guests} min={1} max={20} onChange={setGuests} />
+                  <Stepper label={text("Children", "កុមារ")} value={children} min={0} max={10} onChange={setChildren} />
+                  <Stepper label={text("Rooms", "បន្ទប់")} value={rooms} min={1} max={10} onChange={setRooms} />
                   <Button className="w-full h-9" onClick={() => setGuestsOpen(false)}>
-                    Done
+                    {text("Done", "រួចរាល់")}
                   </Button>
                 </div>
               </PopoverContent>
@@ -1118,7 +1124,7 @@ export default function HotelsLandingPage() {
             className="mt-2 w-full h-11 rounded-2xl bg-ig-gradient text-white font-bold text-sm shadow-lg active:scale-[0.98] transition inline-flex items-center justify-center gap-2"
           >
             <Search className="w-4 h-4" />
-            Search hotels
+            {text("Search hotels", "ស្វែងរកសណ្ឋាគារ")}
           </button>
         </div>
       </div>
@@ -1135,7 +1141,7 @@ export default function HotelsLandingPage() {
           <button
             type="button"
             onClick={smartBack}
-            aria-label="Back"
+            aria-label={publicTravelText("Back")}
             className="h-11 w-11 shrink-0 rounded-full flex items-center justify-center bg-muted active:bg-muted/70 touch-manipulation"
           >
             <ArrowLeft className="w-4 h-4 text-foreground" />
@@ -1159,15 +1165,15 @@ export default function HotelsLandingPage() {
                   submitSearch();
                 }
               }}
-              placeholder="Search city, hotel name..."
-              aria-label="Search hotels and destinations (sticky)"
+              placeholder={text("Search city, hotel name...", "ស្វែងរកទីក្រុង ឬឈ្មោះសណ្ឋាគារ...")}
+              aria-label={publicTravelText("Search hotels and destinations (sticky)")}
               className="w-full h-9 pl-9 pr-8 rounded-full bg-muted text-foreground placeholder:text-muted-foreground outline-none text-sm focus:ring-2 focus:ring-primary/40 [&::-webkit-search-cancel-button]:appearance-none"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                aria-label="Clear search"
+                aria-label={publicTravelText("Clear search")}
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center text-muted-foreground hover:bg-background"
               >
                 <span className="text-base leading-none">×</span>
@@ -1178,7 +1184,7 @@ export default function HotelsLandingPage() {
             type="button"
             onClick={() => setDatesOpen(true)}
             className="h-9 px-2.5 shrink-0 rounded-full bg-muted text-[11px] font-semibold text-foreground inline-flex items-center gap-1 active:bg-muted/70"
-            aria-label="Edit dates"
+            aria-label={publicTravelText("Edit dates")}
           >
             <CalendarIcon className="w-3.5 h-3.5 text-primary" />
             {format(checkIn, "MMM d")}–{format(checkOut, "MMM d")}
@@ -1191,9 +1197,7 @@ export default function HotelsLandingPage() {
         <section className="pt-3">
           <div className="px-4 flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <span className="text-[11px] text-muted-foreground shrink-0 mr-0.5 inline-flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              Recent
-            </span>
+              <Clock className="w-3 h-3" /><TravelCopy text=" Recent " /></span>
             {recentSearches.map((q) => (
               <div
                 key={q}
@@ -1203,15 +1207,15 @@ export default function HotelsLandingPage() {
                   type="button"
                   onClick={() => jumpToDestination(q)}
                   className="pl-3 pr-1.5 py-1 text-[11px] font-medium truncate max-w-[140px]"
-                  aria-label={`Search ${q}`}
+                  aria-label={publicTravelText(`Search ${q}`)}
                 >
-                  {q}
+                  <TravelCopy text={q} />
                 </button>
                 <button
                   type="button"
                   onClick={() => removeRecentSearch(q)}
                   className="pr-2 pl-0.5 py-1 text-muted-foreground hover:text-foreground"
-                  aria-label={`Remove ${q} from recent searches`}
+                  aria-label={publicTravelText(`Remove ${q} from recent searches`)}
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -1224,9 +1228,7 @@ export default function HotelsLandingPage() {
                 writeHotelStringList(HOTEL_RECENT_SEARCHES_KEY, userId, [], 5);
               }}
               className="shrink-0 text-[11px] text-muted-foreground underline ml-1"
-            >
-              Clear all
-            </button>
+            ><TravelCopy text=" Clear all " /></button>
           </div>
         </section>
       )}
@@ -1246,9 +1248,7 @@ export default function HotelsLandingPage() {
                 : "bg-card text-foreground border-border/80 hover:bg-muted active:bg-muted",
             )}
           >
-            <LocateFixed className="w-3 h-3" />
-            Near me
-          </button>
+            <LocateFixed className="w-3 h-3" /><TravelCopy text=" Near me " /></button>
           {favorites.size > 0 && (
             <button
               type="button"
@@ -1261,8 +1261,7 @@ export default function HotelsLandingPage() {
                   : "bg-card text-foreground border-border/80 hover:bg-muted active:bg-muted",
               )}
             >
-              <Heart className={cn("w-3 h-3", savedOnly ? "fill-current" : "fill-rose-500 text-rose-500")} />
-              Saved ({favorites.size})
+              <Heart className={cn("w-3 h-3", savedOnly ? "fill-current" : "fill-rose-500 text-rose-500")} /><TravelCopy text=" Saved (" />{favorites.size})
             </button>
           )}
           {QUICK_TAGS.map((tag) => {
@@ -1281,7 +1280,7 @@ export default function HotelsLandingPage() {
                 )}
               >
                 <TagIcon className="w-3 h-3" />
-                {tag.label}
+                <TravelCopy text={tag.label} />
               </button>
             );
           })}
@@ -1292,9 +1291,7 @@ export default function HotelsLandingPage() {
       <section className="pt-4">
         <div className="px-4 flex items-center justify-between mb-2">
           <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-            <MapPin className="w-4 h-4 text-primary" />
-            Popular destinations
-          </h3>
+            <MapPin className="w-4 h-4 text-primary" /><TravelCopy text=" Popular destinations " /></h3>
         </div>
         <div className="flex gap-2.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {POPULAR_DESTINATIONS.map((dest) => {
@@ -1314,7 +1311,7 @@ export default function HotelsLandingPage() {
                   "shrink-0 relative w-[140px] h-[88px] rounded-2xl overflow-hidden border transition active:scale-95 " +
                   (active ? "border-primary ring-2 ring-primary/30" : "border-border")
                 }
-                aria-label={`Show hotels in ${dest.label}`}
+                aria-label={publicTravelText(`Show hotels in ${dest.label}`)}
               >
                 <img
                   src={dest.img}
@@ -1328,7 +1325,7 @@ export default function HotelsLandingPage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
                 <span className="absolute bottom-1.5 left-2 right-2 text-[11px] font-bold text-white drop-shadow text-left whitespace-nowrap">
-                  {dest.label}
+                  <TravelCopy text={dest.label} />
                 </span>
               </button>
             );
@@ -1341,15 +1338,12 @@ export default function HotelsLandingPage() {
         <section className="pt-5">
           <div className="px-4 flex items-center justify-between mb-2">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              Featured properties
-            </h3>
+              <Sparkles className="w-4 h-4 text-amber-500" /><TravelCopy text=" Featured properties " /></h3>
             <button type="button"
               onClick={jumpToFeatured}
               className="min-h-[40px] px-1 text-[11px] font-semibold text-primary flex items-center gap-0.5 touch-manipulation"
-              aria-label="See all top-rated properties"
-            >
-              See all <ChevronRight className="w-3 h-3" />
+              aria-label={publicTravelText("See all top-rated properties")}
+            ><TravelCopy text=" See all " /><ChevronRight className="w-3 h-3" />
             </button>
           </div>
           <div className="flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -1386,7 +1380,7 @@ export default function HotelsLandingPage() {
                     }
                   }}
                   className="shrink-0 w-[210px] rounded-2xl border border-border bg-card overflow-hidden text-left active:scale-[0.98] transition shadow-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  aria-label={`Open ${store.name}`}
+                  aria-label={publicTravelText(`Open ${store.name}`)}
                 >
                   <div className="relative w-full h-28 bg-muted">
                     <SmartImage
@@ -1399,9 +1393,7 @@ export default function HotelsLandingPage() {
                       }
                     />
                     {store.is_verified && (
-                      <Badge className="absolute top-1.5 left-1.5 bg-emerald-600 text-white text-[9px] px-1.5 py-0">
-                        Verified
-                      </Badge>
+                      <Badge className="absolute top-1.5 left-1.5 bg-emerald-600 text-white text-[9px] px-1.5 py-0"><TravelCopy text=" Verified " /></Badge>
                     )}
                     {pctOff > 0 && (
                       <Badge className="absolute bottom-1.5 left-1.5 bg-red-600 text-white text-[9px] px-1.5 py-0">
@@ -1410,7 +1402,7 @@ export default function HotelsLandingPage() {
                     )}
                     <button
                       type="button"
-                      aria-label={isFav ? "Remove from favorites" : "Save to favorites"}
+                      aria-label={publicTravelText(isFav ? "Remove from favorites" : "Save to favorites")}
                       onClick={(e) => toggleFavorite(store.id, e)}
                       className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/30 backdrop-blur flex items-center justify-center active:scale-90 transition-transform"
                     >
@@ -1432,16 +1424,15 @@ export default function HotelsLandingPage() {
                           {rating.toFixed(1)}
                         </span>
                       ) : hasLeftMeta ? (
-                        <span className="text-[10px] font-semibold text-emerald-600">New</span>
+                        <span className="text-[10px] font-semibold text-emerald-600"><TravelCopy text="New" /></span>
                       ) : null}
                       {typeof showCents === "number" ? (
-                        <span className={cn("text-[11px] font-bold text-foreground", !hasLeftMeta && "ml-auto")}>
-                          from{" "}
+                        <span className={cn("text-[11px] font-bold text-foreground", !hasLeftMeta && "ml-auto")}><TravelCopy text=" from" /><TravelCopy text={" "} />
                           {discountedCents !== null && typeof minCents === "number" && (
                             <span className="line-through text-muted-foreground font-normal mr-0.5">{fmtPrice(minCents / 100, "USD")}</span>
                           )}
                           <span className={discountedCents !== null ? "text-emerald-600" : "text-primary"}>{fmtPrice(showCents / 100, "USD")}</span>
-                          <span className="text-muted-foreground font-normal text-[9px]"> /night</span>
+                          <span className="text-muted-foreground font-normal text-[9px]"><TravelCopy text=" /night" /></span>
                         </span>
                       ) : null}
                     </div>
@@ -1457,14 +1448,12 @@ export default function HotelsLandingPage() {
       {recentlyViewed.length > 0 && (
         <section className="pt-5">
           <div className="px-4 flex items-center justify-between mb-2">
-            <h3 className="text-sm font-bold text-foreground">Recently viewed</h3>
+            <h3 className="text-sm font-bold text-foreground"><TravelCopy text="Recently viewed" /></h3>
             <button
               type="button"
               onClick={clearRecentlyViewed}
               className="min-h-[40px] px-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition touch-manipulation"
-            >
-              Clear
-            </button>
+            ><TravelCopy text=" Clear " /></button>
           </div>
           <div className="-mx-4 px-4 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {recentlyViewed.map((rv) => (
@@ -1473,7 +1462,7 @@ export default function HotelsLandingPage() {
                 type="button"
                 onClick={() => openHotel(rv.id)}
                 className="shrink-0 w-44 rounded-2xl border border-border bg-card overflow-hidden text-left active:scale-[0.98] transition"
-                aria-label={`Open ${rv.name}`}
+                aria-label={publicTravelText(`Open ${rv.name}`)}
               >
                 <div className="relative h-24 bg-muted">
                   {rv.banner_url || rv.logo_url ? (
@@ -1512,18 +1501,18 @@ export default function HotelsLandingPage() {
                 {dest ? (
                   <>
                     <MapPin className="w-4 h-4 text-primary shrink-0" />
-                    <span className="truncate">Hotels in {dest.label}</span>
+                    <span className="truncate"><TravelCopy text="Hotels in " /><TravelCopy text={dest.label} /></span>
                     <button
                       type="button"
                       onClick={() => setSearch("")}
-                      aria-label={`Clear ${dest.label} filter`}
+                      aria-label={publicTravelText(`Clear ${dest.label} filter`)}
                       className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-muted text-muted-foreground hover:bg-muted/80 shrink-0"
                     >
                       <X className="w-3 h-3" />
                     </button>
                   </>
                 ) : (
-                  <span>All Hotels & Resorts</span>
+                  <span><TravelCopy text="All Hotels & Resorts" /></span>
                 )}
               </h3>
             );
@@ -1535,17 +1524,13 @@ export default function HotelsLandingPage() {
                 onClick={() => setViewMode("list")}
                 aria-pressed={viewMode === "list"}
                 className={cn("min-h-[40px] px-3 py-2 transition touch-manipulation", viewMode === "list" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}
-              >
-                List
-              </button>
+              ><TravelCopy text=" List " /></button>
               <button
                 type="button"
                 onClick={() => setViewMode("map")}
                 aria-pressed={viewMode === "map"}
                 className={cn("min-h-[40px] px-3 py-2 transition touch-manipulation", viewMode === "map" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}
-              >
-                Map
-              </button>
+              ><TravelCopy text=" Map " /></button>
             </div>
           </div>
         </div>
@@ -1586,11 +1571,11 @@ export default function HotelsLandingPage() {
                   key={p.key}
                   className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[11px] font-semibold pl-2.5 pr-1 py-1"
                 >
-                  {p.label}
+                  <TravelCopy text={p.label} />
                   <button
                     type="button"
                     onClick={p.clear}
-                    aria-label={`Remove filter ${p.label}`}
+                    aria-label={publicTravelText(`Remove filter ${p.label}`)}
                     className="inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-primary/20"
                   >
                     <X className="w-3 h-3" />
@@ -1609,9 +1594,7 @@ export default function HotelsLandingPage() {
                     setSortBy("default");
                   }}
                   className="shrink-0 text-[11px] font-semibold text-muted-foreground underline ml-1"
-                >
-                  Clear all
-                </button>
+                ><TravelCopy text=" Clear all " /></button>
               )}
             </div>
           );
@@ -1619,7 +1602,7 @@ export default function HotelsLandingPage() {
 
         {/* Sort chips */}
         <div className="px-4 pb-2 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <span className="text-[11px] text-muted-foreground shrink-0">Sort:</span>
+          <span className="text-[11px] text-muted-foreground shrink-0"><TravelCopy text="Sort:" /></span>
           {([
             { id: "default", label: "Best match" },
             { id: "rating", label: "Top rated" },
@@ -1636,14 +1619,14 @@ export default function HotelsLandingPage() {
                   : "bg-muted/70 text-muted-foreground active:bg-muted")
               }
             >
-              {opt.label}
+              <TravelCopy text={opt.label} />
             </button>
           ))}
         </div>
 
         {/* Budget filter chips */}
         <div className="px-4 pb-2 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <span className="text-[11px] text-muted-foreground shrink-0">Budget:</span>
+          <span className="text-[11px] text-muted-foreground shrink-0"><TravelCopy text="Budget:" /></span>
           {([
             { id: null,  label: "Any",        key: "any" },
             { id: 25,    label: "Under $25",   key: "25" },
@@ -1661,7 +1644,7 @@ export default function HotelsLandingPage() {
                   : "bg-muted/70 text-muted-foreground active:bg-muted")
               }
             >
-              {opt.label}
+              <TravelCopy text={opt.label} />
             </button>
           ))}
         </div>
@@ -1681,7 +1664,7 @@ export default function HotelsLandingPage() {
                     : "bg-muted/70 text-muted-foreground active:bg-muted")
                 }
               >
-                {f.label}
+                <TravelCopy text={f.label} />
               </button>
             );
           })}
@@ -1740,13 +1723,13 @@ export default function HotelsLandingPage() {
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center text-center py-12 gap-2">
               <HotelIcon className="w-10 h-10 text-muted-foreground" />
-              <p className="text-sm font-semibold text-foreground">No properties found</p>
+              <p className="text-sm font-semibold text-foreground"><TravelCopy text="No properties found" /></p>
               <p className="text-xs text-muted-foreground max-w-xs">
-                {savedOnly
+                <TravelCopy text={savedOnly
                   ? "You haven't saved any properties yet — tap the heart on a card."
                   : search || activeTags.length > 0 || activeFilter !== "all"
                   ? "Try a different city or remove some filters."
-                  : "Be the first — list your property on ZIVO."}
+                  : "Be the first — list your property on ZIVO."} />
               </p>
               {(search || activeTags.length > 0 || activeFilter !== "all" || savedOnly || maxBudget !== null || sortBy !== "default") ? (
                 <button type="button"
@@ -1759,16 +1742,12 @@ export default function HotelsLandingPage() {
                     setSortBy("default");
                   }}
                   className="mt-2 text-xs font-semibold text-primary"
-                >
-                  Clear filters
-                </button>
+                ><TravelCopy text=" Clear filters " /></button>
               ) : (
                 <Button
                   className="mt-2 h-9 px-4 text-xs"
                   onClick={() => navigate("/become-partner")}
-                >
-                  List your property
-                </Button>
+                ><TravelCopy text=" List your property " /></Button>
               )}
             </div>
           ) : (
@@ -1803,17 +1782,12 @@ export default function HotelsLandingPage() {
                     onClick={() => setVisibleCount((c) => Math.min(c + PAGE_SIZE, sorted.length))}
                     className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-muted text-foreground font-semibold text-xs active:bg-muted/70 transition touch-manipulation"
                   >
-                    <div className="h-3 w-3 rounded-full border-2 border-muted-foreground/30 border-t-primary animate-spin" />
-                    Show more
-                  </button>
-                  <p className="text-[11px] text-muted-foreground">
-                    Showing {visibleCount} of {sorted.length}
+                    <div className="h-3 w-3 rounded-full border-2 border-muted-foreground/30 border-t-primary animate-spin" /><TravelCopy text=" Show more " /></button>
+                  <p className="text-[11px] text-muted-foreground"><TravelCopy text=" Showing " />{visibleCount}<TravelCopy text=" of " />{sorted.length}
                   </p>
                 </div>
               ) : sorted.length > PAGE_SIZE ? (
-                <p className="pt-5 pb-2 text-center text-[11px] text-muted-foreground">
-                  Showing all {sorted.length} properties
-                </p>
+                <p className="pt-5 pb-2 text-center text-[11px] text-muted-foreground"><TravelCopy text=" Showing all " />{sorted.length}<TravelCopy text=" properties " /></p>
               ) : null}
             </>
           )}
@@ -1831,12 +1805,10 @@ export default function HotelsLandingPage() {
         <button
           type="button"
           onClick={() => setConciergeOpen(true)}
-          aria-label="Find a hotel with AI"
+          aria-label={publicTravelText("Find a hotel with AI")}
           className="fixed z-30 bottom-[max(var(--zivo-safe-bottom,0px),16px)] right-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white text-sm font-bold px-4 py-3 shadow-xl shadow-violet-500/30 active:scale-95 transition md:right-6 md:bottom-6"
         >
-          <Sparkles className="w-4 h-4" />
-          Find with AI
-        </button>
+          <Sparkles className="w-4 h-4" /><TravelCopy text=" Find with AI " /></button>
       )}
 
       {/* AI concierge sheet */}
@@ -1878,14 +1850,14 @@ function Stepper({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-sm font-semibold text-foreground">{label}</span>
+      <span className="text-sm font-semibold text-foreground"><TravelCopy text={label} /></span>
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => onChange(Math.max(min, value - 1))}
           disabled={value <= min}
           className="h-8 w-8 rounded-full border border-border text-foreground disabled:opacity-40 active:bg-muted"
-          aria-label={`Decrease ${label}`}
+          aria-label={publicTravelText(`Decrease ${label}`)}
         >
           –
         </button>
@@ -1895,7 +1867,7 @@ function Stepper({
           onClick={() => onChange(Math.min(max, value + 1))}
           disabled={value >= max}
           className="h-8 w-8 rounded-full border border-border text-foreground disabled:opacity-40 active:bg-muted"
-          aria-label={`Increase ${label}`}
+          aria-label={publicTravelText(`Increase ${label}`)}
         >
           +
         </button>
@@ -2005,7 +1977,7 @@ function PropertyCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index, 6) * 0.04 }}
       className="text-left rounded-2xl border border-border bg-card overflow-hidden shadow-sm active:scale-[0.99] transition cursor-pointer"
-      aria-label={`Open ${store.name}`}
+      aria-label={publicTravelText(`Open ${store.name}`)}
     >
       <div className="flex">
         <div className="relative w-32 shrink-0 bg-muted">
@@ -2019,9 +1991,7 @@ function PropertyCard({
             }
           />
           {store.is_verified && (
-            <Badge className="absolute top-1.5 left-1.5 bg-emerald-600 text-white text-[9px] px-1.5 py-0">
-              Verified
-            </Badge>
+            <Badge className="absolute top-1.5 left-1.5 bg-emerald-600 text-white text-[9px] px-1.5 py-0"><TravelCopy text=" Verified " /></Badge>
           )}
           {hasDiscount && pctOff > 0 && (
             <Badge className="absolute bottom-1.5 left-1.5 bg-red-600 text-white text-[9px] px-1.5 py-0">
@@ -2030,7 +2000,7 @@ function PropertyCard({
           )}
           <button
             type="button"
-            aria-label={isFavorite ? "Remove from favorites" : "Save to favorites"}
+            aria-label={publicTravelText(isFavorite ? "Remove from favorites" : "Save to favorites")}
             onClick={onToggleFavorite}
             className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/30 backdrop-blur flex items-center justify-center active:scale-90 transition-transform"
           >
@@ -2049,9 +2019,7 @@ function PropertyCard({
                 ) : null}
               </span>
             ) : (store as any).created_at && (Date.now() - new Date((store as any).created_at).getTime()) < 30 * 24 * 60 * 60 * 1000 ? (
-              <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 shrink-0">
-                New
-              </span>
+              <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 shrink-0"><TravelCopy text=" New " /></span>
             ) : null}
           </div>
           {location && (
@@ -2069,7 +2037,7 @@ function PropertyCard({
                   <span
                     key={a.key}
                     className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground"
-                    title={a.label}
+                    title={publicTravelText(a.label)}
                   >
                     <Icon className="w-3 h-3" />
                   </span>
@@ -2084,7 +2052,7 @@ function PropertyCard({
             </span>
             {typeof effectiveCents === "number" ? (
               <div className="text-right">
-                <p className="text-[10px] text-muted-foreground leading-none">from</p>
+                <p className="text-[10px] text-muted-foreground leading-none"><TravelCopy text="from" /></p>
                 {hasDiscount && typeof baseCents === "number" ? (
                   <>
                     <p className="text-[10px] line-through text-muted-foreground leading-none">
@@ -2092,23 +2060,23 @@ function PropertyCard({
                     </p>
                     <p className="text-[14px] font-extrabold text-emerald-600 leading-tight">
                       {fmtPrice(effectiveCents / 100, "USD")}
-                      <span className="text-[10px] font-medium text-emerald-600/80"> /night</span>
+                      <span className="text-[10px] font-medium text-emerald-600/80"><TravelCopy text=" /night" /></span>
                     </p>
                   </>
                 ) : (
                   <p className="text-[14px] font-extrabold text-foreground leading-tight">
                     {fmtPrice(effectiveCents / 100, "USD")}
-                    <span className="text-[10px] font-medium text-muted-foreground"> /night</span>
+                    <span className="text-[10px] font-medium text-muted-foreground"><TravelCopy text=" /night" /></span>
                   </p>
                 )}
                 {totalCents && nights > 1 && (
                   <p className="text-[9px] text-muted-foreground leading-none">
-                    {fmtPrice(totalCents / 100, "USD")} for {nights}n
+                    {fmtPrice(totalCents / 100, "USD")}<TravelCopy text=" for " />{nights}n
                   </p>
                 )}
                 {hasDiscount && promoLabel && (
                   <p className="text-[9px] font-semibold text-red-600 leading-none mt-0.5 truncate max-w-[110px] ml-auto">
-                    {promoLabel}
+                    <TravelCopy text={promoLabel} />
                   </p>
                 )}
               </div>

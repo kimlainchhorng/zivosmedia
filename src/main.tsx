@@ -1,12 +1,26 @@
 import "./lib/randomUUID-polyfill";
-import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
+import { isPublicHomeEntry } from "@/lib/publicHomeEntry";
+import { createRoot, hydrateRoot } from "react-dom/client";
+import { lazy, Suspense } from "react";
 import "./index.css";
 import "./styles/zivo-travel-3d.css";
 import "./lib/toastErrorFilter";
 import { setupGlobalErrorHandlers } from "@/lib/security/errorReporting";
 import { installMarketingRuntimeConfig } from "@/config/marketingRuntimeConfig";
 import { isZivoInstalledShell } from "@/lib/zivoHeaderSafeArea";
+import ConfigurationUnavailable from "@/components/shared/ConfigurationUnavailable";
+import { requiredSupabaseConfigErrors } from "@/config/requiredSupabaseConfig";
+import { isZivoSoftwareHost, ZIVO_SOFTWARE_SUPABASE_URL, ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY } from "@/config/autoRepairDomain";
+
+// A broken configuration must not import App's Supabase clients or start reads.
+// This entry point mounts the root and intentionally has no component exports.
+// eslint-disable-next-line react-refresh/only-export-components
+const App = lazy(() => import("./App.tsx"));
+// eslint-disable-next-line react-refresh/only-export-components
+const PublicHomeEntry = lazy(() => import("./pages/PublicHomeEntry"));
+
+// Edge alternatives serve non-JS crawlers; each mounted route owns its live links.
+document.head.querySelectorAll("link[data-zivo-edge-alternate]").forEach(link => link.remove());
 
 // Ordinary mobile browsers should keep each header's compact web rhythm. The
 // conservative 64px fallback remains reserved for installed/native shells,
@@ -148,7 +162,34 @@ if (
 try {
   const root = document.getElementById("root")!;
   removeBootShellAfterFirstAppPaint(root);
-  createRoot(root, { onUncaughtError: paintBootError }).render(<App />);
+  // Do not mount auth/data providers into a known configuration outage.
+  // Preserve the existing dedicated Software auth decision on that host.
+  const configEnv = isZivoSoftwareHost(window.location.hostname) ? {
+    VITE_SUPABASE_URL: ZIVO_SOFTWARE_SUPABASE_URL,
+    VITE_SUPABASE_PUBLISHABLE_KEY: ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY,
+  } : import.meta.env;
+  const missingConfig = requiredSupabaseConfigErrors(configEnv).length > 0;
+  const Entry = isPublicHomeEntry(new URL(window.location.href), isZivoInstalledShell()) ? PublicHomeEntry : App;
+  if (!missingConfig && root.dataset.prerendered === "true") {
+    // Keep readable HTML on screen until the interactive entry is available.
+    const loadStyles = (window as Window & { __zivoLoadPublicStyles?: () => Promise<void> }).__zivoLoadPublicStyles;
+    const readyEntry = Entry === PublicHomeEntry ? import("./pages/PublicHomeEntry")
+      : Promise.all([import("./App.tsx"), loadStyles?.()]).then(([module]) => module);
+    void readyEntry.then(({ default: ReadyEntry }) => {
+      if (Entry === PublicHomeEntry && root.dataset.prerenderLanguage === document.documentElement.lang) {
+        // Reuse the server-painted image/text instead of repainting the entire
+        // hero after downloading JavaScript. A saved different language gets
+        // a normal render so hydration never compares different translations.
+        hydrateRoot(root, <ReadyEntry />, { onUncaughtError: paintBootError });
+      } else {
+        createRoot(root, { onUncaughtError: paintBootError }).render(<ReadyEntry />);
+      }
+    }).catch(paintBootError);
+  } else {
+    createRoot(root, { onUncaughtError: paintBootError }).render(
+      missingConfig ? <ConfigurationUnavailable /> : <Suspense fallback={null}><Entry /></Suspense>,
+    );
+  }
 } catch (err) {
   paintBootError(err);
 } finally {

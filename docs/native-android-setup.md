@@ -256,3 +256,8 @@ ZIVO_PLAY_UPLOAD_CONFIRM=UPLOAD_DRAFT npm run android:upload:play:draft
 
 The helper does not start rollout or submit the release for review. Review the
 draft in Play Console and start rollout manually only when the owner approves.
+
+
+## Zivo - Media replacement package (2026-09-07)
+
+Play app `4975172017680024293` registers `com.zivosmedia.app`. Google Play supplied SHA-256 `86:83:9B:39:F4:D7:1E:0C:1E:D6:8B:15:76:6B:60:31:24:62:E9:19:F5:B7:A2:3F:93:BA:57:9C:6A:7B:AD:05` for its signing certificate. The local upload certificate remains `2C:B4:10:12:26:FB:4F:C9:55:84:39:E4:82:74:EE:3C:0C:19:55:A1:FB:87:7E:46:B3:ED:6E:84:0B:8B:D9:7E`. The new Play native origin is `android:apk-key-hash:hoObOfTXHgwe1osVdmtgMSRi6Rn1t6I_k7pXnGp7rQU`. The old `com.hizovo.app` statement is retained for existing installs. The new website association is staged in `public/.well-known/assetlinks.json` and is not live until separately deployed. Restore Credentials stays disabled; update and verify relying-party settings and test device transfer before enabling it.

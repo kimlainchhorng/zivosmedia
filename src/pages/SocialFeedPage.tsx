@@ -11,6 +11,7 @@
  */
 import { Fragment, Suspense, lazy, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useI18n } from "@/hooks/useI18n";
 import {
   Menu, Search, Plus, Bell, MessageSquare,
   Loader2, Heart, MessageCircle, Share2, MoreHorizontal, Bookmark,
@@ -98,6 +99,7 @@ const TABS: { id: FeedTab; label: string }[] = [
 ];
 
 export default function SocialFeedPage() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -300,7 +302,7 @@ export default function SocialFeedPage() {
             type="button"
             onClick={() => setCreateOpen(true)}
             className="-ml-1 p-2 rounded-full hover:bg-muted active:scale-95 transition-all"
-            aria-label="Open create menu"
+            aria-label={t("feed.create.open_menu", "Open create menu")}
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -322,7 +324,7 @@ export default function SocialFeedPage() {
             type="button"
             onClick={() => (user ? setComposerMode("post") : goAuth())}
             className="p-2 rounded-full hover:bg-muted active:scale-95 transition-all"
-            aria-label="Create post"
+            aria-label={t("feed.create.create_post", "Create post")}
           >
             <Plus className="w-5 h-5" />
           </button>
@@ -784,6 +786,7 @@ function PostCaption({ caption }: { caption: string }) {
  */
 function PostMoreMenu({ post }: { post: FeedPost }) {
   const { user } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isOwn = !!user?.id && user.id === post.user_id;
@@ -995,7 +998,7 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
         {isOwn && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Quick actions</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("feed.quick_actions", "Quick actions")}</DropdownMenuLabel>
             <DropdownMenuItem onSelect={handlePinToggle} className="gap-2">
               {isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
               {isPinned ? "Unpin from profile" : "Pin to profile"}
@@ -1064,6 +1067,7 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
  *   `profiles.display_brand_name` is non-null. Personal otherwise.
  */
 function FollowPill({ targetUserId }: { targetUserId: string }) {
+  const { t } = useI18n();
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -1211,10 +1215,10 @@ function FollowPill({ targetUserId }: { targetUserId: string }) {
   );
 
   const friendLabel =
-    friendStatus === "accepted" ? <><Check className="h-3.5 w-3.5" />Friends</> :
-    friendStatus === "pending_out" ? <>Requested</> :
-    friendStatus === "pending_in" ? <><UserPlus className="h-3.5 w-3.5" />Accept</> :
-    <><UserPlus className="h-3.5 w-3.5" />Add Friend</>;
+    friendStatus === "accepted" ? <><Check className="h-3.5 w-3.5" />{t("feed.friend.friends", "Friends")}</> :
+    friendStatus === "pending_out" ? <>{t("feed.friend.requested", "Requested")}</> :
+    friendStatus === "pending_in" ? <><UserPlus className="h-3.5 w-3.5" />{t("feed.friend.accept", "Accept")}</> :
+    <><UserPlus className="h-3.5 w-3.5" />{t("feed.friend.add", "Add Friend")}</>;
 
   const FollowBtn = following ? (
     <button
@@ -1322,6 +1326,7 @@ function FeedEmptyState({
   onSignIn: () => void;
   onDiscover: () => void;
 }) {
+  const { t } = useI18n();
   if (needsAuth) {
     const what = tab === "friends" ? "your friends' posts" : "posts from people you follow";
     return (
@@ -1341,18 +1346,18 @@ function FeedEmptyState({
     );
   }
 
-  let title = "No posts yet";
-  let body = "Posts will show up here as they're shared.";
+  let title = t("feed.empty.posts", "No posts yet");
+  let body = t("feed.empty.posts_body", "Posts will show up here as they are shared.");
   let cta: { label: string; onClick: () => void } | null = null;
 
   if (tab === "friends") {
-    title = "No friends yet";
-    body = "Add friends to see their posts in this tab.";
-    cta = { label: "Find friends", onClick: onDiscover };
+    title = t("feed.empty.friends", "No friends yet");
+    body = t("feed.empty.friends_body", "Add friends to see their posts in this tab.");
+    cta = { label: t("feed.empty.find_friends", "Find friends"), onClick: onDiscover };
   } else if (tab === "following") {
-    title = "Nothing in Following yet";
-    body = "Follow creators and you'll see their posts here.";
-    cta = { label: "Discover creators", onClick: onDiscover };
+    title = t("feed.empty.following", "Nothing in Following yet");
+    body = t("feed.empty.following_body", "Follow creators and you will see their posts here.");
+    cta = { label: t("feed.empty.discover_creators", "Discover creators"), onClick: onDiscover };
   }
 
   return (

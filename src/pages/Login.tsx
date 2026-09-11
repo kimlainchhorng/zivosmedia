@@ -1,3 +1,4 @@
+import { useI18n } from "@/hooks/useI18n";
 /**
  * ZIVO ID — Login page
  * - Drive-style saved accounts: tap an avatar, restore session or ask password
@@ -307,6 +308,7 @@ const getLoginErrorFacts = (error: Error) => {
 
 // ── Main login page ──────────────────────────────────────────────────────────
 const Login = () => {
+  const { currentLanguage: loginLanguage } = useI18n();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const mediaConnected = params.get("connected") === "zivosmedia";
@@ -1015,7 +1017,7 @@ const Login = () => {
 
               <input
                 id="login-email"
-                type="text"
+                type="email"
                 inputMode="email"
                 autoComplete="username"
                 autoCapitalize="none"
@@ -1024,7 +1026,8 @@ const Login = () => {
                 enterKeyHint="next"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setFieldError(null); }}
-                placeholder="Phone number, username, or email"
+                aria-label={loginLanguage === "km" ? "អាសយដ្ឋានអ៊ីមែល" : "Email address"}
+                placeholder={loginLanguage === "km" ? "អាសយដ្ឋានអ៊ីមែល" : "Email address"}
                 disabled={submitting}
                 className="w-full h-11 px-3 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 transition"
               />

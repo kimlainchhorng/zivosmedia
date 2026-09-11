@@ -1,4 +1,5 @@
 import type { CapacitorConfig } from '@capacitor/cli';
+import { KeyboardResize } from '@capacitor/keyboard';
 
 // Only allow a dev-server override in explicit development mode.
 // NODE_ENV=production (set automatically by all CI/CD and release build tools)
@@ -9,8 +10,9 @@ const devServerUrl =
     : undefined;
 
 const config: CapacitorConfig = {
-  appId: 'com.hizovo.app',
-  appName: 'Zivo Media - All in one',
+  // Android has a new Play listing; preserve the existing iOS bundle identity.
+  appId: process.env.ZIVO_NATIVE_PLATFORM === 'android' ? 'com.zivosmedia.app' : 'com.hizovo.app',
+  appName: 'Zivo - Media',
   webDir: 'dist',
   ...(devServerUrl
     ? {
@@ -59,7 +61,7 @@ const config: CapacitorConfig = {
       // "native" reflows the WebView when the keyboard appears (best for
       // chat composers and forms). "ionic" repaints less but breaks
       // sticky-bottom inputs. Native matches Telegram / WhatsApp behaviour.
-      resize: "native",
+      resize: KeyboardResize.Native,
       resizeOnFullScreen: true,
     },
     SplashScreen: {

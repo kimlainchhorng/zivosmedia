@@ -4,6 +4,7 @@ import {
   hashAuthCode,
   isValidAppKey,
   isValidCodeVerifier,
+  isFederatedUserActive,
   publicProfileFromUser,
   verifyCodeChallenge,
   verifyClientSecret,
@@ -159,6 +160,10 @@ serve(withSecurity("zivosmedia-auth-validate-code", async (req, ctx) => {
   if (userError || !userData.user) {
     await audit({ eventType: "auth_code.validate.failed", appKey: body.app_key, appId: app.id, userId: authCode.zivosmedia_user_id, success: false, errorCode: "user_not_found", req, ctx });
     return json({ error: "Zivosmedia user not found" }, 404);
+  }
+  if (!isFederatedUserActive(userData.user)) {
+    await audit({ eventType: "auth_code.validate.rejected", appKey: body.app_key, appId: app.id, userId: authCode.zivosmedia_user_id, success: false, errorCode: "user_disabled", req, ctx });
+    return json({ error: "Zivosmedia account is unavailable" }, 403);
   }
 
   // The Driver app gets a narrow server-to-server bootstrap only when it

@@ -6,6 +6,7 @@
  */
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useI18n } from "@/hooks/useI18n";
 import type { ComponentType } from "react";
 import {
   ArrowUpRight,
@@ -116,6 +117,7 @@ interface Props {
 }
 
 export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Props) {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [studioMode, setStudioMode] = useState<StudioMode>("create");
@@ -193,7 +195,7 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search create tools"
+                placeholder={t("feed.create.search_tools", "Search create tools")}
                 className="zivo-chat-search h-11 w-full pl-9 pr-3 text-[14px] font-semibold outline-none placeholder:text-muted-foreground"
               />
             </div>
@@ -298,8 +300,8 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
               {studioItems.length === 0 && (
                 <div className="zivo-chat-card col-span-2 border-dashed p-5 text-center">
                   <Wand2 className="mx-auto h-6 w-6 text-muted-foreground" />
-                  <p className="mt-2 text-[13px] font-black">No matching tools</p>
-                  <p className="mt-1 text-[12px] font-semibold text-muted-foreground">Try post, story, live, market, job, or event.</p>
+                  <p className="mt-2 text-[13px] font-black">{t("feed.create.no_tools", "No matching tools")}</p>
+                  <p className="mt-1 text-[12px] font-semibold text-muted-foreground">{t("feed.create.no_tools_hint", "Try post, story, live, market, job, or event.")}</p>
                 </div>
               )}
             </div>
@@ -311,7 +313,7 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
                 <p className="text-[11px] font-black uppercase tracking-wide text-muted-foreground/80">
                   Smart templates
                 </p>
-                <p className="mt-0.5 text-[12px] font-semibold text-muted-foreground">Start with copy that already fits the format.</p>
+                <p className="mt-0.5 text-[12px] font-semibold text-muted-foreground">{t("feed.create.templates_hint", "Start with copy that already fits the format.")}</p>
               </div>
               <Wand2 className="h-5 w-5 text-primary" />
             </div>
@@ -363,7 +365,7 @@ export default function CreateSheet({ open, onOpenChange, authRedirectPath }: Pr
 
           {!user && (
             <div className="zivo-chat-card mx-3 mb-4 p-4 text-center">
-              <p className="text-[13px] font-black">Sign in to publish</p>
+              <p className="text-[13px] font-black">{t("feed.create.sign_in_to_publish", "Sign in to publish")}</p>
               <p className="mx-auto mt-1 max-w-[260px] text-[12px] font-semibold text-muted-foreground">
                 You need an account to post, go live, and use shortcuts.
               </p>

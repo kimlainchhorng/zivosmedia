@@ -8,7 +8,7 @@
  * keys are safe to expose in the frontend. If unset, Stripe is disabled
  * (fails safe) rather than falling back to live.
  */
-import { loadStripe } from '@stripe/stripe-js';
+import { loadStripe } from '@stripe/stripe-js/pure';
 
 export const STRIPE_PUBLISHABLE_KEY: string =
   import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? '';

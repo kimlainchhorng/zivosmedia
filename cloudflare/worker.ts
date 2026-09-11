@@ -1,3 +1,6 @@
+import { mediaCanonicalRedirect, mediaNotFound } from "./media-route-policy";
+import { hasMediaPublicSeo, mediaPublicSeoHtml, mediaPrerenderAsset } from "./media-public-seo";
+import { isBuildAssetRead, navigationRateLimitResponse } from "./navigation-rate-limit";
 type R2PutOptions = {
   httpMetadata?: Headers | Record<string, string>;
   customMetadata?: Record<string, string>;
@@ -839,6 +842,27 @@ function rewriteSoftwareHtmlString(html: string, url: URL) {
     : `${cleaned}\n${softwareHeadTags(url)}`;
 }
 
+/** Country is personalized at the edge; never cache it as a shared HTML response. */
+export async function rewriteMediaLocale(request: Request, url: URL, response: Response): Promise<Response> {
+  if (url.hostname !== "zivosmedia.com" || request.method !== "GET"
+    || !response.headers.get("content-type")?.includes("text/html")) return response;
+  const rawCountry = (request as Request & { cf?: { country?: string } }).cf?.country;
+  const country = rawCountry && /^[A-Z]{2}$/.test(rawCountry) ? rawCountry : "KH";
+  const init = htmlResponseInit(response);
+  init.headers.set("cache-control", "private, no-store");
+  init.headers.delete("etag");
+  init.headers.delete("last-modified");
+  const tag = `<meta name="zivo-country" content="${country}">`;
+  const html = new Response(response.body, init);
+  if (response.status === 200 && hasMediaPublicSeo(url)) {
+    return new Response(mediaPublicSeoHtml(await html.text(), url).replace(/<\/head>/i, `${tag}</head>`), init);
+  }
+  if (typeof HTMLRewriter === "undefined") {
+    return new Response((await html.text()).replace(/<\/head>/i, `${tag}</head>`), init);
+  }
+  return new HTMLRewriter().on("head", { element(element) { element.append(tag, { html: true }); } }).transform(html);
+}
+
 export async function rewriteSoftwareHtml(
   request: Request,
   url: URL,
@@ -979,6 +1003,7 @@ function clientIp(request: Request) {
 }
 
 function isRateLimited(request: Request, url: URL) {
+  if (isBuildAssetRead(request, url)) return false;
   const now = Date.now();
   const isAuthPath = authPathPattern.test(url.pathname);
   // AI has a durable, authenticated per-user quota inside handleAiChat. Keep a
@@ -1063,7 +1088,7 @@ function securityHeaders(request: Request, url: URL, env: Env) {
   headers.set("referrer-policy", "strict-origin-when-cross-origin");
   headers.set(
     "permissions-policy",
-    "camera=(self), microphone=(self), geolocation=(self \"https://ride.zivosmedia.com\"), payment=(self \"https://ride.zivosmedia.com\"), accelerometer=(), gyroscope=(self), magnetometer=(), usb=(), bluetooth=(), midi=(), serial=(), interest-cohort=(), display-capture=(), document-domain=()",
+    "camera=(self), microphone=(self), geolocation=(self \"https://ride.zivosmedia.com\"), payment=(self \"https://ride.zivosmedia.com\"), accelerometer=(), gyroscope=(self), magnetometer=(), usb=(), midi=(), serial=(), display-capture=()",
   );
   headers.set("cross-origin-opener-policy", "same-origin-allow-popups");
   headers.set("cross-origin-resource-policy", "same-site");
@@ -1134,6 +1159,74 @@ function softwareDashboardRedirect(request: Request, url: URL) {
     headers: {
       "cache-control": "no-store",
       "location": target.toString(),
+    },
+  });
+}
+
+/**
+ * Permanent redirects for URL shapes that were indexed but no longer serve
+ * their own page.
+ *
+ * React Router does not bind params inside a segment, so the patterns written
+ * for these URLs — /flights/:origin-to-:destination, /flights/to-:toCity,
+ * /flights/from-:fromCity, /car-rental/in-:location — never match. Those URLs
+ * fall through to a generic landing page that canonicalises to /flights or
+ * /rent-car, and /hotels/in-london renders "Hotels in In London" because the
+ * slug is taken literally. All of them were in the old sitemap, so search
+ * engines still hold them.
+ *
+ * Sending each to the page it was meant to be keeps that link equity instead of
+ * letting it collapse into a generic landing page.
+ */
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+function legacySeoTarget(pathname: string): string | null {
+  const hotelCity = pathname.match(/^\/hotels\/in-([^/]+)$/);
+  if (hotelCity && SLUG_PATTERN.test(hotelCity[1])) return `/hotels/${hotelCity[1]}`;
+
+  const carCity = pathname.match(/^\/car-rental\/in-([^/]+)$/);
+  if (carCity && SLUG_PATTERN.test(carCity[1])) return `/rent-car/${carCity[1]}`;
+
+  const legacyCityHub = pathname.match(/^\/flights\/cities\/([^/]+)$/);
+  if (legacyCityHub && SLUG_PATTERN.test(legacyCityHub[1])) return `/flights/to/${legacyCityHub[1]}`;
+
+  const flightSlug = pathname.match(/^\/flights\/([^/]+)$/);
+  if (flightSlug && SLUG_PATTERN.test(flightSlug[1])) {
+    // "from-atlanta-to-new-york" and "boston-to-dublin" both describe a route;
+    // the destination is the half searchers actually want.
+    const withoutOrigin = flightSlug[1].replace(/^from-/, "");
+    const routeSplit = withoutOrigin.lastIndexOf("-to-");
+    if (routeSplit > 0) {
+      const destination = withoutOrigin.slice(routeSplit + "-to-".length);
+      return destination ? `/flights/to/${destination}` : "/flights";
+    }
+    if (withoutOrigin.startsWith("to-")) {
+      const destination = withoutOrigin.slice("to-".length);
+      return destination ? `/flights/to/${destination}` : "/flights";
+    }
+    // A bare "from-<city>" has no page of its own; the flights hub is the
+    // closest honest answer.
+    if (flightSlug[1].startsWith("from-")) return "/flights";
+  }
+
+  return null;
+}
+
+function legacySeoRedirect(request: Request, url: URL) {
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  // The chat and software hosts do not serve travel routes at all.
+  if (CHAT_HOSTS.has(url.hostname) || SOFTWARE_HOSTS.has(url.hostname)) return null;
+
+  const target = legacySeoTarget(url.pathname);
+  if (!target || target === url.pathname) return null;
+
+  const location = new URL(url.toString());
+  location.pathname = target;
+  return new Response(null, {
+    status: 301,
+    headers: {
+      "cache-control": "public, max-age=3600",
+      "location": location.toString(),
     },
   });
 }
@@ -1873,6 +1966,9 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
+    const canonicalRedirect = mediaCanonicalRedirect(url);
+    if (canonicalRedirect) return withSecurityHeaders(canonicalRedirect, request, env);
+
     if (url.pathname === "/healthz") {
       return json({ ok: true, service: "zivo-web", media: Boolean(env.ZIVO_MEDIA) });
     }
@@ -1883,9 +1979,9 @@ export default {
       }
 
       if (isRateLimited(request, url)) {
-        const retryAfter = String(Math.max(1, Math.ceil(WINDOW_MS / 1000)));
+        const retryAfter = Math.max(1, Math.ceil(WINDOW_MS / 1000));
         return withSecurityHeaders(
-          noStoreJson({ error: "Too many requests" }, { status: 429, headers: { "retry-after": retryAfter } }),
+          navigationRateLimitResponse(request, url, retryAfter),
           request,
           env,
         );
@@ -1900,6 +1996,11 @@ export default {
     const softwareRedirect = softwareDashboardRedirect(request, url);
     if (softwareRedirect) {
       return withSecurityHeaders(softwareRedirect, request, env);
+    }
+
+    const legacyRedirect = legacySeoRedirect(request, url);
+    if (legacyRedirect) {
+      return withSecurityHeaders(legacyRedirect, request, env);
     }
 
     if (url.pathname === "/media" || url.pathname.startsWith("/media/")) {
@@ -1929,8 +2030,24 @@ export default {
     }
 
     if (env.ASSETS) {
-      const assetResponse = await env.ASSETS.fetch(request);
-      const softwareHtml = await rewriteSoftwareHtml(request, url, assetResponse);
+      if (url.hostname === "zivosmedia.com" && url.pathname.startsWith("/_prerender/")) {
+        return withSecurityHeaders(new Response("Not found", { status: 404 }), request, env);
+      }
+      let assetResponse: Response;
+      const prerenderPath = mediaPrerenderAsset(url);
+      if (prerenderPath && request.method === "GET") {
+        const assetUrl = new URL(prerenderPath, url);
+        const rendered = await env.ASSETS.fetch(new Request(assetUrl, request));
+        if (!rendered.ok || !rendered.headers.get("content-type")?.includes("text/plain")) {
+          return withSecurityHeaders(new Response("The website is updating. Please try again shortly.", { status: 503, headers: { "cache-control": "no-store", "retry-after": "60" } }), request, env);
+        }
+        const headers = new Headers(rendered.headers);
+        headers.set("content-type", "text/html; charset=utf-8");
+        assetResponse = new Response(rendered.body, { status: rendered.status, headers });
+      } else {
+        assetResponse = mediaNotFound(request, url, await env.ASSETS.fetch(request));
+      }
+      const softwareHtml = await rewriteSoftwareHtml(request, url, await rewriteMediaLocale(request, url, assetResponse));
       return withSecurityHeaders(await rewriteTravelHtml(request, url, softwareHtml), request, env);
     }
 

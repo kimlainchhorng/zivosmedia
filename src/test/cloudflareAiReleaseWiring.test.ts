@@ -23,7 +23,7 @@ describe("Cloudflare AI release wiring", () => {
     const deploy = workflow.indexOf("wrangler deploy --keep-vars");
 
     expect(workflow).toContain(
-      "SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}",
+      "SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}",
     );
     expect(provision).toBeGreaterThan(-1);
     expect(deploy).toBeGreaterThan(provision);

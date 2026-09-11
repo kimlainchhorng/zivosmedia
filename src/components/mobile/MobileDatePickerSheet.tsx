@@ -1,5 +1,7 @@
+import { formatTravelDate as format } from "@/i18n/travelDate";
+import { TravelCopy, publicTravelText } from "@/i18n/publicTravelCopy";
 import { useEffect, useMemo, useState } from "react";
-import { format, isBefore, startOfToday, addDays, getDay, getDate } from "date-fns";
+import { isBefore, startOfToday, addDays, getDay, getDate } from "date-fns";
 import { CalendarDays, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -98,7 +100,7 @@ export default function MobileDatePickerSheet({
               >
                 <CalendarDays className="h-4 w-4 text-white" />
               </div>
-              {label}
+              <TravelCopy text={label} />
             </SheetTitle>
           </SheetHeader>
 
@@ -134,7 +136,7 @@ export default function MobileDatePickerSheet({
 
           <div className="px-5 pb-5 pt-1 flex items-center justify-between gap-3">
             <div className="min-h-10 text-sm text-muted-foreground font-medium">
-              {selectedDate ? `Selected: ${format(selectedDate, "EEE, MMM d")}` : "Tap a date to continue"}
+              <TravelCopy text={selectedDate ? `Selected: ${format(selectedDate, "EEE, MMM d")}` : "Tap a date to continue"} />
             </div>
             <Button
               type="button"
@@ -144,9 +146,7 @@ export default function MobileDatePickerSheet({
                 background: "linear-gradient(135deg, hsl(160 84% 39%), hsl(160 84% 45%))",
                 boxShadow: "0 4px 14px hsl(160 84% 39% / 0.35), 0 1px 3px hsl(160 84% 39% / 0.2), inset 0 1px 0 hsl(160 84% 60% / 0.3)",
               }}
-            >
-              Done
-            </Button>
+            ><TravelCopy text=" Done " /></Button>
           </div>
         </div>
       </SheetContent>
@@ -266,7 +266,7 @@ export function MobileDateRangePickerSheet({
               >
                 <CalendarDays className="h-4 w-4 text-white" />
               </div>
-              {label}
+              <TravelCopy text={label} />
             </SheetTitle>
           </SheetHeader>
 
@@ -284,7 +284,7 @@ export function MobileDateRangePickerSheet({
                   style={{ background: priceLevelConfig[level].legendBg }}
                 />
                 <span className="text-[10px] font-semibold" style={{ color: priceLevelConfig[level].color }}>
-                  {priceLevelConfig[level].label}
+                  <TravelCopy text={priceLevelConfig[level].label} />
                 </span>
               </span>
             ))}
@@ -332,9 +332,9 @@ export function MobileDateRangePickerSheet({
 
           <div className="px-5 pb-5 pt-1 flex items-center justify-between gap-3">
             <div className="min-h-10 flex flex-col justify-center">
-              <span className="text-sm text-muted-foreground font-medium">{summaryText}</span>
+              <span className="text-sm text-muted-foreground font-medium"><TravelCopy text={summaryText} /></span>
               {range?.from && !range?.to && (
-                <span className="text-[10px] text-muted-foreground/60 mt-0.5">Now tap your return date</span>
+                <span className="text-[10px] text-muted-foreground/60 mt-0.5"><TravelCopy text="Now tap your return date" /></span>
               )}
             </div>
             <Button
@@ -346,9 +346,7 @@ export function MobileDateRangePickerSheet({
                 background: "linear-gradient(135deg, hsl(160 84% 39%), hsl(160 84% 45%))",
                 boxShadow: "0 4px 14px hsl(160 84% 39% / 0.35), 0 1px 3px hsl(160 84% 39% / 0.2), inset 0 1px 0 hsl(160 84% 60% / 0.3)",
               }}
-            >
-              Done
-            </Button>
+            ><TravelCopy text=" Done " /></Button>
           </div>
         </div>
       </SheetContent>

@@ -1,0 +1,70 @@
+name: Production auth smoke
+
+on:
+  workflow_run:
+    workflows: ["Deploy Cloudflare Production"]
+    types: [completed]
+  workflow_dispatch:
+  schedule:
+    - cron: "*/10 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-auth-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'schedule' && vars.PRODUCTION_AUTH_SMOKE_ENABLED == 'true') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verify public homepage and startup budgets
+        run: npx playwright test --config playwright.public.config.ts
+      - name: Validate test secrets
+        env:
+          QA_TEST_EMAIL: ${{ secrets.QA_TEST_EMAIL }}
+          QA_TEST_PASSWORD: ${{ secrets.QA_TEST_PASSWORD }}
+        run: |
+          test -n "$QA_TEST_EMAIL" || { echo 'QA_TEST_EMAIL is required'; exit 1; }
+          test -n "$QA_TEST_PASSWORD" || { echo 'QA_TEST_PASSWORD is required'; exit 1; }
+      - name: Sign in and verify authenticated feed data
+        env:
+          QA_TEST_EMAIL: ${{ secrets.QA_TEST_EMAIL }}
+          QA_TEST_PASSWORD: ${{ secrets.QA_TEST_PASSWORD }}
+        run: npx playwright test --config playwright.deploy.config.ts tests/deploy/auth.spec.ts
+      # Observation only, deliberately not part of the alerting result. The
+      # signed-in Realtime fault (four sockets in fifteen seconds) has never been
+      # reproduced with a session attached, so this step exists to produce that
+      # first reading in the log. Promote it into the alerting step above — drop
+      # continue-on-error — once a run has shown what it actually reports.
+      - name: Observe signed-in Realtime connection (non-blocking)
+        continue-on-error: true
+        env:
+          QA_TEST_EMAIL: ${{ secrets.QA_TEST_EMAIL }}
+          QA_TEST_PASSWORD: ${{ secrets.QA_TEST_PASSWORD }}
+        run: npx playwright test --config playwright.deploy.config.ts tests/deploy/realtime.spec.ts
+      - name: Alert Telegram on failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: node scripts/deploy/notify-auth-smoke.mjs

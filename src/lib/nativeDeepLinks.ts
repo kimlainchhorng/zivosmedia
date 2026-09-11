@@ -1,4 +1,4 @@
-const APP_URL_SCHEMES = new Set(["com.zivo.chat:", "com.zivo.app:", "com.myzivo.app:", "com.hizovo.app:"]);
+const APP_URL_SCHEMES = new Set(["com.zivosmedia.app:", "com.zivo.chat:", "com.zivo.app:", "com.myzivo.app:", "com.hizovo.app:"]);
 const TRUSTED_APP_LINK_HOSTS = new Set([
   "zivosmedia.com",
   "www.zivosmedia.com",

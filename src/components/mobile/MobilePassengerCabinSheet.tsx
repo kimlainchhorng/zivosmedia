@@ -1,3 +1,4 @@
+import { TravelCopy, publicTravelText } from "@/i18n/publicTravelCopy";
 import { Minus, Plus, Users, Crown, Plane, Star, Gem } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,9 +75,7 @@ export default function MobilePassengerCabinSheet({
                   className="absolute inset-0 rounded-[14px] pointer-events-none"
                   style={{ background: "linear-gradient(135deg, hsl(0 0% 100% / 0.2) 0%, transparent 40%)" }}
                 />
-              </div>
-              Travelers & Cabin
-            </SheetTitle>
+              </div><TravelCopy text=" Travelers & Cabin " /></SheetTitle>
           </SheetHeader>
 
           <div className="mx-6 h-px bg-gradient-to-r from-transparent via-border/40 to-transparent" />
@@ -92,14 +91,14 @@ export default function MobilePassengerCabinSheet({
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-bold text-[15px] text-foreground tracking-tight">Travelers</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Up to 9 passengers</p>
+                  <p className="font-bold text-[15px] text-foreground tracking-tight"><TravelCopy text="Travelers" /></p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5"><TravelCopy text="Up to 9 passengers" /></p>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {/* Minus — 3D raised button */}
                   <button
                     type="button"
-                    aria-label="Decrease travelers"
+                    aria-label={publicTravelText("Decrease travelers")}
                     className="h-11 w-11 rounded-[14px] flex items-center justify-center transition-all duration-150 active:scale-[0.88] active:shadow-none touch-manipulation"
                     style={passengers > 1 ? {
                       background: "linear-gradient(180deg, hsl(var(--card)), hsl(var(--card) / 0.9))",
@@ -129,7 +128,7 @@ export default function MobilePassengerCabinSheet({
                   {/* Plus — 3D raised button */}
                   <button
                     type="button"
-                    aria-label="Increase travelers"
+                    aria-label={publicTravelText("Increase travelers")}
                     className="h-11 w-11 rounded-[14px] flex items-center justify-center transition-all duration-150 active:scale-[0.88] active:shadow-none touch-manipulation"
                     style={passengers < 9 ? {
                       background: "linear-gradient(180deg, hsl(var(--card)), hsl(var(--card) / 0.9))",
@@ -148,7 +147,7 @@ export default function MobilePassengerCabinSheet({
 
             {/* Cabin class — 3D card grid */}
             <div>
-              <p className="mb-3 text-[12px] font-bold text-muted-foreground tracking-widest uppercase">Cabin class</p>
+              <p className="mb-3 text-[12px] font-bold text-muted-foreground tracking-widest uppercase"><TravelCopy text="Cabin class" /></p>
               <div className="grid grid-cols-2 gap-3">
                 {cabinOptions.map((option) => {
                   const isSelected = cabin === option.value;
@@ -214,13 +213,13 @@ export default function MobilePassengerCabinSheet({
                           "text-[13px] font-bold leading-tight",
                           isSelected ? "text-white" : "text-foreground"
                         )}>
-                          {option.label}
+                          <TravelCopy text={option.label} />
                         </p>
                         <p className={cn(
                           "text-[10px] mt-0.5 leading-tight font-medium",
                           isSelected ? "text-white/60" : "text-muted-foreground/60"
                         )}>
-                          {option.desc}
+                          <TravelCopy text={option.desc} />
                         </p>
                       </div>
                     </button>
@@ -245,7 +244,7 @@ export default function MobilePassengerCabinSheet({
                 className="absolute inset-0 pointer-events-none"
                 style={{ background: "linear-gradient(135deg, hsl(0 0% 100% / 0.12) 0%, transparent 40%)" }}
               />
-              <span className="relative z-10">Done</span>
+              <span className="relative z-10"><TravelCopy text="Done" /></span>
             </Button>
           </div>
         </div>

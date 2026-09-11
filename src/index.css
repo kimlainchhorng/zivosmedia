@@ -4,6 +4,11 @@
 @config "../tailwind.config.ts";
 
 @layer base {
+  body { font-size: 14px; line-height: 1.5; }
+  html[lang="km"] body { font-family: "Noto Sans Khmer", var(--font-sans); font-size: 15px; line-height: 1.6; }
+  @media (max-width: 767px) {
+    button, [role="button"], a { min-height: 44px; }
+  }
   :root {
     /* =============================================
        ZIVO DESIGN SYSTEM — Instagram-style Mono
@@ -2052,6 +2057,41 @@ html[lang="km"] textarea {
   letter-spacing: 0.01em;
   line-height: 1.6;
 }
+
+/*
+ * Khmer legibility floor.
+ *
+ * `html[lang="km"] body { font-size: 15px }` at the top of this file sets a
+ * floor that almost nothing inherits: every element carrying a Tailwind size
+ * utility overrides it, and the app uses text-xs and text-[11px] heavily, so
+ * Khmer was rendering at 11-14px — below the size the script needs to stay
+ * readable, since Khmer stacks diacritics above and below the baseline.
+ *
+ * These raise only the utilities that fall under the floor, and only when the
+ * document is in Khmer, so Latin layouts are untouched. Listed one selector per
+ * rule rather than with :is() — :is() takes the specificity of its most
+ * specific argument, which makes a group like this behave unpredictably against
+ * Tailwind's own single-class rules.
+ */
+html[lang="km"] .text-\[10px\],
+html[lang="km"] .text-\[11px\],
+html[lang="km"] .text-\[12px\],
+html[lang="km"] .text-\[13px\],
+html[lang="km"] .text-\[14px\],
+html[lang="km"] .text-2xs,
+html[lang="km"] .text-xs,
+html[lang="km"] .text-sm {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ── end Khmer typography ──
+ * scripts/seo/prerender-public-home.mjs slices from `html[lang="km"],` above to
+ * this marker and inlines the result as critical CSS on the prerendered public
+ * pages. Keep new Khmer rules ABOVE this line, or they compile into the full
+ * stylesheet — which those pages load deferred — and Khmer renders at the Latin
+ * size until it arrives. That is exactly how the 15px floor above shipped
+ * inert. */
 
 /* =============================================
    3D SPATIAL UI SYSTEM — 2026 Alive UX

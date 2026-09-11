@@ -28,7 +28,7 @@ import { getStripe } from "@/lib/stripe";
 import { formatStripeAmount } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
-const stripePromise = getStripe();
+// Initialize Stripe only when the actual payment form is rendered.
 
 /** PaymentIntent statuses that mean "the money side is done, hand off now". */
 const SETTLED_STATUSES = ["succeeded", "processing", "requires_capture"];
@@ -251,7 +251,7 @@ export default function InlineStripePaymentForm({
 }: InlineStripePaymentFormProps) {
   return (
     <Elements
-      stripe={stripePromise}
+      stripe={getStripe()}
       options={{
         clientSecret,
         appearance: { theme: "stripe", variables: { borderRadius: "12px" } },

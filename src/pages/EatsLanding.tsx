@@ -1,3 +1,5 @@
+import { ApiUnavailable } from "@/components/shared/ApiUnavailable";
+import { useRecentEatsOrders } from "@/hooks/useRecentEatsOrders";
 /**
  * EatsLanding - Food delivery hub page with full ordering flow
  * Connected to Supabase: restaurants, menu_items, food_orders
@@ -728,34 +730,7 @@ export default function EatsLanding() {
     useNetworkFavorites("restaurant");
 
   // Recent orders for "Order again" strip
-  const [recentOrders, setRecentOrders] = useState<
-    Array<{ store_id: string; store_name: string; cuisine: string }>
-  >([]);
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      const { data } = await (supabase as any)
-        .from("food_orders")
-        .select("store_id, store_profiles!inner(name, cuisine_type)")
-        .eq("customer_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(15);
-      const seen = new Set<string>();
-      const unique: typeof recentOrders = [];
-      for (const o of data || []) {
-        if (!seen.has(o.store_id)) {
-          seen.add(o.store_id);
-          unique.push({
-            store_id: o.store_id,
-            store_name: o.store_profiles?.name || "Restaurant",
-            cuisine: o.store_profiles?.cuisine_type || "",
-          });
-        }
-        if (unique.length >= 4) break;
-      }
-      setRecentOrders(unique);
-    })();
-  }, [user]);
+  const { data: recentOrders = [], isError: recentOrdersError, refetch: retryRecentOrders, isFetching: recentOrdersFetching } = useRecentEatsOrders(user?.id);
 
   // ─── Derived Data ────────────────────────────────────────────────
   const currentRestaurant = useMemo(
@@ -1701,6 +1676,7 @@ export default function EatsLanding() {
             <section className="pt-2 pb-8">
               <div className="container mx-auto px-4 max-w-6xl">
                 {/* Order again strip */}
+                {recentOrdersError && <ApiUnavailable area="orders" retry={() => void retryRecentOrders()} busy={recentOrdersFetching} />}
                 {recentOrders.length > 0 && (
                   <div className="mb-5">
                     <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">

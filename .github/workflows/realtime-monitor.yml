@@ -1,0 +1,73 @@
+name: Realtime monitor
+
+# Probes the production Realtime tenant with a REAL WebSocket handshake every
+# five minutes. A plain GET to the socket endpoint answers `error code: 1101`
+# even when the tenant is perfectly healthy, so this must never be reduced back
+# to a status-code check — see docs/realtime-key-diagnosis-2026-09-09.md.
+#
+# Read-only: no checkout credentials, no pushes, no deploys.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: realtime-monitor
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'schedule' && vars.REALTIME_MONITOR_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24
+      - name: Validate monitor secrets
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          test -n "$VITE_SUPABASE_URL" || { echo 'VITE_SUPABASE_URL is required'; exit 1; }
+          test -n "$VITE_SUPABASE_PUBLISHABLE_KEY" || { echo 'VITE_SUPABASE_PUBLISHABLE_KEY is required'; exit 1; }
+      # A monitor whose alert path is dead is worse than no monitor: it reports
+      # green for the probe and silently cannot page anyone when the probe goes
+      # red. TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID were both unset when this
+      # check was added, so the alert step below could never have delivered.
+      # Warn on every run rather than fail, so a missing alert channel is
+      # visible in the run summary without turning the schedule permanently red.
+      - name: Check the alert channel is armed
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram alert channel is armed."
+          else
+            echo "::warning title=Realtime monitor cannot alert::TELEGRAM_BOT_TOKEN and/or TELEGRAM_CHAT_ID are not set, so a failing probe will not reach Telegram. Set them with: gh secret set TELEGRAM_BOT_TOKEN && gh secret set TELEGRAM_CHAT_ID"
+          fi
+
+      - name: Probe Realtime handshake with the production key
+        env:
+          CI: "true"
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: node scripts/qa/realtime-handshake-probe.mjs
+      - name: Alert Telegram on failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: node scripts/deploy/notify-realtime-monitor.mjs

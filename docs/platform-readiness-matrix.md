@@ -1,31 +1,27 @@
 # Platform Readiness Matrix
 
-Generated: 2026-08-30T23:42:59.000Z
+Generated: 2026-09-09T16:13:17.424Z
 
 ## Current Gate
 
 - Mode: strict
-- Current gate ready: no
-- Production gate ready: no
-- Remote migration history status: unavailable
+- Current gate ready: yes
+- Production gate ready: yes
+- Remote migration history status: read
 
 ## Production Blockers
 
-- Environment readiness has 6 critical finding(s).
-- Missing SUPABASE_URL for production backend cron/runtime settings.
-- Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.
-- Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.
-- Supabase remote migration history is unavailable (unavailable).
+- None
 
 ## Inventory Totals
 
-- Page files: 720
-- Component files: 1341
-- Source files scanned: 2791
-- Supabase Edge Functions: 482
-- Supabase migrations: 1166
-- Test files: 315
-- Docs files: 1593
+- Page files: 731
+- Component files: 1355
+- Source files scanned: 2839
+- Supabase Edge Functions: 484
+- Supabase migrations: 1183
+- Test files: 347
+- Docs files: 1611
 
 ## Priority Test Gap Actions
 
@@ -35,9 +31,9 @@ Generated: 2026-08-30T23:42:59.000Z
 
 ### Release Safety Foundation
 
-- Evidence matches: 1680
-- Evidence breakdown: pages=19, components=20, otherSource=18, edgeFunctions=206, migrations=1166, tests=129, docs=122
-- Test gap: priority=ok, implementationEvidence=1429, testEvidence=129, targetTestEvidence=34, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0768
+- Evidence matches: 1724
+- Evidence breakdown: pages=19, components=20, otherSource=20, edgeFunctions=211, migrations=1183, tests=139, docs=132
+- Test gap: priority=ok, implementationEvidence=1453, testEvidence=139, targetTestEvidence=35, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0806
 - Suggested test files: src/test/releaseSafetyPreflight.test.ts, src/test/releaseSafetyMigrationDrift.test.ts, src/test/releaseSafetyArtifactContracts.test.ts, src/test/releaseSafetyProductionSecretsContracts.test.ts, src/test/deployEnvPreflight.test.ts, src/test/deployWorkflowGates.test.ts, src/test/secretScanner.test.ts
 - Next action: Resolve production preflight blockers and keep Supabase token misuse/leakage tests green before schema pushes or production deploys.
 - Verification: npm run test -- src/test/deployEnvPreflight.test.ts src/test/secretScanner.test.ts && npm run deploy:preflight:strict && npm run security:scan && npm run supabase:upgrade-readiness
@@ -55,9 +51,9 @@ Generated: 2026-08-30T23:42:59.000Z
 
 ### Auth, SSO, Sessions, and Account Protection
 
-- Evidence matches: 3393
-- Evidence breakdown: pages=490, components=385, otherSource=275, edgeFunctions=422, migrations=862, tests=202, docs=757
-- Test gap: priority=ok, implementationEvidence=2434, testEvidence=202, targetTestEvidence=68, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0595
+- Evidence matches: 3466
+- Evidence breakdown: pages=497, components=389, otherSource=289, edgeFunctions=423, migrations=876, tests=219, docs=773
+- Test gap: priority=ok, implementationEvidence=2474, testEvidence=219, targetTestEvidence=70, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0632
 - Suggested test files: tests/e2e/auth-sso-role-matrix.spec.ts, src/test/authSessionSecurity.test.ts, tests/e2e/admin-two-step-required.spec.ts
 - Next action: Keep OAuth, passwordless OTP, MFA step-up, trusted devices, active sessions, and role-aware route gates green.
 - Verification: npm run qa:sso-auth-contracts && npm run test -- src/test/authSessionSecurity.test.ts src/test/workflows/sso-auth-sessions.test.ts && npx playwright test tests/e2e/sso-session-roles.spec.ts tests/e2e/auth-sso-role-matrix.spec.ts tests/e2e/admin-two-step-required.spec.ts && npm run test:e2e -- tests/e2e/mobile-auth-feed-smoke.spec.ts
@@ -75,9 +71,9 @@ Generated: 2026-08-30T23:42:59.000Z
 
 ### Customer, Shop Owner, Staff, Driver, Support, Admin Workflows
 
-- Evidence matches: 5497
-- Evidence breakdown: pages=702, components=1175, otherSource=535, edgeFunctions=454, migrations=867, tests=203, docs=1561
-- Test gap: priority=ok, implementationEvidence=3733, testEvidence=203, targetTestEvidence=110, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0369
+- Evidence matches: 5576
+- Evidence breakdown: pages=708, components=1185, otherSource=549, edgeFunctions=454, migrations=881, tests=220, docs=1579
+- Test gap: priority=ok, implementationEvidence=3777, testEvidence=220, targetTestEvidence=112, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0395
 - Suggested test files: src/test/roleWorkflowMatrix.test.ts, src/test/crossVerticalRoleNavigation.test.ts, src/test/staffDriverCreatorRoleAccess.test.ts, src/test/merchantPayoutOwnerOpsAccess.test.ts, src/test/adminModerationRoleAccess.test.ts, src/test/adminSupportAccountRoleAccess.test.ts, tests/e2e/customer-booking-payment.spec.ts, tests/e2e/shop-owner-dashboard-permissions.spec.ts, tests/e2e/staff-driver-creator-role-access.spec.ts
 - Next action: Keep customer booking, shop owner, staff, driver, support, and admin workflows green while creator monetization remains retired.
 - Verification: npm run qa:customer-booking-contracts && npm run qa:shop-owner-contracts && npm run qa:client-staff-contracts && npm run test -- src/test/roleWorkflowMatrix.test.ts src/test/crossVerticalRoleNavigation.test.ts src/test/staffDriverCreatorRoleAccess.test.ts src/test/merchantPayoutOwnerOpsAccess.test.ts src/test/adminModerationRoleAccess.test.ts src/test/adminSupportAccountRoleAccess.test.ts && npx playwright test tests/e2e/customer-booking-payment.spec.ts tests/e2e/shop-owner-dashboard-permissions.spec.ts tests/e2e/staff-driver-creator-role-access.spec.ts
@@ -95,9 +91,9 @@ Generated: 2026-08-30T23:42:59.000Z
 
 ### Payments, Payouts, Refunds, and Webhooks
 
-- Evidence matches: 2094
-- Evidence breakdown: pages=351, components=414, otherSource=151, edgeFunctions=236, migrations=283, tests=147, docs=512
-- Test gap: priority=ok, implementationEvidence=1435, testEvidence=147, targetTestEvidence=42, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0702
+- Evidence matches: 2134
+- Evidence breakdown: pages=350, components=417, otherSource=157, edgeFunctions=236, migrations=289, tests=155, docs=530
+- Test gap: priority=ok, implementationEvidence=1449, testEvidence=155, targetTestEvidence=43, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0726
 - Suggested test files: src/test/paymentWebhookIdempotency.test.ts, src/test/payoutAuthorization.test.ts, tests/e2e/checkout-refund-state.spec.ts
 - Next action: Keep provider webhooks, checkout/refund state, payout auth, idempotency, and wallet ledgers green.
 - Verification: npm run qa:payments-refunds-contracts && npm run qa:payouts-earnings-contracts && npm run test -- src/test/paymentWebhookIdempotency.test.ts src/test/payoutAuthorization.test.ts && npx playwright test tests/e2e/checkout-refund-state.spec.ts && npm run security:api-readiness:report
@@ -115,9 +111,9 @@ Generated: 2026-08-30T23:42:59.000Z
 
 ### Email, Push, SMS, and Marketing
 
-- Evidence matches: 1849
-- Evidence breakdown: pages=305, components=345, otherSource=244, edgeFunctions=229, migrations=272, tests=109, docs=345
-- Test gap: priority=ok, implementationEvidence=1395, testEvidence=109, targetTestEvidence=37, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.059
+- Evidence matches: 1890
+- Evidence breakdown: pages=307, components=348, otherSource=247, edgeFunctions=229, migrations=279, tests=121, docs=359
+- Test gap: priority=ok, implementationEvidence=1410, testEvidence=121, targetTestEvidence=38, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.064
 - Suggested test files: src/test/marketingConsentSuppression.test.ts, src/test/pushTokenLifecycle.test.ts, tests/e2e/transactional-vs-marketing-messages.spec.ts
 - Next action: Keep transactional-vs-marketing separation, suppression, consent, push tokens, digest dispatch, and campaign event logging green.
 - Verification: npm run qa:email-marketing-contracts && npm run qa:push-notification-contracts && npm run test -- src/test/marketingConsentSuppression.test.ts src/test/pushTokenLifecycle.test.ts src/test/workflows/email-marketing-consent.test.ts src/test/workflows/push-notifications-workflow.test.ts && npx playwright test tests/e2e/transactional-vs-marketing-messages.spec.ts && npm run security:api-readiness:report
@@ -135,9 +131,9 @@ Generated: 2026-08-30T23:42:59.000Z
 
 ### Database, Storage, and Media
 
-- Evidence matches: 4255
-- Evidence breakdown: pages=543, components=564, otherSource=303, edgeFunctions=482, migrations=919, tests=243, docs=1201
-- Test gap: priority=ok, implementationEvidence=2811, testEvidence=243, targetTestEvidence=86, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0571
+- Evidence matches: 4347
+- Evidence breakdown: pages=549, components=572, otherSource=317, edgeFunctions=484, migrations=935, tests=270, docs=1220
+- Test gap: priority=ok, implementationEvidence=2857, testEvidence=270, targetTestEvidence=87, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0621
 - Suggested test files: src/test/rls/dataApiGrantCoverage.test.ts, src/test/fileUploadSecurity.test.ts, src/test/storageBucketPolicies.test.ts, tests/e2e/media-upload-delete-retention.spec.ts
 - Next action: Keep `npm run qa:database-storage-contracts`, `npm run qa:storage-media-contracts`, and `npm run platform:test:storage-media` green for Data API grants, RLS, storage policies, signed media, upload validation, Postgres upgrade checks, and media/CDN gates.
 - Verification: npm run qa:database-storage-contracts && npm run qa:storage-media-contracts && npm run platform:test:storage-media && npm run test:rls && npm run perf:media-report && npm run supabase:migrations:linked:strict
@@ -155,9 +151,9 @@ Generated: 2026-08-30T23:42:59.000Z
 
 ### Security, Anti-Abuse, and Hacker Protection
 
-- Evidence matches: 3462
-- Evidence breakdown: pages=334, components=447, otherSource=125, edgeFunctions=465, migrations=762, tests=152, docs=1177
-- Test gap: priority=ok, implementationEvidence=2133, testEvidence=152, targetTestEvidence=70, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0439
+- Evidence matches: 3517
+- Evidence breakdown: pages=334, components=452, otherSource=129, edgeFunctions=467, migrations=776, tests=165, docs=1194
+- Test gap: priority=ok, implementationEvidence=2158, testEvidence=165, targetTestEvidence=71, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0469
 - Suggested test files: src/test/securityAttackDrills.test.ts, src/test/rateLimitRiskDecisions.test.ts, tests/e2e/account-takeover-protection.spec.ts
 - Next action: Keep account takeover, card testing, spam, scraping, fake booking, key leakage, WAF, rate-limit, network-risk, and strict preflight controls green.
 - Verification: npm run qa:security-anti-abuse-contracts && npm run test -- src/test/securityAttackDrills.test.ts src/test/rateLimitRiskDecisions.test.ts src/test/workflows/security-anti-abuse.test.ts && npx playwright test tests/e2e/account-takeover-protection.spec.ts && npm run security:scan && npm run security:api-readiness:report && npm run deploy:preflight:strict
@@ -175,9 +171,9 @@ Generated: 2026-08-30T23:42:59.000Z
 
 ### Law, Policy, Compliance, and Trust
 
-- Evidence matches: 4706
-- Evidence breakdown: pages=707, components=1294, otherSource=656, edgeFunctions=224, migrations=788, tests=159, docs=878
-- Test gap: priority=ok, implementationEvidence=3669, testEvidence=159, targetTestEvidence=95, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0338
+- Evidence matches: 4773
+- Evidence breakdown: pages=713, components=1303, otherSource=674, edgeFunctions=222, migrations=801, tests=168, docs=892
+- Test gap: priority=ok, implementationEvidence=3713, testEvidence=168, targetTestEvidence=96, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0352
 - Suggested test files: src/test/legalRouteSurface.test.ts, src/test/legalHubCanonicalLinks.test.ts, src/test/publicLegalNavigationCanonical.test.ts, src/test/checkoutLegalCanonicalLinks.test.ts, src/test/accountDeletionDataRightsLinks.test.ts, src/test/travelLegalCanonicalLinks.test.ts, src/test/groceryBusinessLegalCanonicalLinks.test.ts, src/test/legalPolicyPageRelatedLinks.test.ts, src/test/supportFlightLegalCanonicalLinks.test.ts, src/test/residualPublicLegalCanonicalLinks.test.ts, src/test/legalCanonicalSeoUrls.test.ts, src/test/policyAcceptanceVersioning.test.ts, src/test/legalAcceptanceEdgeAllowlists.test.ts, src/test/accountDeletionLifecycle.test.ts, src/test/accountExportManifest.test.ts, src/test/privacyExportDeletePromises.test.ts, src/test/legalTrustIntakeContracts.test.ts, src/test/refundSupportTrustIntake.test.ts, src/test/creatorMonetizationLegalDisclosure.test.ts, src/test/adsMarketingPrivacyDisclosure.test.ts, src/test/adsMarketingConsentRuntime.test.ts, src/test/marketingLeadPrivacyIntake.test.ts, src/test/ageEligibilitySafetyDisclosure.test.ts, src/test/aiAutomatedDecisionDisclosure.test.ts, src/test/automatedLegalPolicyHub.test.ts, src/test/dataRightsLegalPolicyHub.test.ts, src/test/sensitiveDataLegalPolicyHub.test.ts, tests/e2e/refund-policy-flow.spec.ts
 - Next action: Keep legal pages, canonical links, consent logs, export/delete rights, privacy intake, refund support, monetization disclosures, ads consent, AI notices, and policy-backed booking flows green.
 - Verification: npm run qa:legal-policy-contracts && npm run test -- src/test/workflows/legal-policy-workflow.test.ts src/test/legalRouteSurface.test.ts src/test/legalHubCanonicalLinks.test.ts src/test/publicLegalNavigationCanonical.test.ts src/test/checkoutLegalCanonicalLinks.test.ts src/test/accountDeletionDataRightsLinks.test.ts src/test/travelLegalCanonicalLinks.test.ts src/test/groceryBusinessLegalCanonicalLinks.test.ts src/test/legalPolicyPageRelatedLinks.test.ts src/test/supportFlightLegalCanonicalLinks.test.ts src/test/residualPublicLegalCanonicalLinks.test.ts src/test/legalCanonicalSeoUrls.test.ts src/test/policyAcceptanceVersioning.test.ts src/test/legalAcceptanceEdgeAllowlists.test.ts src/test/accountDeletionLifecycle.test.ts src/test/accountExportManifest.test.ts src/test/privacyExportDeletePromises.test.ts src/test/legalTrustIntakeContracts.test.ts src/test/refundSupportTrustIntake.test.ts src/test/creatorMonetizationLegalDisclosure.test.ts src/test/adsMarketingPrivacyDisclosure.test.ts src/test/adsMarketingConsentRuntime.test.ts src/test/marketingLeadPrivacyIntake.test.ts src/test/ageEligibilitySafetyDisclosure.test.ts src/test/aiAutomatedDecisionDisclosure.test.ts src/test/automatedLegalPolicyHub.test.ts src/test/dataRightsLegalPolicyHub.test.ts src/test/sensitiveDataLegalPolicyHub.test.ts && npx playwright test tests/e2e/refund-policy-flow.spec.ts && npm run security:api-readiness:report
@@ -195,9 +191,9 @@ Generated: 2026-08-30T23:42:59.000Z
 
 ### Frontend, Graphics, Design, and Speed
 
-- Evidence matches: 4128
-- Evidence breakdown: pages=640, components=791, otherSource=469, edgeFunctions=440, migrations=223, tests=131, docs=1434
-- Test gap: priority=ok, implementationEvidence=2563, testEvidence=131, targetTestEvidence=83, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0317
+- Evidence matches: 4193
+- Evidence breakdown: pages=645, components=800, otherSource=486, edgeFunctions=442, migrations=225, tests=148, docs=1447
+- Test gap: priority=ok, implementationEvidence=2598, testEvidence=148, targetTestEvidence=84, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0353
 - Suggested test files: tests/visual/workflow-visual-readiness.spec.ts, tests/e2e/mobile-layout-no-overlap.spec.ts, src/test/visualWorkflowCoverageContracts.test.ts, src/test/safeAreaVisualBaselineContracts.test.ts, src/test/feedMobileVisualContracts.test.ts, src/test/mobileBottomNavVisualContracts.test.ts, src/test/createPostComposerVisualContracts.test.ts, src/test/mediaRenderingPerformanceContracts.test.ts, src/test/feedResponsiveShellContracts.test.ts, src/test/loadingEmptyReliabilityContracts.test.ts, src/test/loadingErrorStates.test.tsx
 - Next action: Keep visual route coverage, compact mobile feed controls, safe-area baselines, bottom navigation, composer controls, lazy media, loading/error states, and no-overlap checks green.
 - Verification: npm run qa:frontend-visual-contracts && npm run test -- src/test/visualWorkflowCoverageContracts.test.ts src/test/safeAreaVisualBaselineContracts.test.ts src/test/feedMobileVisualContracts.test.ts src/test/mobileBottomNavVisualContracts.test.ts src/test/createPostComposerVisualContracts.test.ts src/test/mediaRenderingPerformanceContracts.test.ts src/test/feedResponsiveShellContracts.test.ts src/test/loadingEmptyReliabilityContracts.test.ts src/test/loadingErrorStates.test.tsx && npx playwright test tests/e2e/mobile-layout-no-overlap.spec.ts && npm run test:visual && npm run qa:safe-area:all && npm run perf:media-report && npm run build
@@ -215,9 +211,9 @@ Generated: 2026-08-30T23:42:59.000Z
 
 ### Native iOS, Android, OTA, and Store Release
 
-- Evidence matches: 2643
-- Evidence breakdown: pages=507, components=529, otherSource=242, edgeFunctions=112, migrations=175, tests=95, docs=983
-- Test gap: priority=ok, implementationEvidence=1565, testEvidence=95, targetTestEvidence=53, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0359
+- Evidence matches: 2685
+- Evidence breakdown: pages=511, components=535, otherSource=245, edgeFunctions=113, migrations=182, tests=102, docs=997
+- Test gap: priority=ok, implementationEvidence=1586, testEvidence=102, targetTestEvidence=54, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.038
 - Suggested test files: src/test/workflows/native-app-release.test.ts, src/test/nativePermissionsDeepLinks.test.ts, src/test/nativeStoreListingCanonicalUrls.test.ts, src/test/nativeStoreAssets.test.ts, src/test/nativeStoreScreenshotSpecs.test.ts, src/test/nativeSubmissionCommands.test.ts, src/test/nativeVersionReleaseAlignment.test.ts, src/test/nativeReleaseChecklist.test.ts, src/test/nativeSafeAreaBridgeContracts.test.ts, src/test/otaDeployBypass.test.ts, scripts/qa/native-app-contracts.mjs, scripts/native/doctor.mjs
 - Next action: Keep Capacitor config, native permissions, deep links, push extensions, iOS/Android store metadata, screenshots, safe-area bridge, OTA bypass safety, version alignment, native sync, and simulator/debug builds green.
 - Verification: npm run qa:native-app-contracts && npm run test -- src/test/workflows/native-app-release.test.ts src/test/nativePermissionsDeepLinks.test.ts src/test/nativeStoreListingCanonicalUrls.test.ts src/test/nativeStoreAssets.test.ts src/test/nativeStoreScreenshotSpecs.test.ts src/test/nativeSubmissionCommands.test.ts src/test/nativeVersionReleaseAlignment.test.ts src/test/nativeReleaseChecklist.test.ts src/test/nativeSafeAreaBridgeContracts.test.ts src/test/otaDeployBypass.test.ts && npm run native:doctor && npm run native:sync && npm run ios:build:sim && npm run android:build:debug
@@ -235,9 +231,9 @@ Generated: 2026-08-30T23:42:59.000Z
 
 ### API, Server Speed, Observability, and Operations
 
-- Evidence matches: 5156
-- Evidence breakdown: pages=692, components=1156, otherSource=641, edgeFunctions=482, migrations=656, tests=215, docs=1314
-- Test gap: priority=ok, implementationEvidence=3627, testEvidence=215, targetTestEvidence=104, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0417
+- Evidence matches: 5251
+- Evidence breakdown: pages=701, components=1168, otherSource=658, edgeFunctions=484, migrations=672, tests=237, docs=1331
+- Test gap: priority=ok, implementationEvidence=3683, testEvidence=237, targetTestEvidence=106, testsNeededForHigh=0, testsNeededForOk=0, testCoverageRatio=0.0451
 - Suggested test files: src/test/apiObservabilityContracts.test.ts, src/test/webhookFailureAlerting.test.ts, src/test/apiOperationsReportSurfaces.test.ts, tests/e2e/server-error-fallbacks.spec.ts
 - Next action: Keep wrapper observability, preflight artifacts, runtime settings, operations runbook owners, webhook failure surfaces, cron monitors, server-error fallbacks, and API readiness green.
 - Verification: npm run qa:api-operations-contracts && npm run test -- src/test/workflows/api-operations-readiness.test.ts src/test/apiObservabilityContracts.test.ts src/test/webhookFailureAlerting.test.ts src/test/apiOperationsReportSurfaces.test.ts && npx playwright test tests/e2e/server-error-fallbacks.spec.ts && npm run security:api-readiness:report && npm run deploy:preflight:strict

@@ -1,3 +1,4 @@
+import { observeIdentitySession } from "@/config/identityTopology";
 import { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from "react";
 import type { ReactNode } from "react";
 import type { AuthChangeEvent, User, Session } from "@supabase/supabase-js";
@@ -194,6 +195,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       authRevisionRef.current = revision;
       currentUserIdRef.current = nextUserId;
+      observeIdentitySession(nextSession?.access_token);
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
 
@@ -536,30 +538,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (!error) {
-        // Block driver accounts from signing into the passenger app
-        try {
-          const { data: { user: signedInUser } } = await withAuthTimeout(
-            "User lookup",
-            supabase.auth.getUser(),
-            10_000,
-          );
-          if (signedInUser) {
-            const { data: isDriver } = await withAuthTimeout(
-              "Driver account check",
-              (supabase as any).rpc("is_driver", {
-                p_user_id: signedInUser.id,
-              }) as Promise<{ data: boolean | null; error: unknown }>,
-              8_000,
-            );
-            if (isDriver) {
-              await clearNativeRestoreCredential(signedInUser.id);
-              await supabase.auth.signOut();
-              return { error: new Error("DRIVER_ACCOUNT") };
-            }
-          }
-        } catch {
-          // Non-critical — if the check fails, proceed (fail-open for availability)
-        }
+        // Media is the shared account hub. Driver membership in another app is
+        // not a reason to reject a valid hub login; each service authorizes its
+        // own operations on the server. Do not query remote roles here.
 
         loginGraceUntilRef.current = Date.now() + 15_000;
 

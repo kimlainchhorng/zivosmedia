@@ -1,3 +1,4 @@
+import { edgeCountry } from "@/lib/visitorLocale";
 /**
  * useGeoDetect — auto-detects country & language from IP on first visit.
  * Only runs once (when no stored preferences exist). User can always override manually.
@@ -15,6 +16,8 @@ export function useGeoDetect() {
   useEffect(() => {
     // Only run once per app lifecycle, and only if not previously detected
     if (ran.current) return;
+    // The edge already supplied country before React mounted; no duplicate IP lookup.
+    if (edgeCountry()) return;
     if (localStorage.getItem(GEO_DETECTED_KEY)) return;
     ran.current = true;
 

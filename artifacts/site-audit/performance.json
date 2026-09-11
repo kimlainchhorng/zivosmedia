@@ -1,0 +1,82 @@
+{
+  "method": "Lighthouse CI / DevTools slow-4G network and 4x CPU, local production build",
+  "limits": {
+    "lcpMs": 2500,
+    "requests": 60,
+    "bytesExclusive": 800000
+  },
+  "languages": {
+    "en": {
+      "samples": [
+        1391.496,
+        1395.895,
+        1412.73
+      ],
+      "medianLcpMs": 1395.895,
+      "resources": [
+        {
+          "resourceType": "total",
+          "label": "Total",
+          "requestCount": 30,
+          "transferSize": 313638
+        },
+        {
+          "resourceType": "total",
+          "label": "Total",
+          "requestCount": 30,
+          "transferSize": 313638
+        },
+        {
+          "resourceType": "total",
+          "label": "Total",
+          "requestCount": 30,
+          "transferSize": 313638
+        }
+      ],
+      "throttling": {
+        "rttMs": 150,
+        "throughputKbps": 1638.4,
+        "requestLatencyMs": 562.5,
+        "downloadThroughputKbps": 1474.56,
+        "uploadThroughputKbps": 675,
+        "cpuSlowdownMultiplier": 4
+      }
+    },
+    "km": {
+      "samples": [
+        1530.524,
+        1547.525,
+        1586.305
+      ],
+      "medianLcpMs": 1547.525,
+      "resources": [
+        {
+          "resourceType": "total",
+          "label": "Total",
+          "requestCount": 32,
+          "transferSize": 399424
+        },
+        {
+          "resourceType": "total",
+          "label": "Total",
+          "requestCount": 32,
+          "transferSize": 399424
+        },
+        {
+          "resourceType": "total",
+          "label": "Total",
+          "requestCount": 32,
+          "transferSize": 399424
+        }
+      ],
+      "throttling": {
+        "rttMs": 150,
+        "throughputKbps": 1638.4,
+        "requestLatencyMs": 562.5,
+        "downloadThroughputKbps": 1474.56,
+        "uploadThroughputKbps": 675,
+        "cpuSlowdownMultiplier": 4
+      }
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -38,6 +39,33 @@ const TravelInsurance = () => {
   const navigate = useNavigate();
   const goBack = useGoBack("/");
   const [selectedPlan, setSelectedPlan] = useState("standard");
+
+
+  // No insurance provider or purchase flow is connected for the Android release.
+  // Keep the route usable without presenting static plans as an available offer.
+  if (Capacitor.getPlatform() === "android") {
+    return (
+      <main className="min-h-screen bg-background px-5 pb-safe pt-safe text-foreground">
+        <div className="mx-auto max-w-lg py-6">
+          <Button variant="ghost" onClick={goBack} className="mb-8 gap-2">
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            Back
+          </Button>
+          <Shield className="mb-5 h-10 w-10 text-muted-foreground" aria-hidden="true" />
+          <h1 className="text-2xl font-semibold">Travel insurance</h1>
+          <p className="mt-3 text-lg font-medium">Insurance is not available in this app.</p>
+          <p className="mt-3 text-muted-foreground">
+            Zivo - Media does not currently sell or issue travel insurance through
+            the Android app. A travel booking does not include insurance unless
+            your booking documents explicitly confirm it.
+          </p>
+          <Button className="mt-7" onClick={() => navigate("/help")}>
+            Contact support
+          </Button>
+        </div>
+      </main>
+    );
+  }
 
   const plans = [
     {
