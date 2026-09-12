@@ -538,9 +538,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (!error) {
-        // Media is the shared account hub. Driver membership in another app is
-        // not a reason to reject a valid hub login; each service authorizes its
-        // own operations on the server. Do not query remote roles here.
+        // Block driver accounts from signing into the passenger app
+        try {
+          const { data: { user: signedInUser } } = await withAuthTimeout(
+            "User lookup",
+            supabase.auth.getUser(),
+            10_000,
+          );
+          if (signedInUser) {
+            const { data: isDriver } = await withAuthTimeout(
+              "Driver account check",
+              (supabase as any).rpc("is_driver", {
+                p_user_id: signedInUser.id,
+              }) as Promise<{ data: boolean | null; error: unknown }>,
+              8_000,
+            );
+            if (isDriver) {
+              await clearNativeRestoreCredential(signedInUser.id);
+              await supabase.auth.signOut();
+              return { error: new Error("DRIVER_ACCOUNT") };
+            }
+          }
+        } catch {
+          // Non-critical — if the check fails, proceed (fail-open for availability)
+        }
 
         loginGraceUntilRef.current = Date.now() + 15_000;
 

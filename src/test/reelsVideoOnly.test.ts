@@ -44,7 +44,12 @@ describe("/reels (FeedPage.tsx) — videos-only contract", () => {
   });
 
   it("keeps the 'No reels yet' headline", () => {
-    expect(SRC).toContain("No reels yet");
+    // The copy moved into the catalogue; pin the key and the English it
+    // resolves to, so a visitor still reads the same headline.
+    expect(SRC).toContain('t("feed.reels.empty")');
+    expect(
+      readFileSync(resolve(__dirname, "../i18n/translations.core.ts"), "utf8"),
+    ).toContain('"feed.reels.empty": "No reels yet"');
   });
 
   it("keeps Duet/Stitch source metadata connected to the reel composer", () => {

@@ -67,12 +67,12 @@ describe("loading, empty, and reliability visual contracts", () => {
     }
 
     for (const needle of [
-      'aria-label="Loading reels"',
-      "Feed is having trouble loading",
-      "We could not load reels right now.",
-      "No reels yet",
+      'aria-label={t("feed.reels.loading_label")}',
+      't("feed.error.title")',
+      't("feed.error.description")',
+      't("feed.reels.empty")',
       "Create reel",
-      "No reels from people you follow",
+      't("feed.following.empty")',
       "Show all reels",
       "You're offline",
       "Using cached reels. Live refresh failed.",
@@ -83,6 +83,23 @@ describe("loading, empty, and reliability visual contracts", () => {
       'aria-live="polite"',
     ]) {
       expect(reelsFeed).toContain(needle);
+    }
+
+    // Those five strings moved into the catalogue, so pin the keys and the
+    // English copy they resolve to: the states must stay readable to a visitor,
+    // not merely present as opaque keys.
+    const catalogue = source("src/i18n/translations.core.ts");
+    for (const [key, english] of [
+      ["feed.reels.loading_label", "Loading reels"],
+      ["feed.error.title", "Feed is having trouble loading"],
+      [
+        "feed.error.description",
+        "We could not load reels right now. Your connection or a service may be temporarily unstable.",
+      ],
+      ["feed.reels.empty", "No reels yet"],
+      ["feed.following.empty", "No reels from people you follow"],
+    ] as const) {
+      expect(catalogue).toContain(`"${key}": ${JSON.stringify(english)}`);
     }
   });
 

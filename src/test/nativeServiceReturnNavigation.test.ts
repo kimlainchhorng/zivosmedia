@@ -28,7 +28,10 @@ describe("native service return navigation", () => {
     expect(nativeBackSource).toContain(
       'navigate(to, { replace: to === "/" });',
     );
-    expect(flightsSource).toContain('title="Flights"');
+    // The header title is localized: English "Flights" is the non-km fallback.
+    expect(flightsSource).toContain(
+      'title={publicTravelText(km ? "ជើងហោះហើរ" : "Flights")}',
+    );
     expect(flightsSource).toContain("showBack");
     expect(flightsSource).toContain(
       'onBack={() => navigate("/", { replace: true })}',

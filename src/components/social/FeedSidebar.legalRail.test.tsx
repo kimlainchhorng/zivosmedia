@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -22,12 +23,21 @@ afterEach(() => {
   mocks.user = null;
 });
 
-const renderSidebar = () =>
-  render(
-    <MemoryRouter>
-      <FeedSidebar />
-    </MemoryRouter>,
+// FeedSidebar renders OwnerBusinessList, which reads react-query state, so the
+// harness has to supply the same provider the app mounts at its root.
+const renderSidebar = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <FeedSidebar />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
+};
 
 /**
  * The feed is the landing route for zivosmedia.com and renders no <Footer/>;

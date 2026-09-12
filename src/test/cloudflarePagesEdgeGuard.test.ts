@@ -46,13 +46,22 @@ const zivosmediaIndexHtml = `<!doctype html>
 const cloudflareHtmlEnv = {
   ...cloudflareEnv,
   ASSETS: {
-    fetch: async () =>
-      new Response(zivosmediaIndexHtml, {
+    fetch: async (request: Request) => {
+      // The media host serves its public entry pages from pre-rendered
+      // `/_prerender/*.txt` assets, which the worker requires to be text/plain
+      // before it rewrites them into HTML. Mirror that contract here.
+      if (new URL(request.url).pathname.startsWith("/_prerender/")) {
+        return new Response(zivosmediaIndexHtml, {
+          headers: { "content-type": "text/plain; charset=utf-8" },
+        });
+      }
+      return new Response(zivosmediaIndexHtml, {
         headers: {
           "content-length": String(zivosmediaIndexHtml.length),
           "content-type": "text/html; charset=utf-8",
         },
-      }),
+      });
+    },
   },
 };
 
@@ -473,7 +482,9 @@ describe("Cloudflare Pages edge guard", () => {
     const html = await response.text();
 
     expect(response.status).toBe(200);
-    expect(html).toContain("<title>ZIVO - Free Super-App</title>");
+    // The media host serves its own (media) SEO metadata from the pre-rendered
+    // entry page — never the travel tenant's.
+    expect(html).toContain("<title>One app for Cambodia | Zivo - Media</title>");
     expect(html).toContain('href="https://zivosmedia.com/"');
     expect(html).not.toContain("Zivo Travel Flights");
   });

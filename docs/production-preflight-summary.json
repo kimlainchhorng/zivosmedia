@@ -1,27 +1,27 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-09-09T16:13:16.154Z",
+  "generated": "2026-09-03T18:57:22.085Z",
   "mode": "strict",
   "options": {
     "strict": true,
     "skipBuild": true,
     "skipTypeCheck": true
   },
-  "readyForCurrentGate": true,
-  "readyForProductionGate": true,
+  "readyForCurrentGate": false,
+  "readyForProductionGate": false,
   "counts": {
     "apiCritical": 0,
-    "apiWarnings": 0,
+    "apiWarnings": 2,
     "environmentCritical": 0,
-    "environmentWarnings": 0,
+    "environmentWarnings": 5,
     "databaseBlockers": 0,
-    "databaseWarnings": 0,
+    "databaseWarnings": 1,
     "edgeFunctionDeployFailures": 0,
     "edgeFunctionMissingLiveCritical": 3,
     "edgeFunctionBrowserGateFailures": 0,
-    "failedCommands": 0,
-    "productionBlockers": 0,
-    "currentGateBlockers": 0
+    "failedCommands": 2,
+    "productionBlockers": 3,
+    "currentGateBlockers": 3
   },
   "supabase": {
     "envAccessToken": true,
@@ -30,8 +30,8 @@
     "linkedHistoryDisconnected": false,
     "remoteMigrationHistoryRead": true,
     "remoteMigrationHistoryStatus": "read",
-    "remoteMigrations": 1784,
-    "matchedVersions": 774,
+    "remoteMigrations": 1625,
+    "matchedVersions": 13,
     "duplicateVersions": 6,
     "newDuplicateVersions": 0
   },
@@ -88,7 +88,7 @@
   },
   "edgeFunctions": {
     "deployContractFailures": 0,
-    "slotReadinessMode": "local-plus-known-live-gap",
+    "slotReadinessMode": "local-plus-live-snapshot",
     "missingLiveCritical": [
       "analytics-event-track",
       "talent-invite-notification",
@@ -100,20 +100,31 @@
     "browserGatedFunctions": 6
   },
   "blockers": {
-    "production": [],
-    "currentGate": [],
-    "failedCommands": []
+    "production": [
+      "Environment readiness has 5 warning(s).",
+      "API readiness has 2 warning(s).",
+      "Database readiness has 1 warning(s)."
+    ],
+    "currentGate": [
+      "Environment readiness has 5 warning(s).",
+      "API readiness has 2 warning(s).",
+      "Database readiness has 1 warning(s)."
+    ],
+    "failedCommands": [
+      "Security scan",
+      "Supabase deploy environment"
+    ]
   },
   "steps": [
     {
       "id": "secrets",
       "title": "Security scan",
-      "status": "passed"
+      "status": "failed"
     },
     {
       "id": "environment",
       "title": "Supabase deploy environment",
-      "status": "passed"
+      "status": "failed"
     },
     {
       "id": "runtime-settings-sql",
@@ -173,27 +184,27 @@
     "markdown": {
       "path": "docs/production-preflight-report.md",
       "exists": true,
-      "bytes": 21914
+      "bytes": 22823
     },
     "json": {
       "path": "docs/production-preflight-summary.json",
       "exists": true,
-      "bytes": 6408
+      "bytes": 6752
     },
     "migrationDrift": {
       "path": "docs/supabase-migration-drift-report.md",
       "exists": true,
-      "bytes": 14687
+      "bytes": 14690
     },
     "databaseReadiness": {
       "path": "docs/database-upgrade-readiness-report.md",
       "exists": true,
-      "bytes": 13351
+      "bytes": 13219
     },
     "apiReadiness": {
       "path": "docs/api-readiness-report.md",
       "exists": true,
-      "bytes": 2601
+      "bytes": 2638
     },
     "reconciliationPlan": {
       "path": "docs/supabase-migration-reconciliation-plan.md",
@@ -230,6 +241,6 @@
     "total": 11,
     "existing": 11,
     "missing": 0,
-    "bytes": 226352
+    "bytes": 227513
   }
 }
