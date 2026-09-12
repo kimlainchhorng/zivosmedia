@@ -94,6 +94,25 @@ browser variables alone do not satisfy every release gate.
    `production` environment. Check for empty or stale environment overrides.
    Use the secure GitHub UI or interactive `gh secret set NAME`; do not paste
    credentials in commit messages, shell arguments or chat.
+### External builders (Cloudflare Workers Builds)
+
+The Cloudflare **Workers Builds** connected build for the `zivo` Worker runs
+`npm run build` in Cloudflare's own build environment, which does **not**
+inherit GitHub Actions variables or secrets. Since the hardened Vite config
+fails the build closed without them, every connected-build run fails with
+`Missing VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY` until you either:
+
+- set those two variables as **Build variables** in the Cloudflare dashboard
+  (Workers & Pages → `zivo` → Settings → Builds → Variables), copying the same
+  public values the repository Actions variables carry (they are client-safe:
+  they ship in the browser bundle); **or**
+- disable the connected build for the Worker — production deploys are owned by
+  the `deploy-cloudflare-production.yml` GitHub workflow, which already
+  configures these variables for its build step.
+
+Committing a `.env` file instead is deliberately not an option: repository
+policy keeps every `.env*` uncommitted.
+
 3. Supply `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` to the same deployment
    environment, plus the existing strict preflight's required credentials.
    If Cloudflare Workers Builds runs independently of GitHub, set the public
