@@ -25,7 +25,16 @@ export async function collectRates(token, fetcher = fetch) {
   const url = new URL('https://api.supabase.com/v1/projects/slirphzzwcogdbkeicff/analytics/endpoints/logs');
   url.searchParams.set('sql', rateSql);url.searchParams.set('iso_timestamp_start', start.toISOString());url.searchParams.set('iso_timestamp_end', end.toISOString());
   const response = await fetcher(url, { headers: { Authorization: 'Bearer ' + token, apikey: token }, signal: AbortSignal.timeout(30000) });
-  if (!response.ok) throw new Error(`Monitoring API unavailable (HTTP ${response.status})`);
+  if (!response.ok) {
+    // A 401/403 here has repeatedly sent people chasing header formats; the
+    // endpoint itself is verified working with a valid token. It means the
+    // SUPABASE_ACCESS_TOKEN secret is revoked, expired, or a scoped token
+    // without management/analytics access — rotate the secret, not the code.
+    const hint = (response.status === 401 || response.status === 403)
+      ? ' — credentials rejected: rotate the GitHub SUPABASE_ACCESS_TOKEN secret (revoked, expired, or scoped without management/analytics access); the endpoint is verified working with a valid token'
+      : '';
+    throw new Error(`Monitoring API unavailable (HTTP ${response.status})${hint}`);
+  }
   const body = await response.json();if (body.error) throw new Error('Monitoring query failed');
   return { start: start.toISOString(), end: end.toISOString(), endpoints: assessRates(body.result) };
 }
