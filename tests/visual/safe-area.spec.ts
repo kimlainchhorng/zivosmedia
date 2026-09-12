@@ -186,6 +186,18 @@ async function isolateHomeBottomChrome(
   // The mobile nav is portaled directly under <body>. Hide the animated Home
   // route behind it so the translucent backdrop cannot sample a different
   // card frame on each run; the real nav, touch targets, and safe inset remain.
+  const mobileNav = page.locator("[data-zivo-mobile-nav]");
+  const navPresent = await mobileNav
+    .waitFor({ state: "visible", timeout: 10_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!navPresent) {
+    // The signed-out landing has no mobile nav; its bottom region is the
+    // page footer. Keep the page visible and anchor the capture there
+    // instead of hiding #root behind chrome that never mounts.
+    await page.locator("footer").last().waitFor({ state: "visible" });
+    return;
+  }
   await page.addStyleTag({
     content: `
       html, body {
@@ -196,7 +208,7 @@ async function isolateHomeBottomChrome(
       }
     `,
   });
-  await page.locator("[data-zivo-mobile-nav]").waitFor({ state: "visible" });
+  await mobileNav.waitFor({ state: "visible" });
   await page.evaluate(
     () =>
       new Promise<void>((resolve) => {
