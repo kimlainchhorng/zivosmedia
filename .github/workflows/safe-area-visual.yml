@@ -28,7 +28,7 @@ on:
       - "booking-*.json"
 
 permissions:
-  contents: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.update_baselines && 'write' || 'read' }}
+  contents: read
   pull-requests: write
 
 jobs:
@@ -226,8 +226,39 @@ jobs:
               });
             }
 
-      - name: Commit regenerated baselines and open a PR
+      - name: Upload regenerated baselines
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.update_baselines
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: regenerated-baselines
+          path: tests/visual/__screenshots__/
+
+      - name: Fail job if visual tests failed
+        if: steps.visual.outcome == 'failure' && !(github.event_name == 'workflow_dispatch' && github.event.inputs.update_baselines)
+        run: exit 1
+
+  publish-baselines:
+    needs: visual
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.update_baselines
+    permissions:
+      # Expressions are not valid in permission values; the elevated write is
+      # scoped to this job, which exists only for the dispatched refresh.
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: true
+
+      - name: Download regenerated baselines
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: regenerated-baselines
+          path: tests/visual/__screenshots__
+
+      - name: Commit regenerated baselines and open a PR
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -242,10 +273,4 @@ jobs:
           git add tests/visual/__screenshots__
           git commit -m "Regenerate Linux safe-area visual baselines ($GITHUB_SHA)"
           git push origin "$BRANCH"
-          gh pr create --title "Regenerate safe-area visual baselines" \
-            --body "Automated baseline refresh from workflow_dispatch run $GITHUB_RUN_ID. Review every image: these become the new visual contract." \
-            --base main --head "$BRANCH"
-
-      - name: Fail job if visual tests failed
-        if: steps.visual.outcome == 'failure' && !(github.event_name == 'workflow_dispatch' && github.event.inputs.update_baselines)
-        run: exit 1
+          gh pr create --title "Regenerate safe-area visual baselines"             --body "Automated baseline refresh from workflow_dispatch run $GITHUB_RUN_ID. Review every image: these become the new visual contract."             --base main --head "$BRANCH"
