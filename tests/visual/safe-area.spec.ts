@@ -123,22 +123,20 @@ async function waitForStableVisuals(
   routeName: string,
 ) {
   if (routeName === "home") {
+    // The signed-out home is the Cambodia marketing landing (hero + link
+    // tiles). The old AppHome surface ("More Services" button grid, mobile
+    // nav, framer-motion tiles) renders only for signed-in sessions, which
+    // this suite does not seed by default.
     await page
-      .getByText("More Services", { exact: true })
+      .getByText("What would you like to do?", { exact: true })
       .waitFor({ state: "visible" });
-    await page.locator("[data-zivo-mobile-nav]").waitFor({ state: "visible" });
-    const serviceTiles = page.locator(
-      'section[aria-labelledby="home-services-heading"] .grid > button',
-    );
+    const serviceTiles = page.locator("section#services .grid > a");
     await serviceTiles.first().waitFor({ state: "visible" });
-    // Framer Motion owns tile opacity in JavaScript, so CSS duration overrides
-    // cannot settle the stagger by themselves. Wait until every mounted tile
-    // has reached its final opacity before capturing the service row.
+    // Keep the opacity-settle guard so a future animated landing cannot
+    // capture a mid-transition frame; static tiles satisfy it immediately.
     await page.waitForFunction(() => {
       const tiles = Array.from(
-        document.querySelectorAll<HTMLElement>(
-          'section[aria-labelledby="home-services-heading"] .grid > button',
-        ),
+        document.querySelectorAll<HTMLElement>("section#services .grid > a"),
       );
       return (
         tiles.length > 0 &&
@@ -147,9 +145,7 @@ async function waitForStableVisuals(
         )
       );
     });
-    const serviceImages = page.locator(
-      'section[aria-labelledby="home-services-heading"] img',
-    );
+    const serviceImages = page.locator("main figure img");
     await serviceImages.first().waitFor({ state: "visible" });
     await serviceImages.evaluateAll(async (images) => {
       await Promise.all(

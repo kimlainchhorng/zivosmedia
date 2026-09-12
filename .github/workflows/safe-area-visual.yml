@@ -1,6 +1,12 @@
 name: Safe-Area Visual Regression
 
 on:
+  workflow_dispatch:
+    inputs:
+      update_baselines:
+        description: "Regenerate committed Linux snapshots and open a PR with them (use after an intentional UI redesign)"
+        type: boolean
+        default: false
   pull_request:
     # GitHub rejects paths + paths-ignore on one event; use negated paths instead.
     paths:
@@ -22,7 +28,7 @@ on:
       - "booking-*.json"
 
 permissions:
-  contents: read
+  contents: ${{ github.event_name == 'workflow_dispatch' && inputs.update_baselines && 'write' || 'read' }}
   pull-requests: write
 
 jobs:
@@ -103,7 +109,8 @@ jobs:
         run: |
           npx playwright test tests/visual/safe-area.spec.ts \
             --reporter=html,json,list \
-            --output=test-results/visual
+            --output=test-results/visual \
+            ${{ github.event_name == 'workflow_dispatch' && inputs.update_baselines && '--update-snapshots' || '' }}
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
@@ -219,6 +226,26 @@ jobs:
               });
             }
 
+      - name: Commit regenerated baselines and open a PR
+        if: github.event_name == 'workflow_dispatch' && inputs.update_baselines
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- tests/visual/__screenshots__; then
+            echo "No baseline changes to commit."
+            exit 0
+          fi
+          BRANCH="visual-baselines/$GITHUB_RUN_ID"
+          git config user.name "zivo-visual-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add tests/visual/__screenshots__
+          git commit -m "Regenerate Linux safe-area visual baselines ($GITHUB_SHA)"
+          git push origin "$BRANCH"
+          gh pr create --title "Regenerate safe-area visual baselines" \
+            --body "Automated baseline refresh from workflow_dispatch run $GITHUB_RUN_ID. Review every image: these become the new visual contract." \
+            --base main --head "$BRANCH"
+
       - name: Fail job if visual tests failed
-        if: steps.visual.outcome == 'failure'
+        if: steps.visual.outcome == 'failure' && !(github.event_name == 'workflow_dispatch' && inputs.update_baselines)
         run: exit 1
