@@ -10,6 +10,10 @@ test('rejects malformed and duplicate metrics rather than declaring healthy',()=
 });
 test('reads aggregate allowlisted paths only, and treats query errors as unavailable',async()=>{
  assert.match(rateSql,/group by endpoint/);assert.doesNotMatch(rateSql,/authorization|email|user_id|event_message/i);
+ let seenUrl,seenHeaders;
+ await collectRates('test-token',async(url,init)=>{seenUrl=String(url);seenHeaders=init.headers;return new Response(JSON.stringify({result:[]}));});
+ assert.ok(typeof seenHeaders.Authorization==='string'&&seenHeaders.Authorization.startsWith('Bearer ')&&seenHeaders.Authorization.endsWith('test-token'));assert.equal(seenHeaders.apikey,'test-token');
+ assert.match(seenUrl,/analytics\/endpoints\/logs\?/);
  await assert.rejects(()=>collectRates('test',async()=>new Response(JSON.stringify({error:'private diagnostic'}))),/Monitoring query failed/);
  await assert.rejects(()=>collectRates('test',async()=>new Response('',{status:403})),/HTTP 403/);
 });

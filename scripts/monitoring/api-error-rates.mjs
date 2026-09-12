@@ -24,7 +24,7 @@ export async function collectRates(token, fetcher = fetch) {
   const end = new Date(), start = new Date(end.getTime() - 15 * 60_000);
   const url = new URL('https://api.supabase.com/v1/projects/slirphzzwcogdbkeicff/analytics/endpoints/logs');
   url.searchParams.set('sql', rateSql);url.searchParams.set('iso_timestamp_start', start.toISOString());url.searchParams.set('iso_timestamp_end', end.toISOString());
-  const response = await fetcher(url, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(30000) });
+  const response = await fetcher(url, { headers: { Authorization: 'Bearer ' + token, apikey: token }, signal: AbortSignal.timeout(30000) });
   if (!response.ok) throw new Error(`Monitoring API unavailable (HTTP ${response.status})`);
   const body = await response.json();if (body.error) throw new Error('Monitoring query failed');
   return { start: start.toISOString(), end: end.toISOString(), endpoints: assessRates(body.result) };
