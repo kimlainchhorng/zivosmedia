@@ -4,7 +4,7 @@
 
 66+ commits have landed since release 1.0.0, including the chat/channel suite and the ZIVO Ride unification work. Note: many recent commits are **not** conventional-commit formatted, so release-please will not capture them automatically — the next release notes will need manual curation.
 
-## [1.0.2](https://github.com/kimlainchhorng/zivosmedia/compare/v1.0.1...v1.0.2) (2026-09-10)
+## [1.0.2](https://github.com/kimlainchhorng/zivosmedia/compare/v1.0.1...v1.0.2) (2026-09-11)
 
 
 ### Bug Fixes
