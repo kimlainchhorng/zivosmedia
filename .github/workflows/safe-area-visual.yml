@@ -250,7 +250,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          persist-credentials: true
+          # Keep the workflow token out of .git/config; the push step below
+          # authenticates explicitly with the job-scoped GH_TOKEN instead.
+          persist-credentials: false
 
       - name: Download regenerated baselines
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
@@ -272,5 +274,6 @@ jobs:
           git checkout -b "$BRANCH"
           git add tests/visual/__screenshots__
           git commit -m "Regenerate Linux safe-area visual baselines ($GITHUB_SHA)"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push origin "$BRANCH"
           gh pr create --title "Regenerate safe-area visual baselines"             --body "Automated baseline refresh from workflow_dispatch run $GITHUB_RUN_ID. Review every image: these become the new visual contract."             --base main --head "$BRANCH"

@@ -30,6 +30,25 @@ describe("native Supabase auth client", () => {
       auth: {
         getSession: vi.fn(async () => ({ data: { session: null }, error: null })),
       },
+      // client.ts installs one realtime circuit per client, so the mocked SDK
+      // has to expose the transport surface that installRealtimeCircuit wraps.
+      realtime: {
+        socketAdapter: {
+          getSocket: () => ({
+            connect: vi.fn(),
+            isConnected: () => false,
+            connectionState: () => "closed",
+            reconnectAfterMs: () => 1_000,
+            reconnectTimer: { reset: vi.fn() },
+            onError: vi.fn(),
+            onClose: vi.fn(),
+            onOpen: vi.fn(),
+            onMessage: vi.fn(),
+          }),
+        },
+        disconnect: vi.fn(async () => undefined),
+        getChannels: () => [],
+      },
     }));
   });
 
