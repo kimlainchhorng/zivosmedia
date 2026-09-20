@@ -110,8 +110,10 @@ test.describe("staff, driver, admin, and retired creator access contracts", () =
     const driverResolve = read("supabase/functions/resolve-driver-earning-payout/index.ts");
     const morePage = read("src/pages/MorePage.tsx");
 
+    // The invoke() argument lists are prettier-wrapped, so match the callee and
+    // the function name across the wrap instead of assuming a single line.
     for (const fn of ["driver-connect-status", "driver-connect-onboard"]) {
-      expect(driverPayouts).toContain(`supabase.functions.invoke("${fn}"`);
+      expect(driverPayouts).toMatch(new RegExp(`supabase\\.functions\\.invoke\\(\\s*"${fn}"`));
     }
     expect(driverPayouts).toMatch(
       /invokeSensitive(?:<[^>]+>)?\(\s*"customer-payout-method-record"/,

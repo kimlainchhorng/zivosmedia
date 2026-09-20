@@ -17,15 +17,18 @@ test.describe("admin two-step required contract", () => {
     const protectedRoute = source("src/components/auth/ProtectedRoute.tsx");
     const userAccess = source("src/hooks/useUserAccess.ts");
 
+    // Prettier re-wraps this JSX as the provider tree deepens, so each route is
+    // matched with explicit whitespace classes instead of assuming one line.
+    // Every token is still required, in order.
     for (const route of [
-      'path="/admin/analytics"',
-      'path="/admin/security"',
-      'path="/admin/support" element={<ProtectedRoute requireAdmin={true} allowSupport={true}>',
-      'path="/admin/user-accounts" element={<ProtectedRoute requireAdmin={true} allowSupport={true}>',
-      'path="/admin/moderation" element={<ProtectedRoute requireAdmin={true} allowSupport={true}>',
-      'path="/admin/content-reports" element={<ProtectedRoute requireAdmin={true}>',
+      /path="\/admin\/analytics"/,
+      /path="\/admin\/security"/,
+      /path="\/admin\/support"\s+element=\{\s*<ProtectedRoute\s+requireAdmin=\{true\}\s+allowSupport=\{true\}\s*>/,
+      /path="\/admin\/user-accounts"\s+element=\{\s*<ProtectedRoute\s+requireAdmin=\{true\}\s+allowSupport=\{true\}\s*>/,
+      /path="\/admin\/moderation"\s+element=\{\s*<ProtectedRoute\s+requireAdmin=\{true\}\s+allowSupport=\{true\}\s*>/,
+      /path="\/admin\/content-reports"\s+element=\{\s*<ProtectedRoute requireAdmin=\{true\}>/,
     ]) {
-      expect(app).toContain(route);
+      expect(app).toMatch(route);
     }
 
     expectAll(protectedRoute, [

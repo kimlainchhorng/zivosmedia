@@ -30,8 +30,8 @@ test.describe("customer booking and payment contracts", () => {
     }
 
     expect(storePage).toContain("GroceryCheckoutDrawer");
-    expect(checkout).toContain('supabase.functions.invoke("create-grocery-payment-intent"');
-    expect(checkout).toContain('supabase.functions.invoke("confirm-grocery-payment"');
+    expect(checkout).toMatch(/supabase\.functions\.invoke\(\s*"create-grocery-payment-intent"/);
+    expect(checkout).toMatch(/supabase\.functions\.invoke\(\s*"confirm-grocery-payment"/);
     expect(checkout).toContain('returnUrl = `${window.location.origin}/grocery/orders?${returnParam}=${orderId}`');
     expect(checkout).toContain('cancelUrl = `${window.location.origin}/grocery/orders?grocery_paypal_cancel=${orderId}`');
 

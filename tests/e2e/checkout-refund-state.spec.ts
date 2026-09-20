@@ -19,9 +19,11 @@ test.describe("checkout and refund state contracts", () => {
     const paypalWebhook = read("supabase/functions/paypal-grocery-webhook/index.ts");
     const squareWebhook = read("supabase/functions/square-grocery-webhook/index.ts");
 
+    // The invoke() argument lists are prettier-wrapped, so match the callee and
+    // the function name across the wrap instead of assuming a single line.
+    expect(checkout).toMatch(/supabase\.functions\.invoke\(\s*"create-grocery-payment-intent"/);
+    expect(checkout).toMatch(/supabase\.functions\.invoke\(\s*"confirm-grocery-payment"/);
     expectAll(checkout, [
-      'supabase.functions.invoke("create-grocery-payment-intent"',
-      'supabase.functions.invoke("confirm-grocery-payment"',
       'returnUrl = `${window.location.origin}/grocery/orders?${returnParam}=${orderId}`',
       'cancelUrl = `${window.location.origin}/grocery/orders?grocery_paypal_cancel=${orderId}`',
     ]);
@@ -36,8 +38,8 @@ test.describe("checkout and refund state contracts", () => {
       "notifyGroceryOrderConfirmed",
     ]);
 
+    expect(stripeWebhook).toMatch(/withSecurity\(\s*"stripe-webhook"/);
     expectAll(stripeWebhook, [
-      'withSecurity("stripe-webhook"',
       "Webhook safety net for grocery orders",
       '.eq("stripe_payment_intent_id", paymentIntent.id)',
       "notifyGroceryOrderConfirmed",
