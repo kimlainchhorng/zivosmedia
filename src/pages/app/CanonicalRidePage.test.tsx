@@ -271,6 +271,42 @@ describe("CanonicalRidePage account isolation", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
+  it("restores a marked private rebook as clean Home, including host return", () => {
+    const marked = "/?pickup=Private+Pickup&destination=Private+Destination&zivo_history_rebook=1";
+    testState.location = {
+      pathname: "/rides/hub", search: `?${new URLSearchParams({ ride_path: marked, pickup: "Outer private" })}`,
+      hash: "", state: null,
+    };
+    render(<CanonicalRidePage />);
+    const frameUrl = new URL(getRideFrame().src);
+    expect(frameUrl.pathname).toBe("/");
+    expect(frameUrl.searchParams.has("pickup")).toBe(false);
+    expect(frameUrl.searchParams.has("destination")).toBe(false);
+    const hostReturn = new URL(frameUrl.searchParams.get("host_return")!);
+    expect(hostReturn.pathname).toBe("/rides/hub");
+    expect(hostReturn.search).toBe("");
+  });
+
+  it("records a safe Home message without reloading the active Ride frame", () => {
+    const oldUrl = window.location.href;
+    const oldState = window.history.state;
+    try {
+      window.history.replaceState(oldState, "", "/rides/hub?ride_path=%2Fhistory");
+      testState.location = { pathname: "/rides/hub", search: "?ride_path=%2Fhistory", hash: "", state: null };
+      render(<CanonicalRidePage />);
+      const frame = getRideFrame();
+      const oldSrc = frame.src;
+      postNavigationMessage(frame.contentWindow, new URL(oldSrc).origin, "/");
+      expect(window.location.pathname).toBe("/rides/hub");
+      expect(window.location.search).toBe("");
+      expect(getRideFrame()).toBe(frame);
+      expect(getRideFrame().src).toBe(oldSrc);
+      expect(testState.navigate).not.toHaveBeenCalled();
+    } finally {
+      window.history.replaceState(oldState, "", oldUrl);
+    }
+  });
+
   it("confirms an exact trusted Ride embed challenge", () => {
     render(<CanonicalRidePage />);
     const frame = getRideFrame();

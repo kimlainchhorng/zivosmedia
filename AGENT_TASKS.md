@@ -10,6 +10,8 @@ One agent per file/page. Run `npm run update` before moving anything to **Done**
 
 ## In progress (owner session)
 
+- **REVIEW CANDIDATE — Embedded Ride private-rebook host boundary — @codex, 2026-10-30.** Isolated local review owns `src/lib/canonicalRideLaunch.ts`, its tests and a focused host-frame regression. Marked History/Receipt routes restore to clean Home instead of becoming ordinary shared links; 35 focused host checks pass and the full local update gate is in progress. Older already-unmarked links remain indistinguishable from shared links. No live traffic, deployment or GitHub Actions.
+
 
 - **Post-deploy API / identity plan / performance follow-up — @codex, 2026-09-08.** DEPLOYED Worker 6207f0b7-9f85-48af-a125-0977d176ebd2 at 100%; narrow main DB migration applied. Full update, strict technical release checks, focused 9/9 tests, isolated PostgreSQL privacy fixtures, six Lighthouse runs and live public 12/12 pass. Monitoring/performance CI remain draft PRs Media#236 / Ride#76 / Driver#129; identity diagnostics off. Evidence: docs/postdeploy-api-verification-2026-09-08.md. Owner requests implementation and Media deploy. Owns additive story columns + masked payout reader migration, FeedStoryRing/StoriesRail/useStoriesFeed recovery, EatsLanding recent orders, AuthContext removal of passenger-only driver exclusion, truthful EN/KM Login email label, focused tests, endpoint monitoring, IDENTITY_PLAN.md/schema-only inventory, feature-flagged identity diagnostics, Lighthouse budgets and cross-repo CI-only performance follow-ups. Preserve shared source and backend accounts; no account merging, payment/order mutations or provider sends for QA.
 

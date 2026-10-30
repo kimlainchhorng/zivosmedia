@@ -60,6 +60,36 @@ describe("canonical Ride launch contract", () => {
     expect(sanitizeCanonicalRidePath("/admin")).toBeNull();
   });
 
+  it("never restores a marked private rebook as an ordinary shared route", () => {
+    const privateRoute = "/?pickup=Private+Pickup&pickupLat=11.5&destination=Private+Destination&destLng=104.9";
+    for (const marker of [
+      "zivo_history_rebook=1",
+      "zivo_history_rebook=0",
+      "zivo_history_rebook=",
+      "zivo_history_rebook=1&zivo_history_rebook=0",
+      "%7Aivo_history_rebook=1",
+    ]) {
+      const marked = `${privateRoute}&${marker}`;
+      const nested = new URLSearchParams({ ride_path: marked, pickup: "Outer private" });
+      expect(sanitizeCanonicalRidePath(marked)).toBe("/");
+      expect(deriveCanonicalRideFramePath("/rides/hub", `?${nested}`, { initialDestinationAddress: "Private state" })).toBe("/");
+      expect(deriveCanonicalRideFramePath("/rides/hub", `${privateRoute.slice(1)}&${marker}`)).toBe("/");
+      expect(updateCanonicalRideHostPath("https://zivosmedia.com/rides/hub?pickup=Old", marked)).toBe("/rides/hub");
+      expect(getRideNavigationPath({ type: "zivo-ride:navigate", path: marked })).toBe("/");
+    }
+
+    // A second private value must not be hidden by a benign first ride_path.
+    const duplicates = new URLSearchParams();
+    duplicates.append("ride_path", "/?destination=Public");
+    duplicates.append("ride_path", `${privateRoute}&zivo_history_rebook=1`);
+    expect(deriveCanonicalRideFramePath("/rides/hub", `?${duplicates}`)).toBe("/");
+
+    expect(sanitizeCanonicalRidePath(privateRoute)).toBe(privateRoute);
+    const shared = new URLSearchParams({ ride_path: privateRoute });
+    expect(deriveCanonicalRideFramePath("/rides/hub", `?${shared}`)).toBe(privateRoute);
+    expect(deriveCanonicalRideFramePath("/rides/hub", privateRoute.slice(1))).toBe(privateRoute);
+  });
+
   it("mirrors canonical Ride UUIDv7 and confirmed-coordinate routes", () => {
     const v7Id = "018f0c7e-7000-7000-8000-000000000001";
 

@@ -3,6 +3,8 @@ const EMBED_SESSION_RE = /^[A-Za-z0-9_-]{32,128}$/;
 const UUID_PATH = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-57][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
 const UUID_RE = new RegExp(`^${UUID_PATH}$`);
 const HOST_TRACKING_PATH_RE = new RegExp(`^/rides/track/(${UUID_PATH})$`);
+// Must match the private History/Receipt marker in the Ride app.
+const HISTORY_REBOOK_MARKER = "zivo_history_rebook";
 const TRIP_ID_QUERY_KEYS = ["trip_id", "tripId", "job_id", "jobId", "order_id", "orderId", "ride_request_id"];
 const HOME_QUERY_KEYS = new Set([
   "pickup", "pickupLat", "pickupLng", "destination", "destLat", "destLng",
@@ -100,11 +102,22 @@ function canonicalizeSearch(url: URL, allowedKeys: Set<string>) {
   }
 }
 
+function hasPrivateRebookMarker(path: string): boolean {
+  try {
+    return new URL(path, "https://ride.invalid").searchParams.has(HISTORY_REBOOK_MARKER);
+  } catch {
+    return false;
+  }
+}
+
 export function sanitizeCanonicalRidePath(value: string | null): string | null {
   if (!value || !value.startsWith("/") || value.startsWith("//") || value.length > 1600) return null;
   try {
     const url = new URL(value, "https://ride.invalid");
     if (url.origin !== "https://ride.invalid" || !isAllowedRidePath(url.pathname)) return null;
+    // Owner state cannot cross the iframe. Never strip the marker while
+    // preserving the private History/Receipt route as a normal shared link.
+    if (url.searchParams.has(HISTORY_REBOOK_MARKER)) return "/";
     canonicalizeSearch(url, queryKeysFor(url.pathname));
     url.hash = "";
     const search = url.searchParams.toString();
@@ -125,6 +138,11 @@ export function deriveCanonicalRideFramePath(
   state?: unknown,
 ): string {
   const incomingQuery = applyRideLaunchState(new URLSearchParams(hostSearch), state);
+  // Check before sanitizing or merging outer launch values. Otherwise a
+  // marked nested path can become `/` and then regain its private addresses
+  // from the host query or Router state.
+  if (incomingQuery.has(HISTORY_REBOOK_MARKER)
+    || incomingQuery.getAll("ride_path").some(hasPrivateRebookMarker)) return "/";
   const syncedPath = sanitizeCanonicalRidePath(incomingQuery.get("ride_path"));
   incomingQuery.delete("ride_path");
 
