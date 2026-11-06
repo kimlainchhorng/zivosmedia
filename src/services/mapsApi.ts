@@ -50,6 +50,68 @@ export interface RouteLeg {
   end_address: string;
 }
 
+async function invokeMapsFunction(functionName: string, body: Record<string, unknown>) {
+  const configuredUrl = import.meta.env.VITE_CLOUDFLARE_MAPS_API_BASE_URL?.trim();
+  if (!configuredUrl) {
+    return supabase.functions.invoke(functionName, { body });
+  }
+
+  try {
+    const endpoint = new URL(configuredUrl);
+    const allowedHosts = new Set([
+      "zivo-media-maps-staging.myzivo.workers.dev",
+    ]);
+    const basePath = endpoint.pathname.replace(/\/+$/, "");
+    const allowedFunctions = new Set([
+      "maps-autocomplete",
+      "maps-place-details",
+      "maps-route",
+      "maps-reverse-geocode",
+      "maps-geocode",
+    ]);
+    if (
+      endpoint.protocol !== "https:" ||
+      endpoint.username ||
+      endpoint.password ||
+      endpoint.search ||
+      endpoint.hash ||
+      basePath !== "/functions/v1" ||
+      !allowedHosts.has(endpoint.hostname) ||
+      !allowedFunctions.has(functionName)
+    ) {
+      return { data: null, error: new Error("Cloudflare Maps endpoint is not allowed") };
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      return { data: null, error: new Error("Authentication required") };
+    }
+
+    const target = new URL(functionName, endpoint.origin + basePath + "/");
+    const response = await fetch(target.toString(), {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + session.access_token,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      credentials: "omit",
+      cache: "no-store",
+      redirect: "error",
+    });
+    const data = await response.json().catch(() => null);
+    return {
+      data,
+      error: response.ok ? null : new Error("Cloudflare Maps request failed"),
+    };
+  } catch (error) {
+    return {
+      data: null,
+      error: error instanceof Error ? error : new Error("Cloudflare Maps request failed"),
+    };
+  }
+}
+
 // ── Autocomplete ───────────────────────────────────────
 
 export async function getAutocompleteSuggestions(
@@ -64,7 +126,7 @@ export async function getAutocompleteSuggestions(
     if (proximity) body.proximity = proximity;
     if (country) body.country = country;
 
-    const { data, error } = await supabase.functions.invoke("maps-autocomplete", { body });
+    const { data, error } = await invokeMapsFunction("maps-autocomplete", body);
     if (error || !data?.ok) return [];
     return data.suggestions ?? [];
   } catch {
@@ -78,9 +140,7 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails | n
   if (!placeId) return null;
 
   try {
-    const { data, error } = await supabase.functions.invoke("maps-place-details", {
-      body: { place_id: placeId },
-    });
+    const { data, error } = await invokeMapsFunction("maps-place-details", { place_id: placeId });
     if (error || !data?.ok) return null;
     return { address: data.address, name: data.name, lat: data.lat, lng: data.lng };
   } catch {
@@ -104,7 +164,7 @@ export async function getRoute(
     };
     if (waypoints && waypoints.length > 0) body.waypoints = waypoints;
 
-    const { data, error } = await supabase.functions.invoke("maps-route", { body });
+    const { data, error } = await invokeMapsFunction("maps-route", body);
     if (error || !data?.ok) return null;
 
     return {
@@ -138,9 +198,7 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
   }
   
   try {
-    const { data, error } = await supabase.functions.invoke("maps-reverse-geocode", {
-      body: { lat, lng },
-    });
+    const { data, error } = await invokeMapsFunction("maps-reverse-geocode", { lat, lng });
     if (error || !data?.ok) return fallback;
     return data.address ?? fallback;
   } catch {
@@ -157,9 +215,7 @@ export async function forwardGeocode(address: string): Promise<{ lat: number; ln
     // Use autocomplete + place details as a two-step forward geocode
     const suggestions = await getAutocompleteSuggestions(address);
     if (suggestions.length === 0) {
-      const { data, error } = await supabase.functions.invoke("maps-geocode", {
-        body: { address: address.trim() },
-      });
+      const { data, error } = await invokeMapsFunction("maps-geocode", { address: address.trim() });
       if (!error && data?.ok && data.lat != null && data.lng != null) {
         return { lat: data.lat, lng: data.lng };
       }
@@ -168,8 +224,8 @@ export async function forwardGeocode(address: string): Promise<{ lat: number; ln
     
     const details = await getPlaceDetails(suggestions[0].place_id);
     if (!details) {
-      const { data, error } = await supabase.functions.invoke("maps-geocode", {
-        body: { address: suggestions[0].description || address.trim() },
+      const { data, error } = await invokeMapsFunction("maps-geocode", {
+        address: suggestions[0].description || address.trim(),
       });
       if (!error && data?.ok && data.lat != null && data.lng != null) {
         return { lat: data.lat, lng: data.lng };
