@@ -625,7 +625,8 @@ export default function CanonicalRidePage() {
             Continue to ZIVO Ride
           </h1>
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            The secure Ride app can&apos;t open inside this ZIVO window.
+            This ZIVO window is not on an allowed Ride embed origin, so the
+            secure Ride app will not load here and no SSO session is adopted.
             Continue to the official Ride app to request, track, and manage
             rides.
           </p>

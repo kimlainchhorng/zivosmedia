@@ -50,7 +50,7 @@
     "type-check:worker": "node --max-old-space-size=8192 ./node_modules/typescript/bin/tsc --noEmit -p tsconfig.cloudflare.json",
     "verify:fast": "npm run type-check && npm run type-check:worker",
     "update": "npm run type-check && npm run type-check:worker && npm run test:zivo-ride-contract && npm run test:zivo-ride-production-boundary && npm run test:supabase-schema-contract && npm run test:linked-devices-contract && npm run test:native-splash-boot && npm run qa:zivo-ride-production-boundary && npm run build",
-    "test:zivo-ride-contract": "vitest run src/lib/canonicalRideLaunch.test.ts src/lib/maps/openInZivoMap.test.ts src/lib/zivoRideProductionBoundary.test.ts src/pages/app/CanonicalRidePage.test.tsx src/pages/app/ServicesPage.test.ts",
+    "test:zivo-ride-contract": "vitest run src/lib/canonicalRideLaunch.test.ts src/lib/maps/openInZivoMap.test.ts src/lib/zivoRideProductionBoundary.test.ts src/lib/p23MediaEmbedHonesty.test.ts src/pages/app/CanonicalRidePage.test.tsx src/pages/app/ServicesPage.test.ts",
     "test:zivo-ride-production-boundary": "node --test scripts/deploy/env-preflight.test.mjs scripts/qa/zivo-ride-production-boundary-contracts.test.mjs",
     "test:supabase-schema-contract": "vitest run src/test/supabaseTableReferenceContract.test.ts src/test/supabaseSelectColumnContract.test.ts",
     "test:linked-devices-contract": "vitest run src/test/linkedDevicesContract.test.ts",
