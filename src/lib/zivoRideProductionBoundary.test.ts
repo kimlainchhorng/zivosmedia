@@ -256,4 +256,33 @@ describe("ZIVO Ride production boundary", () => {
       ),
     ).toBeNull();
   });
+
+  it("never trusts retired Vite ports 5173/5174 as Media parents or authorize origins", () => {
+    const dev = { allowLocalDevelopment: true };
+    for (const origin of [
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "http://localhost:5174",
+      "http://127.0.0.1:5174",
+    ]) {
+      expect(resolveLocalRideAppBaseUrl(origin, dev)).toBeNull();
+      expect(canEmbedRideApp(origin, "http://localhost:5177", dev)).toBe(false);
+      const challenge = "e".repeat(43);
+      const url = new URL(`${origin}/auth/zivosmedia/authorize`);
+      url.searchParams.set("app_key", "zivo_ride");
+      url.searchParams.set(
+        "redirect_uri",
+        "http://localhost:5177/auth/callback?source=zivosmedia",
+      );
+      url.searchParams.set("state", "csrf-state");
+      url.searchParams.set("code_challenge", challenge);
+      url.searchParams.set("code_challenge_method", "S256");
+      expect(
+        getRideAuthorizeUrl(
+          { type: "zivo-ride:authorize", url: url.toString() },
+          dev,
+        ),
+      ).toBeNull();
+    }
+  });
 });
