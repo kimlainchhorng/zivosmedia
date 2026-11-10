@@ -4,6 +4,23 @@
 
 66+ commits have landed since release 1.0.0, including the chat/channel suite and the ZIVO Ride unification work. Note: many recent commits are **not** conventional-commit formatted, so release-please will not capture them automatically — the next release notes will need manual curation.
 
+## [1.0.3](https://github.com/kimlainchhorng/zivosmedia/compare/v1.0.2...v1.0.3) (2026-11-10)
+
+
+### Bug Fixes
+
+* **ci:** align wrangler pin and stabilize home visual fonts ([b06fc08](https://github.com/kimlainchhorng/zivosmedia/commit/b06fc08d5a654d4551b3817eebd89628cf03f17b))
+* **ci:** clear moderate npm audit and desktop feed notice e2e ([475446b](https://github.com/kimlainchhorng/zivosmedia/commit/475446b6c03e73a3eb5cbd0072fef6bfc157e3f1))
+* **ci:** keep dir-compare minimatch@3 on brace-expansion v1 ([2447015](https://github.com/kimlainchhorng/zivosmedia/commit/2447015d0d82f3e23ab71289ca8f50eeef1f0ef3))
+* **ci:** nest CJS-safe brace-expansion for electron minimatch ([f9bc1bf](https://github.com/kimlainchhorng/zivosmedia/commit/f9bc1bfc49aa23a73d4770b6e82ed980ab7ded7d))
+* **ci:** stop Khmer font-swap CLS; use CI visual baselines ([90cbf62](https://github.com/kimlainchhorng/zivosmedia/commit/90cbf62fdba015af4bd8e2dcfd18c703533bd1c1))
+* **ci:** unblock preview build, flights focus, visual baselines ([7b82e4c](https://github.com/kimlainchhorng/zivosmedia/commit/7b82e4cb6f760b0228e5c6bf8f9c6b62b80813e1))
+* **ci:** wait for feed NavBar chrome and narrow audit overrides ([7a88b98](https://github.com/kimlainchhorng/zivosmedia/commit/7a88b98131733be55e2874f77d975754f33c493e))
+* **i18n:** keep Khmer swap fonts without public-home CLS ([436287a](https://github.com/kimlainchhorng/zivosmedia/commit/436287a1aec3a278eb2fac9000158000f0a9cd4a))
+* **i18n:** move Khmer font gate to CSP-safe external script ([bef079c](https://github.com/kimlainchhorng/zivosmedia/commit/bef079c2de83d73ae9e98d64f9433fef327cea39))
+* **p23:** Media Ride embed forbid-path honesty and origin pins ([77c8215](https://github.com/kimlainchhorng/zivosmedia/commit/77c8215aee83e3e36b89b3af5b8885000f5543ef))
+* **travel:** show HotelLanding Coverflow on travel host with light controls ([0de8d53](https://github.com/kimlainchhorng/zivosmedia/commit/0de8d535266584efd91fe1e7a38a2cda93481984))
+
 ## [1.0.2](https://github.com/kimlainchhorng/zivosmedia/compare/v1.0.1...v1.0.2) (2026-09-11)
 
 
