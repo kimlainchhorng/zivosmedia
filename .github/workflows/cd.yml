@@ -61,6 +61,11 @@ jobs:
           NETLIFY: "true"
           CONTEXT: deploy-preview
           NODE_OPTIONS: "--max-old-space-size=8192"
+          # Preview skips production preflight, but Vite still requires the
+          # public Supabase build vars (same contract as CI / bundle-size).
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ vars.VITE_SUPABASE_PROJECT_ID || secrets.VITE_SUPABASE_PROJECT_ID }}
         run: node scripts/deploy/netlify-build.mjs
 
       - name: Upload dist artifact

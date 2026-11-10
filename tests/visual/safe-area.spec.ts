@@ -163,6 +163,11 @@ async function waitForStableVisuals(
         }),
       );
     });
+    // Khmer toggle label (ភាសាខ្មែរ) must finish loading fonts before capture;
+    // otherwise Linux baselines flip between tofu boxes and real glyphs.
+    await page.evaluate(async () => {
+      if (document.fonts?.ready) await document.fonts.ready;
+    });
   } else if (routeName === "account") {
     await page
       .getByRole("button", { name: "Back to Zivo" })

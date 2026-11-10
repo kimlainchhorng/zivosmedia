@@ -127,6 +127,9 @@ describe("deploy workflow gates", () => {
       expect(workflow).toContain("id: netlify-secrets");
       expect(workflow).toContain("steps.netlify-secrets.outputs.available == 'true'");
       expect(workflow).toContain("Skipping Netlify preview deploy because NETLIFY_AUTH_TOKEN or NETLIFY_SITE_ID is missing.");
+      // Vite build still needs public Supabase env even when preflight is skipped.
+      expect(workflow).toContain("VITE_SUPABASE_URL:");
+      expect(workflow).toContain("VITE_SUPABASE_PUBLISHABLE_KEY:");
     }
   });
 
