@@ -1,16 +1,17 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { applyLanguageToDocument, KHMER_FONT_WOFF2 } from "@/lib/i18n/languagePreference";
 
 const root = process.cwd();
 const read = (relativePath: string) =>
   readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
 
-describe("Khmer webfont CLS guard", () => {
-  it("keeps Noto Sans Khmer on font-display:optional to avoid late-swap CLS", () => {
+describe("Khmer webfont CLS + late-apply guard", () => {
+  it("keeps Noto on font-display:swap so mid-session language switches still get glyphs", () => {
     const css = read("public/fonts/noto-sans-khmer.css");
-    expect(css).not.toMatch(/font-display:\s*swap/);
-    expect(css.match(/font-display:\s*optional/g)?.length).toBeGreaterThanOrEqual(9);
+    expect(css).not.toMatch(/font-display:\s*optional/);
+    expect(css.match(/font-display:\s*swap/g)?.length).toBeGreaterThanOrEqual(9);
   });
 
   it("prefers the shipped Noto family before any unloaded Battambang name", () => {
@@ -22,5 +23,26 @@ describe("Khmer webfont CLS guard", () => {
     const block = css.slice(start, end);
     expect(block).toContain("'Noto Sans Khmer'");
     expect(block).not.toMatch(/font-family:\s*'Battambang'/);
+  });
+
+  it("gates prerendered km first paint on font readiness to keep public-home CLS low", () => {
+    const prerender = read("scripts/seo/prerender-public-home.mjs");
+    expect(prerender).toContain("zivo-km-font-pending");
+    expect(prerender).toContain('document.fonts.load');
+    expect(prerender).toContain('rel="preload"');
+  });
+
+  it("preloads the Khmer WOFF2 and warms document.fonts when applying km", () => {
+    document.head.innerHTML = "";
+    document.documentElement.removeAttribute("lang");
+    applyLanguageToDocument("km");
+    expect(document.documentElement.getAttribute("lang")).toBe("km");
+    expect(document.getElementById("zivo-khmer-font")).toBeTruthy();
+    for (const href of KHMER_FONT_WOFF2) {
+      const preload = document.head.querySelector(
+        `link[rel="preload"][as="font"][href="${href}"]`,
+      );
+      expect(preload).toBeTruthy();
+    }
   });
 });

@@ -64,7 +64,17 @@ try {
     if (language === 'km') {
       const fontCss = await readFile(path.join(root, 'public/fonts/noto-sans-khmer.css'), 'utf8');
       const khmerFont = fontCss.match(/url\(([^)]+)\)/)[1];
-      html = html.replace('</head>', `<style id="zivo-khmer-font">${fontCss}</style><link rel="preload" as="font" type="font/woff2" crossorigin href="${khmerFont}"></head>`);
+      // Hide body until Noto is ready (or 2s) so slow-4G LHCI does not paint
+      // fallback glyphs then swap — that was CLS 0.139. SPA language switches
+      // still use font-display:swap + preload/warm in applyLanguageToDocument.
+      html = html.replace(
+        '</head>',
+        `<style id="zivo-khmer-font">${fontCss}</style>` +
+          `<link rel="preload" as="font" type="font/woff2" crossorigin href="${khmerFont}">` +
+          `<style>html.zivo-km-font-pending body{visibility:hidden}</style>` +
+          `<script>(function(){var r=document.documentElement,d=0;function go(){if(d)return;d=1;r.classList.remove("zivo-km-font-pending")}r.classList.add("zivo-km-font-pending");var s="\\u1780\\u17C6\\u1796\\u17BB\\u1787\\u17B6";if(document.fonts&&document.fonts.load){Promise.all([document.fonts.load('400 16px "Noto Sans Khmer"',s),document.fonts.load('700 16px "Noto Sans Khmer"',s)]).then(go,go)}else go();setTimeout(go,2000)})();</script>` +
+          `</head>`,
+      );
     }
     if (pagePath !== '/') {
       const i = language === 'km' ? 1 : 0;

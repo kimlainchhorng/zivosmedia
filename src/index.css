@@ -2028,9 +2028,9 @@ html {
 
 /* ── Khmer Language Typography ── */
 /* Noto first: Battambang is not shipped as a webfont here. Preferring a missing
- * family first + `font-display: swap` on Noto caused measurable CLS on
- * `/?lang=km` under slow-4G Lighthouse (0.139 > 0.099). Noto uses
- * `font-display: optional` so a late download never swaps after first paint. */
+ * family first caused extra fallback churn on `/?lang=km`. Noto stays on
+ * `font-display: swap` for SPA language switches; prerendered km pages gate
+ * first paint on font readiness so LHCI CLS stays ≤ 0.099. */
 html[lang="km"],
 html[lang="km"] body,
 html[lang="km"] * {
