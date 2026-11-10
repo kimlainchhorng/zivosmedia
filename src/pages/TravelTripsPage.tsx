@@ -9,6 +9,7 @@ import { withRedirectParam } from "@/lib/authRedirect";
 import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, Plane, Loader2 } from "lucide-react";
 import PullToRefresh from "@/components/shared/PullToRefresh";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -43,6 +44,7 @@ export default function TravelTripsPage() {
    // Mobile and desktop use the same trips view
 
   return (
+    <TravelPageFrame>
     <PullToRefresh onRefresh={handlePullRefresh} className="min-h-screen bg-background pb-20">
     <motion.div
       initial={{ opacity: 0 }}
@@ -130,5 +132,6 @@ export default function TravelTripsPage() {
       <MobileBottomNav />
     </motion.div>
     </PullToRefresh>
+    </TravelPageFrame>
   );
 }

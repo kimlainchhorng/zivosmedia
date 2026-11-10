@@ -5,6 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
+import { Coverflow3D } from "@/components/zivo-travel";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import GlobalTrustBar from "@/components/shared/GlobalTrustBar";
@@ -52,6 +55,7 @@ export default function HotelLanding() {
     : "Compare hotel prices from 500+ trusted travel partners. Find the best rates on hotels worldwide. No booking fees on ZIVO.";
 
   const heroImage = heroPhotos.hotels;
+  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
 
   const handleSearch = () => {
     if (destination) {
@@ -62,6 +66,7 @@ export default function HotelLanding() {
   };
 
   return (
+    <TravelPageFrame>
     <div className="min-h-screen bg-background">
       <BundleProgressBanner step="hotel" />
       <SEOHead
@@ -208,6 +213,37 @@ export default function HotelLanding() {
               <h2 className="font-display text-2xl font-bold">Popular Destinations</h2>
             </div>
 
+            {isTravelHost ? (
+              <Coverflow3D
+                items={popularCities}
+                ariaLabel="Popular hotel destinations"
+                height="h-[360px] sm:h-[400px]"
+                cardClassName="w-[240px] sm:w-[280px]"
+                onLaunch={(dest) => {
+                  navigate(`/hotels/in-${dest.city.toLowerCase().replace(/\s+/g, "-")}`);
+                }}
+                renderItem={(dest) => {
+                  const photo = destinationPhotos[dest.cityKey];
+                  return (
+                    <div className="relative h-full w-full overflow-hidden bg-slate-950">
+                      <img
+                        src={photo?.src || "https://images.unsplash.com/photo-1496568816309-51d7c20e3b21?w=400&h=400&fit=crop&q=75&fm=webp"}
+                        alt={photo?.alt || `Hotels in ${dest.city}`}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                        <h3 className="font-bold text-lg">{dest.city}</h3>
+                        <p className="text-xs text-white/75">{dest.country}</p>
+                        <p className="text-xs text-amber-200/90 mt-1">{dest.hotels.toLocaleString()} hotels · from ${dest.avgPrice}</p>
+                      </div>
+                    </div>
+                  );
+                }}
+              />
+            ) : (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {popularCities.map((dest) => {
                 const photo = destinationPhotos[dest.cityKey];
@@ -248,6 +284,7 @@ export default function HotelLanding() {
                 );
               })}
             </div>
+            )}
           </div>
         </section>
 
@@ -309,5 +346,6 @@ export default function HotelLanding() {
       
       <Footer />
     </div>
+    </TravelPageFrame>
   );
 }

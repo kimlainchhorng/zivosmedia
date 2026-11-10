@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import Header from "@/components/Header";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 import Footer from "@/components/Footer";
 import { useGoBack } from "@/hooks/useGoBack";
 
@@ -156,6 +157,7 @@ const TravelInsurance = () => {
   ];
 
   return (
+    <TravelPageFrame>
     <div className="min-h-screen bg-background safe-area-top safe-area-bottom">
       <Header />
 
@@ -491,6 +493,7 @@ const TravelInsurance = () => {
 
       <Footer />
     </div>
+    </TravelPageFrame>
   );
 };
 

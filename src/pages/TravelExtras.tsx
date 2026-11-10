@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/tooltip";
 import { buildOutboundURL } from "@/lib/outboundTracking";
 import Header from "@/components/Header";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import GlobalTrustBar from "@/components/shared/GlobalTrustBar";
@@ -229,6 +230,7 @@ export default function TravelExtras() {
   const [city, setCity] = useState('');
 
   return (
+    <TravelPageFrame>
     <>
       <SEOHead
         title="Travel Extras - Tours, Transfers, eSIM & More | ZIVO"
@@ -449,5 +451,6 @@ export default function TravelExtras() {
         <Footer />
       </div>
     </>
+    </TravelPageFrame>
   );
 }
