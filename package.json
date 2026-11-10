@@ -281,15 +281,63 @@
     "brace-expansion": "5.0.12",
     "deepmerge": "4.3.1",
     "fast-uri": "3.1.9",
-    "glob": "14.0.4",
     "js-yaml": "^4.3.2",
-    "minimatch": "11.0.5",
     "postcss-selector-parser": "6.1.5",
     "serialize-javascript": "^7.1.4",
     "sharp": "$sharp",
     "undici": "7.30.2",
     "xcode": {
       "uuid": "11.1.1"
+    },
+    "eslint": {
+      "minimatch": "11.0.5"
+    },
+    "@eslint/config-array": {
+      "minimatch": "11.0.5"
+    },
+    "typescript-eslint": {
+      "minimatch": "11.0.5"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "11.0.5"
+    },
+    "@typescript-eslint/utils": {
+      "minimatch": "11.0.5"
+    },
+    "vite-plugin-pwa": {
+      "glob": "14.0.4",
+      "minimatch": "11.0.5",
+      "workbox-build": {
+        "glob": "14.0.4",
+        "minimatch": "11.0.5"
+      }
+    },
+    "workbox-build": {
+      "glob": "14.0.4",
+      "minimatch": "11.0.5"
+    },
+    "@electron/asar": {
+      "glob": "7.2.3",
+      "minimatch": "3.1.5"
+    },
+    "@electron/universal": {
+      "minimatch": "6.2.3"
+    },
+    "app-builder-lib": {
+      "minimatch": "6.2.3",
+      "@electron/asar": {
+        "glob": "7.2.3",
+        "minimatch": "3.1.5"
+      },
+      "@electron/universal": {
+        "minimatch": "6.2.3"
+      }
+    },
+    "electron-builder": {
+      "minimatch": "6.2.3"
+    },
+    "dmg-builder": {
+      "minimatch": "6.2.3"
     }
   },
   "devDependencies": {

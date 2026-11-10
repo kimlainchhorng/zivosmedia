@@ -90,21 +90,18 @@ for (const surface of SURFACES) {
 
     test("does not cover the header it is warning above", async ({ page }) => {
       await showNotice(page);
+      // Desktop /feed mounts NavBar behind Suspense; wait for the header control
+      // first so fixed chrome is measurable before asserting notice placement.
+      const control = surface.control(page);
+      await expect(control).toBeVisible({ timeout: 15_000 });
+      await expect
+        .poll(async () => chromeBottom(page), { timeout: 15_000 })
+        .toBeGreaterThan(0);
       const box = await notice(page).boundingBox();
       expect(box).not.toBeNull();
       const bottom = await chromeBottom(page);
-      if (bottom > 0) {
-        expect(box!.y).toBeGreaterThanOrEqual(bottom - 1);
-        return;
-      }
-      // Desktop /feed has no fixed/sticky top chrome today: the mobile sticky
-      // header is `lg:hidden`, and GlobalDesktopNav excludes `/feed`. Fall back
-      // to the interactive header control — the notice must not cover it.
-      const control = surface.control(page);
-      await expect(control).toBeVisible();
-      const controlBox = await control.boundingBox();
-      expect(controlBox).not.toBeNull();
-      expect(box!.y + box!.height).toBeLessThanOrEqual(controlBox!.y + 1);
+      // Notice must sit below the fixed/sticky header chrome (not above the control).
+      expect(box!.y).toBeGreaterThanOrEqual(bottom - 1);
     });
 
     test("lets a tap through to the header while it is on screen", async ({ page }) => {
