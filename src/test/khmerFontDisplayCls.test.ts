@@ -25,11 +25,16 @@ describe("Khmer webfont CLS + late-apply guard", () => {
     expect(block).not.toMatch(/font-family:\s*'Battambang'/);
   });
 
-  it("gates prerendered km first paint on font readiness to keep public-home CLS low", () => {
+  it("gates prerendered km first paint via a CSP-safe external script", () => {
     const prerender = read("scripts/seo/prerender-public-home.mjs");
+    const gate = read("public/public-khmer-font-gate.js");
     expect(prerender).toContain("zivo-km-font-pending");
-    expect(prerender).toContain('document.fonts.load');
     expect(prerender).toContain('rel="preload"');
+    expect(prerender).toContain('src="/public-khmer-font-gate.js"');
+    // Production CSP is script-src 'self' only — no inline executable bootstrap.
+    expect(prerender).not.toMatch(/<script>\s*\(function/);
+    expect(gate).toContain("zivo-km-font-pending");
+    expect(gate).toContain("document.fonts.load");
   });
 
   it("preloads the Khmer WOFF2 and warms document.fonts when applying km", () => {
