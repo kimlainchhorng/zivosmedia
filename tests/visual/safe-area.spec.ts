@@ -118,6 +118,57 @@ async function prepareStableVisualPage(page: import("@playwright/test").Page) {
   });
 }
 
+/**
+ * English Cambodia home still paints `ភាសាខ្មែរ` on the language toggle, but
+ * `applyLanguageToDocument` only injects Noto when `html[lang="km"]`. Without
+ * the webfont, Linux CI flips between tofu boxes and incidental system glyphs
+ * — which also shifts the SE bottom crop. Force-load Noto for visual capture.
+ */
+async function ensureKhmerWebfontForVisuals(
+  page: import("@playwright/test").Page,
+) {
+  await page.evaluate(async () => {
+    const sample = "ភាសាខ្មែរ";
+    const cssHref = "/fonts/noto-sans-khmer.css";
+
+    if (!document.getElementById("zivo-khmer-font")) {
+      await new Promise<void>((resolve, reject) => {
+        const link = document.createElement("link");
+        link.id = "zivo-khmer-font";
+        link.rel = "stylesheet";
+        link.href = cssHref;
+        link.onload = () => resolve();
+        link.onerror = () =>
+          reject(new Error(`Failed to load Khmer webfont stylesheet ${cssHref}`));
+        document.head.appendChild(link);
+      });
+    }
+
+    if (!document.getElementById("__qa_khmer_font")) {
+      const style = document.createElement("style");
+      style.id = "__qa_khmer_font";
+      // English hub keeps lang=en on <html>; the toggle alone is lang=km.
+      style.textContent = `
+        [lang="km"], [lang="km"] * {
+          font-family: "Noto Sans Khmer", sans-serif !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    await document.fonts.load(`400 14px "Noto Sans Khmer"`, sample);
+    await document.fonts.load(`600 14px "Noto Sans Khmer"`, sample);
+    await document.fonts.ready;
+
+    const deadline = Date.now() + 10_000;
+    while (Date.now() < deadline) {
+      if (document.fonts.check(`14px "Noto Sans Khmer"`, sample)) return;
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    throw new Error('Noto Sans Khmer did not become ready for "ភាសាខ្មែរ"');
+  });
+}
+
 async function waitForStableVisuals(
   page: import("@playwright/test").Page,
   routeName: string,
@@ -163,11 +214,7 @@ async function waitForStableVisuals(
         }),
       );
     });
-    // Khmer toggle label (ភាសាខ្មែរ) must finish loading fonts before capture;
-    // otherwise Linux baselines flip between tofu boxes and real glyphs.
-    await page.evaluate(async () => {
-      if (document.fonts?.ready) await document.fonts.ready;
-    });
+    await ensureKhmerWebfontForVisuals(page);
   } else if (routeName === "account") {
     await page
       .getByRole("button", { name: "Back to Zivo" })
