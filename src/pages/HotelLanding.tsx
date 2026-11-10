@@ -55,7 +55,8 @@ export default function HotelLanding() {
     : "Compare hotel prices from 500+ trusted travel partners. Find the best rates on hotels worldwide. No booking fees on ZIVO.";
 
   const heroImage = heroPhotos.hotels;
-  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
+  const isTravelHost =
+    typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
 
   const handleSearch = () => {
     if (destination) {
@@ -219,6 +220,7 @@ export default function HotelLanding() {
                 ariaLabel="Popular hotel destinations"
                 height="h-[360px] sm:h-[400px]"
                 cardClassName="w-[240px] sm:w-[280px]"
+                controlsTone="onLight"
                 onLaunch={(dest) => {
                   navigate(`/hotels/in-${dest.city.toLowerCase().replace(/\s+/g, "-")}`);
                 }}

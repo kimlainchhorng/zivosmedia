@@ -40,6 +40,8 @@ export function Coverflow3D<T>({
   cardClassName = "w-[268px] sm:w-[320px]",
   className,
   ariaLabel = "Carousel",
+  /** Arrow/dot contrast: onDark keeps white controls for dark decks; onLight for pale page sections. */
+  controlsTone = "onDark",
 }: {
   items: T[];
   renderItem: (item: T, isCenter: boolean, index: number) => ReactNode;
@@ -50,11 +52,18 @@ export function Coverflow3D<T>({
   cardClassName?: string;
   className?: string;
   ariaLabel?: string;
+  controlsTone?: "onDark" | "onLight";
 }) {
   const reduce = useReducedMotion();
   const total = items.length;
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  const onLight = controlsTone === "onLight";
+  const arrowClass = onLight
+    ? "absolute top-1/2 z-[60] grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-slate-900/15 bg-white/95 text-slate-900 shadow-sm backdrop-blur transition hover:scale-105 hover:bg-white"
+    : "absolute top-1/2 z-[60] grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur transition hover:scale-105 hover:bg-white/20";
+  const dotActiveClass = onLight ? "w-8 bg-slate-900" : "w-8 bg-white";
+  const dotIdleClass = onLight ? "w-2 bg-slate-900/35" : "w-2 bg-white/40";
 
   const select = (next: number) => {
     if (total === 0) return;
@@ -125,7 +134,7 @@ export function Coverflow3D<T>({
             type="button"
             onClick={() => go(-1)}
             aria-label="Previous"
-            className="absolute left-1 top-1/2 z-[60] grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur transition hover:scale-105 hover:bg-white/20"
+            className={cn(arrowClass, "left-1")}
           >
             ‹
           </button>
@@ -133,7 +142,7 @@ export function Coverflow3D<T>({
             type="button"
             onClick={() => go(1)}
             aria-label="Next"
-            className="absolute right-1 top-1/2 z-[60] grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur transition hover:scale-105 hover:bg-white/20"
+            className={cn(arrowClass, "right-1")}
           >
             ›
           </button>
@@ -146,7 +155,7 @@ export function Coverflow3D<T>({
                 aria-label={`Go to item ${i + 1}`}
                 aria-selected={i === index}
                 role="tab"
-                className={cn("h-2 rounded-full transition-all", i === index ? "w-8 bg-white" : "w-2 bg-white/40")}
+                className={cn("h-2 rounded-full transition-all", i === index ? dotActiveClass : dotIdleClass)}
               />
             ))}
           </div>
