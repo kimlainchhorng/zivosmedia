@@ -119,7 +119,7 @@ jobs:
       - name: Upload Playwright HTML report
         if: always()
         id: html-report
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: safe-area-visual-report
           path: playwright-report/
@@ -128,7 +128,7 @@ jobs:
       - name: Upload diff images
         if: always()
         id: diffs
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: safe-area-visual-diffs
           path: test-results/visual/
@@ -228,7 +228,7 @@ jobs:
 
       - name: Upload regenerated baselines
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.update_baselines
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: regenerated-baselines
           path: tests/visual/__screenshots__/
