@@ -135,6 +135,18 @@ describe("applyLanguageToDocument", () => {
     applyLanguageToDocument("km");
     expect(document.querySelectorAll("#zivo-khmer-font")).toHaveLength(1);
   });
+
+  it("preloads the Khmer WOFF2 when switching into Khmer after paint", () => {
+    document.head.innerHTML = "";
+    document.documentElement.removeAttribute("lang");
+    applyLanguageToDocument("en");
+    expect(document.querySelector('link[rel="preload"][as="font"]')).toBeNull();
+    applyLanguageToDocument("km");
+    expect(
+      document.querySelectorAll('link[rel="preload"][as="font"][type="font/woff2"]')
+        .length,
+    ).toBeGreaterThanOrEqual(1);
+  });
 });
 
 describe("syncAccountLanguage", () => {

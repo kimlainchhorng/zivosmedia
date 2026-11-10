@@ -65,18 +65,25 @@ interface FlightSearchFormProProps {
   className?: string;
 }
 
-const FOCUSABLE = 'input,button,select,textarea,[tabindex]:not([tabindex="-1"])';
+const EDITABLE = "input,textarea,select";
+const FOCUSABLE = `${EDITABLE},button,[tabindex]:not([tabindex="-1"])`;
 
 /**
  * Move focus to the first invalid field. `data-flight-field` marks the field's
  * *wrapper*, and a bare `div` takes no focus — calling `.focus()` on it left the
  * caret on `<body>`, so the error was announced to nobody and the keyboard user
- * was stranded at the top of the form. Focus the control inside instead.
+ * was stranded at the top of the form. Prefer the editable control (input) over
+ * sibling chrome like clear buttons so the caret lands where the user can type.
  */
 function focusField(field: string) {
   const scope = document.querySelector<HTMLElement>(`[data-flight-field="${field}"]`);
   if (!scope) return;
-  const control = scope.matches(FOCUSABLE) ? scope : scope.querySelector<HTMLElement>(FOCUSABLE);
+  const editable = scope.matches(EDITABLE)
+    ? scope
+    : scope.querySelector<HTMLElement>(EDITABLE);
+  const control =
+    editable ??
+    (scope.matches(FOCUSABLE) ? scope : scope.querySelector<HTMLElement>(FOCUSABLE));
   control?.focus();
 }
 

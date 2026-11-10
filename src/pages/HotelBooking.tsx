@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import HotelResultsSkeleton from "@/components/hotel/HotelResultsSkeleton";
@@ -104,6 +105,7 @@ const HotelBooking = () => {
   };
 
   return (
+    <TravelPageFrame>
     <div className="min-h-screen bg-background safe-area-top safe-area-bottom">
       <SEOHead 
         title="ZIVO Hotels – Compare & Book Hotels Worldwide"
@@ -419,6 +421,7 @@ const HotelBooking = () => {
       <Footer />
       <MobileBottomNav />
     </div>
+    </TravelPageFrame>
   );
 };
 

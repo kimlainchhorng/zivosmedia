@@ -48,7 +48,7 @@ describe("Cloudflare AI release wiring", () => {
 
     expect(workflow).toContain('echo "relevant=true" >> "$GITHUB_OUTPUT"');
     expect(workflow).not.toContain("git diff --name-only HEAD^ HEAD");
-    expect(packageJson.devDependencies?.wrangler).toBe("4.127.1");
+    expect(packageJson.devDependencies?.wrangler).toBe("4.159.0");
   });
 
   it("documents a publishable key without inviting a privileged credential", () => {

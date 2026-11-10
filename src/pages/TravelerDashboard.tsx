@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { TripTimeline, AIConciergeTrigger } from "@/components/profile";
 import MobileBottomNav from "@/components/shared/MobileBottomNav";
 import SEOHead from "@/components/SEOHead";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +72,7 @@ export default function TravelerDashboard() {
   ];
 
   return (
+    <TravelPageFrame>
     <div className="min-h-screen bg-background pb-24 relative overflow-hidden safe-area-top">
       <SEOHead title="My Dashboard – ZIVO" description="View your travel overview, achievements, and upcoming trips on ZIVO." noIndex={true} />
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[radial-gradient(circle,hsl(var(--primary)/0.04)_0%,transparent_70%)] pointer-events-none" />
@@ -346,5 +348,6 @@ export default function TravelerDashboard() {
       <AIConciergeTrigger />
       <MobileBottomNav />
     </div>
+    </TravelPageFrame>
   );
 }

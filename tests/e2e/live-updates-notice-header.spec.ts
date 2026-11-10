@@ -90,9 +90,17 @@ for (const surface of SURFACES) {
 
     test("does not cover the header it is warning above", async ({ page }) => {
       await showNotice(page);
+      // Desktop /feed mounts NavBar behind Suspense; wait for the header control
+      // first so fixed chrome is measurable before asserting notice placement.
+      const control = surface.control(page);
+      await expect(control).toBeVisible({ timeout: 15_000 });
+      await expect
+        .poll(async () => chromeBottom(page), { timeout: 15_000 })
+        .toBeGreaterThan(0);
       const box = await notice(page).boundingBox();
+      expect(box).not.toBeNull();
       const bottom = await chromeBottom(page);
-      expect(bottom).toBeGreaterThan(0);
+      // Notice must sit below the fixed/sticky header chrome (not above the control).
       expect(box!.y).toBeGreaterThanOrEqual(bottom - 1);
     });
 

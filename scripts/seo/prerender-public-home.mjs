@@ -64,7 +64,21 @@ try {
     if (language === 'km') {
       const fontCss = await readFile(path.join(root, 'public/fonts/noto-sans-khmer.css'), 'utf8');
       const khmerFont = fontCss.match(/url\(([^)]+)\)/)[1];
-      html = html.replace('</head>', `<style id="zivo-khmer-font">${fontCss}</style><link rel="preload" as="font" type="font/woff2" crossorigin href="${khmerFont}"></head>`);
+      // Hide body until Noto is ready (or 2s) so slow-4G LHCI does not paint
+      // fallback glyphs then swap — that was CLS 0.139. Gate logic lives in
+      // /public-khmer-font-gate.js (script-src 'self'); never inline executable
+      // JS — production CSP forbids unsafe-inline. SPA language switches still
+      // use font-display:swap + preload/warm in applyLanguageToDocument.
+      html = html.replace(
+        '</head>',
+        `<style id="zivo-khmer-font">${fontCss}</style>` +
+          `<link rel="preload" as="font" type="font/woff2" crossorigin href="${khmerFont}">` +
+          `<style>html.zivo-km-font-pending body{visibility:hidden}</style>` +
+          // Blocking (no defer/async): must add the pending class before <body>
+          // is parsed so the first paint cannot show fallback glyphs.
+          `<script src="/public-khmer-font-gate.js"></script>` +
+          `</head>`,
+      );
     }
     if (pagePath !== '/') {
       const i = language === 'km' ? 1 : 0;
