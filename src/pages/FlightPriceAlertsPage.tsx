@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Plane, Sparkles, Calendar, Users, Clock, Trash2, TrendingDown, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SEOHead from "@/components/SEOHead";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -93,6 +94,7 @@ export default function FlightPriceAlertsPage() {
   };
 
   return (
+    <TravelPageFrame>
     <SwipeBackContainer className="min-h-screen bg-background pb-12">
       <SEOHead title="Flight Price Alerts · ZIVO" description="Your flight price watchers." noIndex />
 
@@ -210,5 +212,6 @@ export default function FlightPriceAlertsPage() {
         )}
       </div>
     </SwipeBackContainer>
+    </TravelPageFrame>
   );
 }

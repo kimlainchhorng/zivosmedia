@@ -10,6 +10,8 @@ One agent per file/page. Run `npm run update` before moving anything to **Done**
 
 ## In progress (owner session)
 
+- **Phase B Media full-prod gaps — software-auth brief + Phase 3 status + travel TravelPageFrame funnel wraps (no Coverflow rewrite, no dedicated backend flip, no auth model change) — @cursor-agent, 2026-11-10.**
+
 - **REVIEW CANDIDATE — Embedded Ride private-rebook host boundary — @codex, 2026-10-30.** Isolated local review owns `src/lib/canonicalRideLaunch.ts`, its tests and a focused host-frame regression. Marked History/Receipt routes restore to clean Home instead of becoming ordinary shared links; 35 focused host checks pass. The original shared dependency tree lacked `@sentry/browser`; a separate checkout restored locked dependencies with lifecycle scripts disabled. Its update gate passed app and Worker type-checks and 240 focused and boundary checks, then stopped at build because no environment was configured. A separate build with synthetic settings passed; this is not a production-configured build or a fully completed update gate. Older already-unmarked links remain indistinguishable from shared links. No live traffic, deployment or GitHub Actions.
 
 

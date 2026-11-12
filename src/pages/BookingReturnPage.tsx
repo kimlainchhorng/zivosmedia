@@ -39,6 +39,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import NavBar from "@/components/home/NavBar";
 import Footer from "@/components/Footer";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 import { cn } from "@/lib/utils";
@@ -118,12 +119,14 @@ export default function BookingReturnPage() {
   // Loading state
   if (pageStatus === "loading") {
     return (
+      <TravelPageFrame>
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 mx-auto text-primary animate-spin mb-4" />
           <p className="text-muted-foreground">Processing your booking...</p>
         </div>
       </div>
+      </TravelPageFrame>
     );
   }
 
@@ -148,6 +151,7 @@ export default function BookingReturnPage() {
   } : null;
 
   return (
+    <TravelPageFrame>
     <>
       <SEOHead
         title={`${getPageTitle()} - Hizovo`}
@@ -473,5 +477,6 @@ export default function BookingReturnPage() {
         <Footer />
       </div>
     </>
+    </TravelPageFrame>
   );
 }

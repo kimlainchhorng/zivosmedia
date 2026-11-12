@@ -131,20 +131,63 @@ export function resolveInitialLanguage(options: {
   return { code: FALLBACK_LANGUAGE, source: "fallback" };
 }
 
+/** Self-hosted Khmer subset — keep in sync with `public/fonts/noto-sans-khmer.css`. */
+export const KHMER_FONT_STYLESHEET = "/fonts/noto-sans-khmer.css";
+export const KHMER_FONT_WOFF2 = [
+  // Khmer unicode-range file (shared by 400/600/700 faces in the CSS).
+  "/fonts/noto-sans-khmer-v29/ijwCs5roRME5LLRxjsRb-gssOenAyendxrgV2c-Zw-9vR1IFeh7j.woff2",
+] as const;
+const KHMER_FONT_SAMPLE = "ភាសាខ្មែរ";
+
+function preloadKhmerFontFiles() {
+  for (const href of KHMER_FONT_WOFF2) {
+    const id = `zivo-khmer-preload-${href.slice(href.lastIndexOf("/") + 1)}`;
+    if (document.getElementById(id)) continue;
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "preload";
+    // setAttribute: jsdom's `link.as` IDL does not reflect into the attribute,
+    // and real browsers also honour the attribute for early fetch scanners.
+    link.setAttribute("as", "font");
+    link.type = "font/woff2";
+    link.crossOrigin = "anonymous";
+    link.href = href;
+    document.head.appendChild(link);
+  }
+}
+
+function warmKhmerFonts() {
+  if (!document.fonts?.load) return;
+  void Promise.all([
+    document.fonts.load(`400 16px "Noto Sans Khmer"`, KHMER_FONT_SAMPLE),
+    document.fonts.load(`600 16px "Noto Sans Khmer"`, KHMER_FONT_SAMPLE),
+    document.fonts.load(`700 16px "Noto Sans Khmer"`, KHMER_FONT_SAMPLE),
+  ]).catch(() => undefined);
+}
+
 /**
  * Applies the language to the document: the `lang` attribute assistive tech and
  * the CSS `:lang()` rules both read, plus the Khmer webfont, fetched only when
  * Khmer is actually being shown.
+ *
+ * Injects a WOFF2 preload + stylesheet, then warms `document.fonts` so a
+ * mid-session language switch still gets Noto (`font-display: swap`). Public
+ * `/?lang=km` prerenders separately gate first paint on font readiness to keep
+ * LHCI CLS ≤ 0.099 without leaving SPA routes stuck on fallback glyphs.
  */
 export function applyLanguageToDocument(code: string) {
   if (typeof document === "undefined") return;
   document.documentElement.setAttribute("lang", code);
-  if (code !== "km" || document.getElementById("zivo-khmer-font")) return;
-  const link = document.createElement("link");
-  link.id = "zivo-khmer-font";
-  link.rel = "stylesheet";
-  link.href = "/fonts/noto-sans-khmer.css";
-  document.head.appendChild(link);
+  if (code !== "km") return;
+  preloadKhmerFontFiles();
+  if (!document.getElementById("zivo-khmer-font")) {
+    const link = document.createElement("link");
+    link.id = "zivo-khmer-font";
+    link.rel = "stylesheet";
+    link.href = KHMER_FONT_STYLESHEET;
+    document.head.appendChild(link);
+  }
+  warmKhmerFonts();
 }
 
 /** Caches the active language without claiming the visitor chose it. */

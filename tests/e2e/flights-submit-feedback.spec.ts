@@ -33,14 +33,14 @@ test.describe("flights search submit feedback", () => {
   test("moves focus to the first invalid field", async ({ page }) => {
     await openFlights(page, "en");
     await searchButton(page).click();
-    // Not <body>: an unfocusable wrapper strands keyboard users at the top of
-    // the form with an error they were never sent to.
-    const focused = await page.evaluate(() => ({
-      tag: document.activeElement?.tagName ?? null,
-      invalid: document.activeElement?.getAttribute("aria-invalid"),
-    }));
-    expect(focused.tag).toBe("INPUT");
-    expect(focused.invalid).toBe("true");
+    // Focus is deferred one macrotask after validate() so React can paint
+    // aria-invalid. Wait for the departure input itself — an immediate
+    // activeElement check can still see the Search button (flake) or a
+    // wrapper that never takes caret.
+    const firstInvalid = page.locator(
+      '[data-flight-field="from"] input[aria-invalid="true"]',
+    );
+    await expect(firstInvalid).toBeFocused({ timeout: 5_000 });
   });
 
   test("names what is missing, in the reader's language", async ({ page }) => {

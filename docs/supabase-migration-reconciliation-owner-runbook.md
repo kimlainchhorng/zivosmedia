@@ -118,6 +118,27 @@ matching). Final dispositions in the review CSV:
 repo change — the owner should bless the bucket move once, then it is one
 `git mv` list. Rollback of everything recorded remains the backup table.
 
+### 2026-11-10 — Phase 3 status re-read (no writes; artifacts only)
+
+Re-counted committed reconciliation artifacts without re-running linked repair or
+`supabase db push` / `db pull` (still forbidden).
+
+| Artifact | Count |
+| --- | --- |
+| `docs/supabase-migration-reconciliation-phase3-review.csv` | **398** review rows still open |
+| Archive-safe evidence (NEVER-APPLIED / VERIFIER-LIMIT / DATA-EFFECTS + ZERO-RUNTIME-REFS) | **220** |
+| Owner product decisions (RUNTIME-REFS) | **146** |
+| Manual review (VERIFIER-LIMIT + RUNTIME-REFS) | **27** |
+| GRANT-DIFFERS | **4** |
+| PARTIALLY-RETIRED | **1** |
+| Mismatch dossier pairs | **17** (`…mismatches.csv` / `.md`) |
+| Stale unmatched-local CSV rows (pre-Phase-3 artifact; not re-scanned live) | **392** data rows |
+
+**Still blocked on owner:** bless archive `git mv` for the 220 zero-runtime-ref
+files (only after pinning tests are updated — prior archive attempt broke 86
+tests), then walk the 146+27+5 decision rows and the 17 mismatch pairs via the
+Phase 3 tree. No safe bulk apply. Tooling/docs-only refresh this pass.
+
 ---
 
 ## 1. Verified state (re-confirmed live 2026-09-03)

@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, NotebookPen, Plus, MapPin, Calendar, Trash2, Lock, Globe, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SEOHead from "@/components/SEOHead";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -129,6 +130,7 @@ export default function TravelJournalsPage() {
   const totalEntries = journals.reduce((s, j) => s + (j.entry_count ?? 0), 0);
 
   return (
+    <TravelPageFrame>
     <SwipeBackContainer className="min-h-screen bg-background pb-12">
       <SEOHead title="Travel Journals · ZIVO" description="Your trip-by-trip travel diary." noIndex />
 
@@ -312,5 +314,6 @@ export default function TravelJournalsPage() {
         )}
       </div>
     </SwipeBackContainer>
+    </TravelPageFrame>
   );
 }
